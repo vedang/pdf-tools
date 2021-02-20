@@ -235,8 +235,8 @@
   :group 'pdf-tools)
 
 (define-obsolete-variable-alias 'pdf-misc-print-programm
-  'pdf-misc-print-program "1.0")
-(defcustom pdf-misc-print-programm nil
+  'pdf-misc-print-program-executable "1.0")
+(defcustom pdf-misc-print-program-executable nil
   "The program used for printing.
 
 It is called with one argument, the PDF file."
@@ -245,14 +245,20 @@ It is called with one argument, the PDF file."
 
 (define-obsolete-variable-alias 'pdf-misc-print-programm-args
   'pdf-misc-print-program-args "1.0")
-(defcustom pdf-misc-print-programm-args nil
+(defcustom pdf-misc-print-program-args nil
   "List of additional arguments passed to `pdf-misc-print-program'."
   :group 'pdf-misc
   :type '(repeat string))
 
-(defun pdf-misc-print-programm (&optional interactive-p)
-  (or (and pdf-misc-print-programm
-           (executable-find pdf-misc-print-programm))
+(define-obsolete-function-alias 'pdf-misc-print-programm
+  'pdf-misc-print-program "1.0")
+(defun pdf-misc-print-program (&optional interactive-p)
+  "Return the program used to print PDFs (if the executable is installed).
+
+If INTERACTIVE-P is non-nil, ask the user for which program to
+use when printing the PDF. Optionally, save the choice"
+  (or (and pdf-misc-print-program-executable
+           (executable-find pdf-misc-print-program-executable))
       (when interactive-p
         (let* ((default (car (delq nil (mapcar
                                         'executable-find
@@ -264,17 +270,17 @@ It is called with one argument, the PDF file."
                   "Print with: " default nil t nil 'file-executable-p))))
           (when (and program
                      (executable-find program))
-            (when (y-or-n-p "Save choice using customize ?")
+            (when (y-or-n-p "Save choice using customize? ")
               (customize-save-variable
-               'pdf-misc-print-program program))
-            (setq pdf-misc-print-program program))))))
+               'pdf-misc-print-program-executable program))
+            (setq pdf-misc-print-program-executable program))))))
 
 (defun pdf-misc-print-document (filename &optional interactive-p)
   (interactive
    (list (pdf-view-buffer-file-name) t))
   (cl-check-type filename (and string file-readable))
-  (let ((program (pdf-misc-print-programm interactive-p))
-        (args (append pdf-misc-print-programm-args (list filename))))
+  (let ((program (pdf-misc-print-program interactive-p))
+        (args (append pdf-misc-print-program-args (list filename))))
     (unless program
       (error "No print program available"))
     (apply #'start-process "printing" nil program args)
