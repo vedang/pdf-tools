@@ -170,7 +170,7 @@
      project, those available as MSYS2 packages and numerous third-party
      binaries. It has been tested with emacs 25.1. Instructions are
      provided under [[#compilation-and-installation-on-windows][Compilation and installation on Windows]], below.
-     PDF Tools will successfully compile using Cygwin, but it will not be 
+     PDF Tools will successfully compile using Cygwin, but it will not be
      able to open PDFs properly due to the way binaries compiled with Cygwin
      handle file paths.
 
@@ -283,7 +283,7 @@
   (pdf-tools-install)
 #+end_src
   somewhere in your ~.emacs~.  Alternatively, and if you care about
-  start-up time, you may want to use 
+  start-up time, you may want to use
 #+begin_src elisp
   (pdf-loader-install)
 #+end_src
