@@ -369,7 +369,12 @@ Wraps the URI in \[\[ ... \]\] and calls `org-open-link-from-string'
 on the resulting string."
   (cl-check-type uri string)
   (message "Opening `%s' with Org" uri)
-  (org-open-link-from-string (format "[[%s]]" uri)))
+  (cond
+   ((fboundp 'org-link-open-from-string)
+    (org-link-open-from-string (format "[[%s]]" uri)))
+   ;; For Org 9.2 and older
+   ((fboundp 'org-open-link-from-string)
+    (org-open-link-from-string (format "[[%s]]" uri)))))
 
 (provide 'pdf-links)
 
