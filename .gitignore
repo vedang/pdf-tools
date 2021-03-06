@@ -5,3 +5,9 @@ pdf-tools-*.tar
 pdf-tools-*/
 pdf-tools-readme.txt
 pdf-tools-1.0.entry
+.git-fetch
+test/test.aux
+test/test.log
+test/test.out
+test/test.upa
+test/test.upb
