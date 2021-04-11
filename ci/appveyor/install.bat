@@ -26,5 +26,6 @@ IF %COMPILER%==msys2 (
   bash -lc "pacman -S --needed --noconfirm mingw-w64-x86_64-emacs"
 
   REM Set up Cask
-  bash -lc "curl -fsSL https://raw.githubusercontent.com/cask/cask/master/go | python2"
+  bash -lc "git clone https://github.com/cask/cask ~/.cask"
+
 )
