@@ -196,6 +196,9 @@
     libpoppler version, will be available.  These commands should give
     no error, otherwise you are in trouble.
 **** Compilation and installation on Windows
+     :PROPERTIES:
+     :CUSTOM_ID: compilation-and-installation-on-windows
+     :END:
       If using the GNU binaries for Windows, support for PNG and zlib
       must first be installed by copying the appropriate dlls into
       emacs' ~bin/~ directory. Most third-party binaries come with this

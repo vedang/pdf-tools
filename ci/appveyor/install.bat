@@ -28,4 +28,11 @@ IF %COMPILER%==msys2 (
   REM Set up Cask
   bash -lc "git clone https://github.com/cask/cask ~/.cask"
 
+  REM Download ssleay32 and libeay32 dlls
+  bash -lc "pushd /c/projects/pdf-tools; curl -fsSL https://indy.fulgan.com/SSL/openssl-1.0.2u-x64_86-win64.zip -o ./tmp/openssl.zip"
+
+  REM Extract *eay32 dlls to TMP
+  7z x -o%TMPDIR%\ %TMPDIR%\openssl.zip
+  bash -lc "pushd /c/projects/pdf-tools; echo Indy Fulgan download complete; pwd; ls -la ./tmp/"
+
 )
