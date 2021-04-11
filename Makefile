@@ -1,4 +1,4 @@
-
+CASK = cask
 EMACS ?= emacs
 # Handle the mess when inside Emacs.
 unexport INSIDE_EMACS		#cask not like this.
@@ -15,21 +15,21 @@ version=$(shell sed -ne 's/^;\+ *Version: *\([0-9.]\)/\1/p' lisp/pdf-tools.el)
 pkgname=pdf-tools-$(version)
 pkgfile=$(pkgname).tar
 
-.PHONY: all clean distclean bytecompile test check melpa cask-install
+.PHONY: all clean distclean bytecompile test check melpa
 
 all: $(pkgfile)
 
 # Create a elpa package including the server
 $(pkgfile): .cask/$(emacs_version) server/epdfinfo lisp/*.el
-	cask package .
+	$(CASK) package .
 
 # Compile the Lisp sources
 bytecompile: .cask/$(emacs_version)
-	cask exec $(emacs) --batch -L lisp -f batch-byte-compile lisp/*.el
+	$(CASK) exec $(emacs) --batch -L lisp -f batch-byte-compile lisp/*.el
 
 # Run ERT tests
 test: all
-	PACKAGE_TAR=$(pkgfile) cask exec ert-runner
+	PACKAGE_TAR=$(pkgfile) $(CASK) exec ert-runner
 
 check: test
 
@@ -41,7 +41,7 @@ test-all: test test-autobuild
 
 # Init cask
 .cask/$(emacs_version):
-	cask install
+	$(CASK) install
 
 # Run the autobuild script (installing depends and compiling)
 autobuild:
