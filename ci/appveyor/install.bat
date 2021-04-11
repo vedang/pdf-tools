@@ -20,7 +20,7 @@ IF %COMPILER%==msys2 (
   bash -lc "pacman -S --needed --noconfirm git"
 
   REM dependencies
-  bash -lc "pacman -S --needed --noconfirm mingw-w64-x86_64-zlib mingw-w64-x86_64-libpng mingw-w64-x86_64-poppler mingw-w64-x86_64-imagemagick openssl mingw-w64-x86_64-openssl"
+  bash -lc "pacman -S --needed --noconfirm mingw-w64-x86_64-zlib mingw-w64-x86_64-libpng mingw-w64-x86_64-poppler mingw-w64-x86_64-imagemagick openssl mingw-w64-x86_64-openssl mingw-w64-x86_64-python2"
 
   REM Set up emacs
   bash -lc "pacman -S --needed --noconfirm mingw-w64-x86_64-emacs"
