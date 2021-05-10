@@ -29,7 +29,6 @@
 (require 'cl-lib)
 (require 'format-spec)
 (require 'faces)
-(require 'image-mode)
 
 ;; These functions are only used after a PdfView window was asserted,
 ;; which won't succeed, if pdf-view.el isn't loaded.
@@ -92,6 +91,7 @@ remove the entry if the new value is `eql' to DEFAULT."
   (require 'image-mode)
   (defvar image-mode-winprops-original-function
     (symbol-function 'image-mode-winprops))
+  (devfar image-mode-winprops-alist)
   (eval-after-load "image-mode"
     '(defun image-mode-winprops (&optional window cleanup)
        (if (not (eq major-mode 'pdf-view-mode))
