@@ -29,6 +29,7 @@
 (require 'cl-lib)
 (require 'format-spec)
 (require 'faces)
+(require 'image-mode)
 
 ;; These functions are only used after a PdfView window was asserted,
 ;; which won't succeed, if pdf-view.el isn't loaded.
