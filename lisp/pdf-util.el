@@ -91,6 +91,7 @@ remove the entry if the new value is `eql' to DEFAULT."
   (require 'image-mode)
   (defvar image-mode-winprops-original-function
     (symbol-function 'image-mode-winprops))
+  (defvar image-mode-winprops-alist)
   (eval-after-load "image-mode"
     '(defun image-mode-winprops (&optional window cleanup)
        (if (not (eq major-mode 'pdf-view-mode))
