@@ -1,8 +1,9 @@
-;;; pdf-tools.el --- Support library for PDF documents. -*- lexical-binding:t -*-
+;;; pdf-tools.el --- Support library for PDF documents -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2013, 2014  Andreas Politz
 
 ;; Author: Andreas Politz <politza@fh-trier.de>
+;; URL: http://github.com/vedang/pdf-tools/
 ;; Keywords: files, multimedia
 ;; Package: pdf-tools
 ;; Version: 1.0

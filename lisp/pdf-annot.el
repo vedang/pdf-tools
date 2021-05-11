@@ -164,8 +164,7 @@ LaTeX fragment."
   (concat org-format-latex-header
           "\n\\setlength{\\textwidth}{12cm}")
   "Header used when latex compiling annotations.
-
-The default value is `org-format-latex-header' + \
+The default value is `org-format-latex-header' +
 \"\\n\\\\setlength{\\\\textwidth}{12cm}\"."
   :group 'pdf-annot
   :type 'string)

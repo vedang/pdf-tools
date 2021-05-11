@@ -114,7 +114,7 @@ image-format is available."
   :group 'pdf-tools-faces)
 
 (defcustom pdf-view-midnight-colors '("#839496" . "#002b36" )
-  "Colors used when `pdf-view-midnight-minor-mode' is activated.
+  "Colors used when command `pdf-view-midnight-minor-mode' is activated.
 
 This should be a cons \(FOREGROUND . BACKGROUND\) of colors."
   :group 'pdf-view
@@ -170,7 +170,7 @@ See :relief property in Info node `(elisp) Image Descriptors'."
   :type '(integer :tag "Pixel"))
 
 (defcustom pdf-view-use-unicode-ligther t
-  "Whether to use unicode symbols in the mode-line
+  "Decide whether to use unicode symbols in the mode-line.
 
 On some systems finding a font which supports those symbols can
 take some time.  If you don't want to spend that time waiting and
@@ -237,7 +237,7 @@ regarding display of the region in the later function.")
 
 (defconst pdf-view-have-image-mode-pixel-vscroll
   (>= emacs-major-version 27)
-  "Whether image-mode scrolls vertically by pixels.")
+  "Whether `image-mode' scrolls vertically by pixels.")
 
 
 ;; * ================================================================== *
