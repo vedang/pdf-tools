@@ -910,9 +910,7 @@ See also `pdf-view-use-imagemagick'."
 
 (defun pdf-view-use-scaling-p ()
   "Return t if scaling should be used."
-  (and (memq (pdf-view-image-type)
-             '(imagemagick image-io))
-       pdf-view-use-scaling))
+  pdf-view-use-scaling)
 
 (defmacro pdf-view-create-image (data &rest props)
   ;; TODO: add DATA and PROPS to docstring.
