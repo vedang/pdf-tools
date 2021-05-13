@@ -950,7 +950,7 @@ if available. If the scale factor isn't available, return 2 if the
 frame's PPI is larger than 180. Otherwise, return 1."
   (if pdf-view-use-scaling
       (or (and (fboundp 'frame-scale-factor)
-               (frame-scale-factor))
+               (truncate (frame-scale-factor)))
           (and (fboundp 'frame-monitor-attributes)
                (cdr (assq 'backing-scale-factor (frame-monitor-attributes))))
           (if (>= (pdf-util-frame-ppi) 180)
