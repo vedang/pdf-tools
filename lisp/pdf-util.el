@@ -945,15 +945,14 @@ See also `regexp-quote'."
 
 (defun pdf-util-frame-scale-factor ()
   "Return the frame scale factor depending on the image type used for display.
-When `pdf-view-use-scaling' is non-nil and imagemagick or
-image-io are used as the image type for display, return the
-backing-scale-factor of the frame if available. If a
-backing-scale-factor attribute isn't available, return 2 if the
+When `pdf-view-use-scaling' is non-nil, return the scale factor of the frame
+if available. If the scale factor isn't available, return 2 if the
 frame's PPI is larger than 180. Otherwise, return 1."
-  (if (and pdf-view-use-scaling
-           (memq (pdf-view-image-type) '(imagemagick image-io))
-           (fboundp 'frame-monitor-attributes))
-      (or (cdr (assq 'backing-scale-factor (frame-monitor-attributes)))
+  (if pdf-view-use-scaling
+      (or (and (fboundp 'frame-scale-factor)
+               (truncate (frame-scale-factor)))
+          (and (fboundp 'frame-monitor-attributes)
+               (cdr (assq 'backing-scale-factor (frame-monitor-attributes))))
           (if (>= (pdf-util-frame-ppi) 180)
               2
             1))

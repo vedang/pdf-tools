@@ -92,10 +92,7 @@ FIXME: Explain dis-/advantages of imagemagick and png."
 This variable affects both the reuse of higher-resolution images
 as lower-resolution ones by down-scaling the image.  As well as
 the rendering of higher-resolution for high-resolution displays,
-if available.
-
-It has no effect, unless either the imagemagick or image-io
-image-format is available."
+if available."
   :group 'pdf-view
   :type 'boolean)
 
@@ -911,12 +908,6 @@ See also `pdf-view-use-imagemagick'."
         (t
          (error "PNG image supported not compiled into Emacs"))))
 
-(defun pdf-view-use-scaling-p ()
-  "Return t if scaling should be used."
-  (and (memq (pdf-view-image-type)
-             '(imagemagick image-io))
-       pdf-view-use-scaling))
-
 (defmacro pdf-view-create-image (data &rest props)
   ;; TODO: add DATA and PROPS to docstring.
   "Like `create-image', but with set DATA-P and TYPE arguments."
@@ -935,7 +926,7 @@ See also `pdf-view-use-imagemagick'."
   (let* ((size (pdf-view-desired-image-size page window))
          (data (pdf-cache-renderpage
                 page (car size)
-                (if (not (pdf-view-use-scaling-p))
+                (if (not pdf-view-use-scaling)
                     (car size)
                   (* 2 (car size)))))
          (hotspots (pdf-view-apply-hotspot-functions
