@@ -945,12 +945,14 @@ See also `regexp-quote'."
 
 (defun pdf-util-frame-scale-factor ()
   "Return the frame scale factor depending on the image type used for display.
-When `pdf-view-use-scaling' is non-nil, return the
-backing-scale-factor of the frame if available. If a
-backing-scale-factor attribute isn't available, return 2 if the
+When `pdf-view-use-scaling' is non-nil, return the scale factor of the frame
+if available. If the scale factor isn't available, return 2 if the
 frame's PPI is larger than 180. Otherwise, return 1."
   (if pdf-view-use-scaling
-      (or (cdr (assq 'backing-scale-factor (frame-monitor-attributes)))
+      (or (and (fboundp 'frame-scale-factor)
+               (frame-scale-factor))
+          (and (fboundp 'frame-monitor-attributes)
+               (cdr (assq 'backing-scale-factor (frame-monitor-attributes))))
           (if (>= (pdf-util-frame-ppi) 180)
               2
             1))
