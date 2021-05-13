@@ -92,10 +92,7 @@ FIXME: Explain dis-/advantages of imagemagick and png."
 This variable affects both the reuse of higher-resolution images
 as lower-resolution ones by down-scaling the image.  As well as
 the rendering of higher-resolution for high-resolution displays,
-if available.
-
-It has no effect, unless either the imagemagick or image-io
-image-format is available."
+if available."
   :group 'pdf-view
   :type 'boolean)
 
