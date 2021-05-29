@@ -1594,7 +1594,7 @@ Return the data of the corresponding PNG image."
     'renderpage
     (pdf-info--normalize-file-or-buffer file-or-buffer)
     page
-    (* width (pdf-util-frame-scale-factor))
+    width
     (let (transformed)
       (while (cdr commands)
         (let ((kw (pop commands))
