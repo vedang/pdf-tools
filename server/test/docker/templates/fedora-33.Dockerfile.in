@@ -1,5 +1,3 @@
 # -*- dockerfile -*-
-FROM fedora:25
+FROM fedora:33
 RUN dnf update -y && dnf install -y gcc gcc-c++ poppler-glib-devel
-
-
