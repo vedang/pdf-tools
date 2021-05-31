@@ -477,7 +477,6 @@ PAGE should be a page-number."
 ;;;###autoload
 (define-minor-mode pdf-virtual-global-minor-mode
   "Enable recognition and handling of VPDF files."
-  nil nil nil
   :global t
   :group 'pdf-tools
   (let ((elt `(,pdf-virtual-magic-mode-regexp . pdf-virtual-view-mode)))

@@ -132,8 +132,7 @@ to `pdf-sync-forward-search' in `TeX-source-correlate-map'.  This
 function displays the PDF page corresponding to the current
 position in the TeX buffer.  This function only works together
 with AUCTeX."
-
-  nil nil nil
+  :group 'pdf-sync
   (pdf-util-assert-pdf-buffer))
 
 
@@ -539,7 +538,7 @@ word-level searching is desired."
 
 (define-minor-mode pdf-sync-backward-debug-minor-mode
   "Aid in debugging the backward search."
-  nil nil nil
+  :group 'pdf-sync
   (if (and (fboundp 'advice-add)
            (fboundp 'advice-remove))
       (let ((functions

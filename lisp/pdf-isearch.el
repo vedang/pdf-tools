@@ -127,7 +127,9 @@ keymap is `isearch-mode-map'.")
 (put 'image-scroll-up 'isearch-scroll t)
 (put 'image-scroll-down 'isearch-scroll t)
 
-(define-minor-mode pdf-isearch-active-mode "" nil nil nil
+(define-minor-mode pdf-isearch-active-mode
+  ""
+  :group 'pdf-isearch
   (cond
    (pdf-isearch-active-mode
     (set (make-local-variable 'isearch-mode-map)
@@ -218,7 +220,6 @@ If this mode is enabled, isearching does not stop at every match,
 but rather moves to the next one not currently visible.  This
 behaviour is much faster than ordinary isearch, since far less
 different images have to be displayed."
-  nil nil nil
   :group 'pdf-isearch
   (when isearch-mode
     (pdf-isearch-redisplay)

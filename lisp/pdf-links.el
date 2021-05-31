@@ -111,8 +111,6 @@ one of the displayed keys, or by using isearch limited to
 links via \\[pdf-links-isearch-link].
 
 \\{pdf-links-minor-mode-map}"
-
-  nil nil nil
   :group 'pdf-links
   (pdf-util-assert-pdf-buffer)
   (cond

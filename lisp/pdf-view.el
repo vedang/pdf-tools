@@ -866,7 +866,7 @@ again."
   "Automatically slice pages according to their bounding boxes.
 
 See also `pdf-view-set-slice-from-bounding-box'."
-  nil nil nil
+  :group 'pdf-view
   (pdf-util-assert-pdf-buffer)
   (cond
    (pdf-view-auto-slice-minor-mode
@@ -1141,7 +1141,7 @@ This will display a text cursor, when hovering over them."
   "Mode for PDF documents with dark background.
 
 This tells the various modes to use their face's dark colors."
-  nil nil nil
+  :group 'pdf-view
   (pdf-util-assert-pdf-buffer)
   ;; FIXME: This should really be run in a hook.
   (when (bound-and-true-p pdf-isearch-active-mode)
@@ -1152,7 +1152,8 @@ This tells the various modes to use their face's dark colors."
 
 (define-minor-mode pdf-view-printer-minor-mode
   "Display the PDF as it would be printed."
-  nil " Prn" nil
+  :group 'pdf-view
+  :lighter " Prn"
   (pdf-util-assert-pdf-buffer)
   (let ((enable (lambda ()
                   (pdf-info-setoptions :render/printed t))))
@@ -1172,8 +1173,8 @@ This tells the various modes to use their face's dark colors."
 
 The colors are determined by the variable
 `pdf-view-midnight-colors', which see. "
-
-  nil " Mid" nil
+  :group 'pdf-view
+  :lighter " Mid"
   (pdf-util-assert-pdf-buffer)
   ;; FIXME: Maybe these options should be passed stateless to pdf-info-renderpage ?
   (let ((enable (lambda ()
@@ -1217,8 +1218,8 @@ current theme's colors."
 
 The colors are determined by the `face-foreground' and
 `face-background' of the currently active theme."
-
-  nil " Thm" nil
+  :group 'pdf-view
+  :lighter " Thm"
   (pdf-util-assert-pdf-buffer)
   (cond
    (pdf-view-themed-minor-mode

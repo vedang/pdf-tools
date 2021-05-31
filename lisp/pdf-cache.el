@@ -339,7 +339,7 @@ See also `pdf-info-renderpage-highlight' and
 
 (define-minor-mode pdf-cache-prefetch-minor-mode
   "Try to load images which will probably be needed in a while."
-  nil nil nil
+  :group 'pdf-cache
   (pdf-cache--prefetch-cancel)
   (cond
    (pdf-cache-prefetch-minor-mode
