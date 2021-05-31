@@ -353,8 +353,9 @@ Compatibility function for \\[next-error] invocations."
 
 This global minor mode enables (or disables)
 `pdf-occur-ibuffer-minor-mode' and `pdf-occur-dired-minor-mode'
-in all current and future ibuffer/dired buffer."  nil nil nil
-:global t
+in all current and future ibuffer/dired buffer."
+  :global t
+  :group 'pdf-occur
   (let ((arg (if pdf-occur-global-minor-mode 1 -1)))
     (dolist (buf (buffer-list))
       (with-current-buffer buf
@@ -385,8 +386,7 @@ This mode remaps `ibuffer-do-occur' to
 `pdf-occur-ibuffer-do-occur', which will start the PDF Tools
 version of `occur', if all marked buffer's are in `pdf-view-mode'
 and otherwise fallback to `ibuffer-do-occur'."
-
-  nil nil nil)
+  :group 'pdf-occur)
 
 (defun pdf-occur-ibuffer-do-occur (&optional regexp-p)
   "Uses `pdf-occur-search', if appropriate.
@@ -421,8 +421,7 @@ This mode remaps `dired-do-search' to
 `pdf-occur-dired-do-search', which will start the PDF Tools
 version of `occur', if all marked buffer's are in `pdf-view-mode'
 and otherwise fallback to `dired-do-search'."
-
-  nil nil nil)
+  :group 'pdf-occur)
 
 (defun pdf-occur-dired-do-search ()
   "Uses `pdf-occur-search', if appropriate.

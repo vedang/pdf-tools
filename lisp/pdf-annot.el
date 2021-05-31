@@ -322,7 +322,7 @@ Setting this after the package was loaded has no effect."
   "Support for PDF Annotations.
 
 \\{pdf-annot-minor-mode-map}"
-  nil nil nil
+  :group 'pdf-annot
   (cond
    (pdf-annot-minor-mode
     (when pdf-annot-tweak-tooltips
@@ -1421,7 +1421,7 @@ annotation's contents and otherwise `text-mode'. "
 
 (define-minor-mode pdf-annot-edit-contents-minor-mode
   "Active when editing the contents of annotations."
-  nil nil nil
+  :group 'pdf-annot
   (when pdf-annot-edit-contents-minor-mode
     (message "%s"
              (substitute-command-keys
@@ -1772,7 +1772,8 @@ belong to the same page and A1 is displayed above/left of A2."
             (pdf-annot-getannot id pdf-annot-list-document-buffer)))))
 
 (define-minor-mode pdf-annot-list-follow-minor-mode
-  "" nil nil nil
+  ""
+  :group 'pdf-annot
   (unless (derived-mode-p 'pdf-annot-list-mode)
     (error "No in pdf-annot-list-mode."))
   (cond

@@ -52,7 +52,7 @@ following a link pushes the left-behind page on the stack, which
 may be navigated with the following keys.
 
 \\{pdf-history-minor-mode-map}"
-  nil nil nil
+  :group 'pdf-history
   (pdf-util-assert-pdf-buffer)
   (pdf-history-clear)
   (cond

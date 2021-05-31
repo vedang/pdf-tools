@@ -54,7 +54,7 @@ Installs a `compilation-finish-functions' which will restart
 epdfinfo after a successful recompilation.
 
 Sets up `load-path' and reloads all PDF Tools lisp files."
-  nil nil nil
+  :group 'pdf-dev
   (let ((lisp-dir (expand-file-name "lisp" pdf-dev-root-directory)))
     (setq load-path (remove lisp-dir load-path))
     (cond

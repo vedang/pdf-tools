@@ -148,7 +148,7 @@ Additionally the same outline may be viewed in a designated
 buffer.
 
 \\{pdf-outline-minor-mode-map}"
-  nil nil nil
+  :group 'pdf-outline
   (pdf-util-assert-pdf-buffer)
   (cond
    (pdf-outline-minor-mode
@@ -193,7 +193,7 @@ rebound to their respective last character.
 
 (define-minor-mode pdf-outline-follow-mode
   "Display links as point moves."
-  nil nil nil
+  :group 'pdf-outline
   (setq pdf-outline-follow-mode-last-link nil)
   (cond
    (pdf-outline-follow-mode

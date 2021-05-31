@@ -38,12 +38,12 @@
 ;;;###autoload
 (define-minor-mode pdf-misc-minor-mode
   "FIXME:  Not documented."
-  nil nil nil)
+  :group 'pdf-misc)
 
 ;;;###autoload
 (define-minor-mode pdf-misc-size-indication-minor-mode
   "Provide a working size indication in the mode-line."
-  nil nil nil
+  :group 'pdf-misc
   (pdf-util-assert-pdf-buffer)
   (cond
    (pdf-misc-size-indication-minor-mode
@@ -171,7 +171,7 @@
 ;;;###autoload
 (define-minor-mode pdf-misc-menu-bar-minor-mode
   "Display a PDF Tools menu in the menu-bar."
-  nil nil nil
+  :group 'pdf-misc
   (pdf-util-assert-pdf-buffer))
 
 (defvar pdf-misc-context-menu-minor-mode-map
@@ -184,7 +184,7 @@
   "Provide a right-click context menu in PDF buffers.
 
 \\{pdf-misc-context-menu-minor-mode-map}"
-  nil nil nil
+  :group 'pdf-misc
   (pdf-util-assert-pdf-buffer))
 
 (defun pdf-misc-popup-context-menu (event)
