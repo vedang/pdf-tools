@@ -1208,6 +1208,21 @@ See also `pdf-annot-add-markup-annotation'."
   (interactive (list (pdf-view-active-region t)))
   (pdf-annot-add-markup-annotation list-of-edges 'highlight color property-alist))
 
+(defun pdf-annot--create-keyboard-annot (arg edges)
+  (pcase (if arg
+             (read-answer "Create annotation of markup type? "
+                          '(("highlight"  ?h "perform the action")
+                            ("squiggly"   ?s "skip to the next")
+                            ("strike-out" ?o "accept all remaining without more questions")
+                            ("underline"  ?u "accept all remaining without more questions")
+                            ("help" ?? "show help")
+                            ("quit" ?q "exit")))
+           pdf-annot-keyboard-annot-default-type)
+    ("highlight"  (pdf-annot-add-highlight-markup-annotation edges))
+    ("squiggly"   (pdf-annot-add-squiggly-markup-annotation edges))
+    ("strike-out" (pdf-annot-add-strikeout-markup-annotation edges))
+    ("underline"  (pdf-annot-add-underline-markup-annotation edges))))
+
 (defun pdf-annot-keyboard-annot-format-collection (search-results)
   "Transform SEARCH-RESULTS into useful collection.
 The collection is given to completing-read in the
@@ -1264,19 +1279,30 @@ region) are not translated correctly."
          (edges (if to
                     (append (cl-subseq start-coords 0 2) (cl-subseq end-coords 2 4))
                   start-coords)))
-    (pcase (if arg
-               (read-answer "Create annotation of markup type? "
-                '(("highlight"  ?h "perform the action")
-                  ("squiggly"   ?s "skip to the next")
-                  ("strike-out" ?o "accept all remaining without more questions")
-                  ("underline"  ?u "accept all remaining without more questions")
-                  ("help" ?h "show help")
-                  ("quit" ?q "exit")))
-             pdf-annot-keyboard-annot-default-type)
-      ("highlight"  (pdf-annot-add-highlight-markup-annotation edges))
-      ("squiggly"   (pdf-annot-add-squiggly-markup-annotation edges))
-      ("strike-out" (pdf-annot-add-strikeout-markup-annotation edges))
-      ("underline"  (pdf-annot-add-underline-markup-annotation edges)))))
+    (pdf-annot--create-keyboard-annot arg edges)))
+
+(defun pdf-annot-keyboard-annot-single-word (&optional arg)
+  "Create single word markup annotation using the keyboard. Prompt
+for start and end pattern for word and annotate the match. When
+there are multiple matches then additionally prompt for selecting
+the correct region. When
+prefixed with universal argument \\[universal-argument], the
+command additionally prompts for selecting an annotation type.
+
+Unfortunately, in some documents the edges (i.e. size of the
+region) are not translated correctly."
+  (interactive "P")
+  (let* ((candidates (mapcar (lambda (x)
+                               (cons (cdar (cdr x))
+                                     (cdar (cddr x))))
+                             (pdf-info-search-regexp (format "\\b%s.+%s\\b"
+                                                             (read-string "From: ")
+                                                             (read-string "To: "))
+                                                     (pdf-view-current-page))))
+         (edges-list (alist-get (completing-read "Select correct context: " candidates)
+                                candidates nil nil 'equal))
+         (edges (append (cl-subseq (car edges-list) 0 2) (cl-subseq (car (last edges-list)) 2 4))))
+    (pdf-annot--create-keyboard-annot arg edges)))
 
 (defun pdf-annot-read-color (&optional prompt)
   "Read and return a color using PROMPT.
