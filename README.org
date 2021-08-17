@@ -51,6 +51,8 @@
                 source and vice versa.
    + Virtual ::
     Use a collection of documents as if it were one, big single PDF.
+   + Keyboard ::
+    Navigate pdf files using the keyboard like standard Emacs buffers.
 
    + Misc ::
      - Display PDF's metadata.
