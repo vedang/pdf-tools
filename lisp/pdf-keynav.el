@@ -141,12 +141,6 @@ bit quicker.")
   :group 'pdf-keynav
   :type 'boolean)
 
-(defface pdf-keynav-cursor
-  '((((background dark)) (:inherit cursor))
-    (((background light)) (:inherit cursor)))
-  "Face used to determine the colors of the cursor."
-  :group 'pdf-keynav)
-
 (defcustom pdf-keynav-newline-cursor-dimensions '(0.01 . 0.015)
   "Dimensions of the cursor when on a newline character.
 Given as (WIDTH . HEIGHT) relative to the page dimensions.")
@@ -634,12 +628,13 @@ point is visible."
 REGION is a list of lists of edges in page-relative coordinates,
 like ((X1 Y1 X2 Y2)).
 
-The color of the cursor is set as `pdf-keynav-cursor'. RECTANGLE-P displays in
+The color of the cursor is set as `pdf-view-midnight-colors'. RECTANGLE-P displays in
 style of a rectangle. NOT-SINGLE-LINE-P doesn't limit the displayed region to
 one line."
-  (let ((colors (pdf-util-face-colors
-                 (if rectangle-p 'pdf-view-rectangle 'pdf-keynav-cursor)
-                 (bound-and-true-p pdf-view-dark-minor-mode)))
+  (let ((colors (if (and (not (bound-and-true-p pdf-view-midnight-minor-mode))
+                         (eq 'dark (frame-parameter nil 'background-mode)))
+                    pdf-view-midnight-colors
+                  (cons (cdr pdf-view-midnight-colors) (car pdf-view-midnight-colors))))
         (page (pdf-view-current-page))
         (width (car (pdf-view-image-size)))
 	(single-line-p (unless not-single-line-p t)))
