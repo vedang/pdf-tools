@@ -1,9 +1,9 @@
 ;;; pdf-keynav.el --- Keyboard navigation for PDF files -*- lexical-binding: t; -*-
 ;; * Preamble
 
-;; Copyright (C) 2021 orgtre <orgtre@posteo.net>
+;; Copyright (C) 2021 orgtre <orgtre\a.t/posteo.net>
 
-;; Author: orgtre <orgtre@posteo.net>
+;; Author: orgtre <orgtre\a.t/posteo.net>
 ;; Created: 2021-08-17
 ;; Keywords: multimedia, files
 
@@ -114,7 +114,9 @@
   "When non-nil load buffer-locals only when first needed on a pdf page.
 With nil buffer-locals are loaded directly after a page change, which causes
 page scrolling to be slower, while the first pdf-keynav command might feel a
-bit quicker.")
+bit quicker."
+  :group 'pdf-keynav
+  :type 'boolean)
 
 (defcustom pdf-keynav-scroll-window t
   "When non-nil scroll the window so that point is always visible."
@@ -147,8 +149,8 @@ Given as (WIDTH . HEIGHT) relative to the page dimensions.")
 
 (defcustom pdf-keynav-continuous pdf-view-continuous
   "When non-nil, reaching the page edges advances to next/previous page."
-  :type 'boolean
-  :group 'pdf-keynav)
+  :group 'pdf-keynav
+  :type 'boolean)
 
 (defcustom pdf-keynav-paragraph-parameters (list 0.01 0.02 2 5 1 1)
   "List of parameters for determining paragraphs.
@@ -161,20 +163,20 @@ as described in `pdf-keynav-get-page-paragraphs', to which it is passed."
 (defcustom pdf-keynav-copy-filter-add-parbreaks t
   "When non-nil add an extra linebreak at paragraph breaks in copied text.
 Used by the function `pdf-keynav-copy-filter'."
-  :type 'boolean
-  :group 'pdf-keynav)
+  :group 'pdf-keynav
+  :type 'boolean)
 
 (defcustom pdf-keynav-copy-filter-remove-linebreaks t
   "When non-nil replace single linebreaks with single spaces in copied text.
 Used by the function `pdf-keynav-copy-filter'."
-  :type 'boolean
-  :group 'pdf-keynav)
+  :group 'pdf-keynav
+  :type 'boolean)
 
 (defcustom pdf-keynav-copy-region-separator "\n"
   "The separator used between disconnected copied regions of text.
 As constructed by `pdf-keynav-mouse-extend-region'."
-  :type 'string
-  :group 'pdf-keynav)
+  :group 'pdf-keynav
+  :type 'string)
 
 (defcustom pdf-keynav-copy-region-blink-delay copy-region-blink-delay
   "Number of seconds to highlight copied text.
@@ -184,7 +186,15 @@ unless the region is currently displayed. Set 0 to turn off completely."
   :type 'number)
 
 (defcustom pdf-keynav-select-map-prefix (kbd "e")
-  "The prefix to use for `pdf-keynav-select-map'.")
+  "The prefix to use for `pdf-keynav-select-map'."
+  :group 'pdf-keynav
+  :type 'string)
+
+(defcustom pdf-keynav-annot-text-margin 10
+  "Margin between text annotation and closest text, in pixel.
+Used by `pdf-keynav-annot-add-text-left'."
+  :group 'pdf-keynav
+  :type 'integer)
 
 (defcustom pdf-keynav-sentence-end
   (concat
@@ -515,6 +525,14 @@ necessary buffer-locals have been loaded."
 		    #'pdf-keynav-region-to-active-region)
 	(advice-add 'pdf-annot-add-markup-annotation :after
 		    #'pdf-keynav-after-markup-advice)
+
+        ;; add some bindings to pdf-annot-minor-mode-map
+        (define-key pdf-annot-minor-mode-map
+          (kbd (concat pdf-annot-minor-mode-map-prefix " <left>"))
+          'pdf-keynav-annot-add-text-left)
+        (define-key pdf-annot-minor-mode-map
+          (kbd (concat pdf-annot-minor-mode-map-prefix " <right>"))
+          'pdf-keynav-annot-add-text-right)
 	
 	;; remove conflicting keybindings
 	(let ((map pdf-view-mode-map))
@@ -547,6 +565,15 @@ necessary buffer-locals have been loaded."
 		   #'pdf-keynav-region-to-active-region)
     (advice-remove 'pdf-annot-add-markup-annotation
 		   #'pdf-keynav-after-markup-advice)
+
+    ;; remove bindings to pdf-annot-minor-mode-map
+    (define-key pdf-annot-minor-mode-map
+      (kbd (concat pdf-annot-minor-mode-map-prefix " <left>"))
+      nil)
+    (define-key pdf-annot-minor-mode-map
+      (kbd (concat pdf-annot-minor-mode-map-prefix " <right>"))
+      nil)
+
 
     ;; add back previously removed keybindings
     (let ((map pdf-view-mode-map))
@@ -628,13 +655,14 @@ point is visible."
 REGION is a list of lists of edges in page-relative coordinates,
 like ((X1 Y1 X2 Y2)).
 
-The color of the cursor is set as `pdf-view-midnight-colors'. RECTANGLE-P displays in
-style of a rectangle. NOT-SINGLE-LINE-P doesn't limit the displayed region to
-one line."
+The color of the cursor is set as `pdf-view-midnight-colors'. RECTANGLE-P
+displays in style of a rectangle. NOT-SINGLE-LINE-P doesn't limit the displayed
+region to one line."
   (let ((colors (if (and (not (bound-and-true-p pdf-view-midnight-minor-mode))
                          (eq 'dark (frame-parameter nil 'background-mode)))
                     pdf-view-midnight-colors
-                  (cons (cdr pdf-view-midnight-colors) (car pdf-view-midnight-colors))))
+                  (cons (cdr pdf-view-midnight-colors)
+                        (car pdf-view-midnight-colors))))
         (page (pdf-view-current-page))
         (width (car (pdf-view-image-size)))
 	(single-line-p (unless not-single-line-p t)))
@@ -2229,25 +2257,27 @@ This function is used as before advice to `pdf-view-active-region'."
 With C-u edit contents of the closest text annotation on page.
 With C-u C-u edit contents of link instead of following it."
   ;; MAYBE handle case where link and other annotation overlap
+  ;; MAYBE refactor
   (interactive "P")
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))
   (if (equal arg '(4))
       (let ((a (pdf-keynav-annot-get-closest 'text)))
-	(pdf-annot-edit-contents
-       (pdf-keynav-annot-get-closest 'text))))
-  (let ((a (pdf-annot-at-position
-	    (pdf-keynav-point-to-pixel-pos))))
-    (cond ((and (not (equal arg '(16)))
-		(equal (alist-get 'type a) 'link))
-	   (let ((link (pdf-keynav-link-at-point)))
-	     (when link
-	       (pdf-links-action-perform link))))
-	  ((equal arg '(4))
-	   (pdf-annot-edit-contents
-	    (pdf-keynav-annot-get-closest 'text)))
-	  (a 
-	   (pdf-annot-edit-contents a)))))
+        (pdf-annot-edit-contents
+         (pdf-keynav-annot-get-closest 'text)))
+    (let ((a (ignore-errors
+               (pdf-annot-at-position
+	        (pdf-keynav-point-to-pixel-pos)))))
+      (cond ((and a
+                  (not (equal arg '(16)))
+		  (equal (alist-get 'type a) 'link))
+	     (let ((link (pdf-keynav-link-at-point)))
+	       (when link
+	         (pdf-links-action-perform link))))
+	    (a 
+	     (pdf-annot-edit-contents a))
+            ((null a)
+             (message "No annotation here"))))))
 	  
 
 (defun pdf-keynav-annot-get-closest (&optional type)
@@ -2274,7 +2304,67 @@ and assumes they represent a rectangle."
 		 (pdf-keynav-distance-rectangle-point
 		  (cdr (assq 'edges other)) rpos width height))
 	      annots)))
-	   
+
+
+(defun pdf-keynav-annot-add-text-left (&optional right icon property-alist)
+  "Add text annotation to left margin at height of point.
+With RIGHT non-nil, add it to right margin. Interactively RIGHT is passed as a
+prefix argument. The annotation is activated too.
+
+The y-coordinate of the (top-left corner of the icon of the) annotation is the
+y-coordinate of the top-left boundary of the character at `pdf-keynav-point'.
+The x-coordinate is the x-coordinate of the left(right)-most textregion
+boundary on the page, minus (plus) `pdf-keynav-annot-text-margin' and the icon
+width. The x-coordinate is adjusted if the icon would end up outside the page
+image.
+
+ICON and PROPERTY-ALIST are passed on to `pdf-annot-add-text-annotation', which
+creates the annotation after the right position has been determined."
+  (interactive "P")
+  (let ((ypos (cdr (pdf-keynav-point-to-pixel-pos t)))
+        (dx-icon (car (pdf-util-scale-points-to-pixel
+                       pdf-annot-text-annotation-size 'round)))
+        (dx-margin pdf-keynav-annot-text-margin)
+        xpos)
+    ;; determine a good x-coordinate
+    (if right
+        ;; then the annotation is placed in the right margin
+        (setq xpos
+              (min (- (car (pdf-view-image-size)) dx-icon)
+                   (+
+                    (car (pdf-util-scale-relative-to-pixel
+                          (cons 
+                           (nth 2
+                                (--max-by
+                                 (> (nth 2 it) (nth 2 other))
+                                 pdf-keynav-textregions))
+                           1)))
+                    dx-margin)))
+      ;; else the annotation is placed in the left margin
+      (setq xpos
+            (max 0
+                 (-
+                  (car (pdf-util-scale-relative-to-pixel
+                        (cons 
+                         (nth 0
+                              (--min-by
+                               (> (car it) (car other))
+                               pdf-keynav-textregions))
+                         1)))
+                  dx-margin
+                  dx-icon))))
+    ;; create and activate the annotation
+    (pdf-annot-activate-annotation
+     (pdf-annot-add-text-annotation (cons xpos ypos)
+                                   icon
+                                   property-alist))))
+
+
+(defun pdf-keynav-annot-add-text-right (&optional icon property-alist)
+  "Simple wrapper around `pdf-keynav-annot-add-text-left'."
+  (interactive)
+  (pdf-keynav-annot-add-text-left t icon property-alist))
+
 
 (defun pdf-keynav-link-at-point ()
   "Returns the link at point or nil if none found."
@@ -2290,14 +2380,18 @@ and assumes they represent a rectangle."
   
 (defun pdf-keynav-annot-delete (&optional arg)
   "Delete annotation at point.
-With prefix ARG delete all annotations in region between mark and point;
+With single pregix ARG delete text annotation closest to point.
+With double prefix ARG delete all annotations in region between mark and point;
 in that case annotations of type 'link' are not deleted."
   (interactive "P")
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))
-  (if (null arg)
-      (pdf-keynav-annot-delete-at-point)
-    (pdf-keynav-annot-delete-in-region)))
+  (cond ((null arg)
+         (pdf-keynav-annot-delete-at-point))
+        ((equal arg '(4))
+         (pdf-keynav-annot-delete-closest-text))
+        ((equal arg '(16))
+         (pdf-keynav-annot-delete-in-region))))
 
 
 (defun pdf-keynav-annot-delete-at-point ()
@@ -2307,6 +2401,13 @@ Wrapper around `pdf-annot-delete' that passes it the annotation at point using
   (pdf-annot-delete
    (pdf-annot-at-position
     (pdf-keynav-point-to-pixel-pos)))
+  (pdf-keynav-display-region-cursor))
+
+
+(defun pdf-keynav-annot-delete-closest-text ()
+  "Delete text annotation closest to point."
+  (pdf-annot-delete
+   (pdf-keynav-annot-get-closest 'text))
   (pdf-keynav-display-region-cursor))
 
 
