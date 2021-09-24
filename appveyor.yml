@@ -2,7 +2,9 @@ version: 1.0.{build}
 
 environment:
   matrix:
-  - COMPILER: msys2
+  - FLAVOR: mingw64
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+    COMPILER: msys2
     PLATFORM: x64
     MSYS2_ARCH: x86_64
     MSYS2_DIR: msys64
