@@ -192,8 +192,10 @@
   (interactive "@e")
   (popup-menu
    (cons 'keymap
-         (cddr (lookup-key pdf-misc-menu-bar-minor-mode-map
-                           [menu-bar PDF\ Tools])))))
+         (cddr (or (lookup-key pdf-misc-menu-bar-minor-mode-map
+                               [menu-bar PDF\ Tools])
+                   (lookup-key pdf-misc-menu-bar-minor-mode-map
+                               [menu-bar pdf\ tools]))))))
 
 (defun pdf-misc-display-metadata ()
   "Display all available metadata in a separate buffer."
