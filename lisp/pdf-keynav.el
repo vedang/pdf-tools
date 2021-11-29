@@ -109,47 +109,44 @@
 
 
 ;; ** Custom
+(defgroup pdf-keynav nil
+  "Keyboard navigation for PDF files."
+  :group 'pdf-tools)
 
 (defcustom pdf-keynav-lazy-load t
   "When non-nil load buffer-locals only when first needed on a pdf page.
 With nil buffer-locals are loaded directly after a page change, which causes
 page scrolling to be slower, while the first pdf-keynav command might feel a
 bit quicker."
-  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-scroll-window t
   "When non-nil scroll the window so that point is always visible."
-  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-scroll-left-margin 10
   "Left margin in pixels between window edge and point after scrolling."
-  :group 'pdf-keynav
   :type 'integer)
 
 (defcustom pdf-keynav-scroll-right-margin 25
   "Right margin in pixels between window edge and point after scrolling."
-  :group 'pdf-keynav
   :type 'integer)
 
 (defcustom pdf-keynav-no-find-closest-char nil
   "If non-nil mouse selection commands do not search for closest character."
-  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-transient-mark-mode nil
   "Non-nil enables `transient-mark-mode'-like region highlighting."
-  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-newline-cursor-dimensions '(0.01 . 0.015)
   "Dimensions of the cursor when on a newline character.
-Given as (WIDTH . HEIGHT) relative to the page dimensions.")
+Given as (WIDTH . HEIGHT) relative to the page dimensions."
+  :type '(cons number number))
 
 (defcustom pdf-keynav-continuous pdf-view-continuous
   "When non-nil, reaching the page edges advances to next/previous page."
-  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-paragraph-parameters (list 0.01 0.02 2 5 1 1)
@@ -157,43 +154,36 @@ Given as (WIDTH . HEIGHT) relative to the page dimensions.")
 Should contain six numeric elements: (dyx-round-to dys-round-to
 min-indent max-indent max-dx-discrepancy min-dy-discrepancy)
 as described in `pdf-keynav-get-page-paragraphs', to which it is passed."
-  :group 'pdf-keynav
-  :type 'list)
+  :type '(list number number natnum natnum natnum))
 
 (defcustom pdf-keynav-copy-filter-add-parbreaks t
   "When non-nil add an extra linebreak at paragraph breaks in copied text.
 Used by the function `pdf-keynav-copy-filter'."
-  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-copy-filter-remove-linebreaks t
   "When non-nil replace single linebreaks with single spaces in copied text.
 Used by the function `pdf-keynav-copy-filter'."
-  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-copy-region-separator "\n"
   "The separator used between disconnected copied regions of text.
 As constructed by `pdf-keynav-mouse-extend-region'."
-  :group 'pdf-keynav
   :type 'string)
 
 (defcustom pdf-keynav-copy-region-blink-delay copy-region-blink-delay
   "Number of seconds to highlight copied text.
 Highlighting happens when using `pdf-keynav-kill-ring-save',
 unless the region is currently displayed. Set 0 to turn off completely."
-  :group 'pdf-keynav
   :type 'number)
 
 (defcustom pdf-keynav-select-map-prefix (kbd "e")
   "The prefix to use for `pdf-keynav-select-map'."
-  :group 'pdf-keynav
   :type 'string)
 
 (defcustom pdf-keynav-annot-text-margin 10
   "Margin between text annotation and closest text, in pixel.
 Used by `pdf-keynav-annot-add-text-left'."
-  :group 'pdf-keynav
   :type 'integer)
 
 (defcustom pdf-keynav-sentence-end
@@ -236,7 +226,6 @@ necessarily followed by either a space or newline. Dots which follow a single
 uppercase letter or 'p', or 'e.g', 'i.e', or 'et al' are ignored.
 
 See the source code for a clearer breakdown of the different parts."
-  :group 'pdf-keynav
   :type 'regexp)
 
 (defcustom pdf-keynav-sentence-start
@@ -274,7 +263,6 @@ This is the reverse of `pdf-keynav-sentence-end' used for forward-matching on
 the reversed string.
 
 See the source code for a clearer breakdown of the different parts."
-  :group 'pdf-keynav
   :type 'regexp)
 
 
