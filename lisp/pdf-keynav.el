@@ -919,7 +919,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
   (unless n (setq n 1))
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))
-  (let ((text (string-reverse pdf-keynav-text)))
+  (let ((text (reverse pdf-keynav-text)))
     (dotimes (_ n)
       (if (string-match "\\W*\\w+\\b"
 			text
@@ -933,7 +933,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
 	    (pdf-view-previous-page)
 	    (if pdf-keynav-lazy-load
 		(pdf-keynav-setup-buffer-locals))
-	    (setq text (string-reverse pdf-keynav-text))
+	    (setq text (reverse pdf-keynav-text))
 	    (pdf-keynav-end-of-page t)
 	    (setq pdf-keynav-mark pdf-keynav-point))))))
   (unless nodisplay
@@ -1364,7 +1364,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))
   (let ((case-fold-search nil) ;; make sure case is not ignored
-	(rev-page-text (string-reverse pdf-keynav-text)))
+	(rev-page-text (reverse pdf-keynav-text)))
     (dotimes (_ n)
       (if (string-match
 	   pdf-keynav-sentence-start
@@ -1381,7 +1381,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
 	      (pdf-view-previous-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals))
-	      (setq rev-page-text (string-reverse pdf-keynav-text))
+	      (setq rev-page-text (reverse pdf-keynav-text))
 	      (pdf-keynav-end-of-page t)
 	      (setq pdf-keynav-mark pdf-keynav-point))
 	  (progn
@@ -1621,7 +1621,6 @@ one paragraph into the adjacent page, truncating N)."
   (let ((inpar (pdf-keynav-paragraph-at-point))
 	(inparends pdf-keynav-parends)
 	(inpoint pdf-keynav-point)
-	(eager-p nil)
 	outpar)
     ;; set the target paragraph
     (if (< (- inpar n)
@@ -1763,8 +1762,7 @@ the mark."
   (interactive)
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))
-  (let ((omark pdf-keynav-mark)
-	(point pdf-keynav-point))
+  (let ((omark pdf-keynav-mark))
     (pdf-keynav-set-mark-command)
     (setq pdf-keynav-point omark)
     (pdf-keynav-display-region-cursor)))
@@ -2214,16 +2212,16 @@ To add further filters advice this function."
   "Insert string INS into string S at indices given in the increasing list IS."
   (let ((i 0))
     (dolist (it is s)
-      (setq beg (substring s 0 (+ it i)))
-      (setq end (substring s (+ it i)))
-      (setq s (concat beg ins end))
-      (setq i (+ i (length ins))))))
+      (let ((beg (substring s 0 (+ it i)))
+	    (end (substring s (+ it i))))
+	(setq s (concat beg ins end))
+	(setq i (+ i (length ins)))))))
 
 
 
 ;; * Annotate
 
-(defun pdf-keynav-region-to-active-region (&optional arg)
+(defun pdf-keynav-region-to-active-region (&optional _arg)
   "Saves the region to `pdf-view-active-region' unless last command extended it.
 This function is used as before advice to `pdf-view-active-region'."
   (unless (memq last-command
@@ -2233,7 +2231,7 @@ This function is used as before advice to `pdf-view-active-region'."
 	  (list (pdf-keynav-get-region-rpos)))))
 
 
-(defun pdf-keynav-after-markup-advice (&rest arg)
+(defun pdf-keynav-after-markup-advice (&rest _arg)
   "Deactivate region and display cursor."
   (when pdf-keynav-transient-mark-mode
     (setq pdf-keynav-mark-active-p nil))
@@ -2250,9 +2248,8 @@ With C-u C-u edit contents of link instead of following it."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))
   (if (equal arg '(4))
-      (let ((a (pdf-keynav-annot-get-closest 'text)))
-        (pdf-annot-edit-contents
-         (pdf-keynav-annot-get-closest 'text)))
+      (pdf-annot-edit-contents
+       (pdf-keynav-annot-get-closest 'text))
     (let ((a (ignore-errors
                (pdf-annot-at-position
 	        (pdf-keynav-point-to-pixel-pos)))))
@@ -2402,9 +2399,7 @@ Wrapper around `pdf-annot-delete' that passes it the annotation at point using
 (defun pdf-keynav-annot-delete-in-region ()
   "Delete all annotations in region between mark and point.
 Annotations of type 'link' are not deleted."
-  (let* ((region
-	  (pdf-keynav-get-region-rpos))
-	 (annots
+  (let* ((annots
 	  (pdf-annot-getannots (pdf-view-current-page)))
 	 (annots
 	  (--filter (not (equal (cdr (assq 'type it)) 'link))
