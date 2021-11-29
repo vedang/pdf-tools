@@ -102,6 +102,7 @@
 (require 'pdf-view)
 (require 'pdf-util)
 (require 'pdf-annot)
+(require 'pdf-links)
 (require 'pdf-isearch)
 (require 'cl-lib)
 (require 'dash)
@@ -504,9 +505,10 @@ necessary buffer-locals have been loaded."
 	      'pdf-keynav-isearch-filter-matches)
 
 	;; pdf-occur compatibility
-	(let ((map pdf-occur-buffer-mode-map))
-	  (define-key map [remap pdf-occur-goto-occurrence]
-	    'pdf-keynav-occur-goto-occurence))
+	(with-eval-after-load 'pdf-occur
+	  (define-key pdf-occur-buffer-mode-map
+		      [remap pdf-occur-goto-occurrence]
+		      'pdf-keynav-occur-goto-occurence))
 
 	;; pdf-annot compatibility
 	(advice-add 'pdf-view-active-region :before
@@ -532,8 +534,8 @@ necessary buffer-locals have been loaded."
 	  ;; free up m for "markup", revert-buffer is also bound to g
 	  (define-key map (kbd "r") 'pdf-view-position-to-register)
 	  (define-key map (kbd "m") nil))
-	(let ((map pdf-sync-minor-mode-map))
-	  (define-key map [double-mouse-1] nil)))
+	(with-eval-after-load 'pdf-sync
+	  (define-key pdf-sync-minor-mode-map [double-mouse-1] nil)))
     
     (message "Deactivating pdf-keynav-minor-mode")
     (remove-hook 'pdf-view-after-change-page-hook
