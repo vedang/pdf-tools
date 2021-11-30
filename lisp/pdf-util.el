@@ -391,7 +391,7 @@ values."
                    list-of-syms))
         ,@body))))
 
-
+
 ;; * ================================================================== *
 ;; * Scrolling
 ;; * ================================================================== *
@@ -558,12 +558,7 @@ killed."
       (let ((temporary-file-directory
              pdf-util--base-directory))
         (setq pdf-util--dedicated-directory
-              (make-temp-file (convert-standard-filename
-			       (concat (if buffer-file-name
-					   (file-name-nondirectory
-					    buffer-file-name)
-					 (buffer-name))
-				       "-"))
+              (make-temp-file (convert-standard-filename (pdf-util-temp-prefix))
                               t))
         (add-hook 'kill-buffer-hook 'pdf-util-delete-dedicated-directory
                   nil t)))
@@ -577,13 +572,21 @@ killed."
   "Expand filename against current buffer's dedicated directory."
   (expand-file-name name (pdf-util-dedicated-directory)))
 
-(defun pdf-util-make-temp-file (prefix &optional dir-flag suffix)
+(defun pdf-util-temp-prefix ()
+  "Create a temp-file prefix for the current buffer"
+  (concat (if buffer-file-name
+              (file-name-nondirectory buffer-file-name)
+            (replace-regexp-in-string "[^[:alnum:]]+" "-" (buffer-name)))
+          "-"))
+
+(defun pdf-util-make-temp-file (&optional prefix dir-flag suffix)
   "Create a temporary file in current buffer's dedicated directory.
 
 See `make-temp-file' for the arguments."
-  (let ((temporary-file-directory
-         (pdf-util-dedicated-directory)))
-    (make-temp-file (convert-standard-filename prefix) dir-flag suffix)))
+  (let ((temporary-file-directory (pdf-util-dedicated-directory)))
+    (make-temp-file (convert-standard-filename
+                     (or prefix (pdf-util-temp-prefix)))
+                    dir-flag suffix)))
 
 
 ;; * ================================================================== *
@@ -722,9 +725,12 @@ string."
                     'face `(:foreground
                             "orange red"
                             :background
-                            ,(if (bound-and-true-p pdf-view-midnight-minor-mode)
-                                 (cdr pdf-view-midnight-colors)
-                               "white"))))
+                            ,(cond
+                              ((bound-and-true-p pdf-view-midnight-minor-mode)
+                               (cdr pdf-view-midnight-colors))
+                              ((bound-and-true-p pdf-view-themed-minor-mode)
+                               (face-background 'default nil))
+                              (t "white")))))
      dx dy)))
 
 (defvar pdf-util--face-colors-cache (make-hash-table))
