@@ -292,7 +292,8 @@ error."
         (setq pdf-info-restart-process-p nil))
       (error "The epdfinfo server quit"))
     (pdf-info-check-epdfinfo)
-    (let* ((process-connection-type)    ;Avoid 4096 Byte bug #12440.
+    (let* (
+           ;; (process-connection-type)    ;Avoid 4096 Byte bug #12440.
            (default-directory "~")
            (proc (apply #'start-process
                         "epdfinfo" " *epdfinfo*" pdf-info-epdfinfo-program
@@ -305,44 +306,41 @@ error."
       (setq pdf-info--queue (tq-create proc))))
   pdf-info--queue)
 
-(advice-add 'tq-process-buffer :around #'pdf-info--tq-workaround)
-(defun pdf-info--tq-workaround (orig-fun tq &rest args)
-  "Fix a bug in trunk where the wrong callback gets called.
-
-ORIG-FUN is the callback that should be called. TQ and ARGS are
-the transmission-queue and arguments to the callback."
-  ;; FIXME: Make me iterative.
-  (if (not (equal (car (process-command (tq-process tq)))
-                  pdf-info-epdfinfo-program))
-      (apply orig-fun tq args)
-    (let ((buffer (tq-buffer tq))
-          done)
-      (when (buffer-live-p buffer)
-        (set-buffer buffer)
-        (while (and (not done)
-                    (> (buffer-size) 0))
-          (setq done t)
-          (if (tq-queue-empty tq)
-              (let ((buf (generate-new-buffer "*spurious*")))
-                (copy-to-buffer buf (point-min) (point-max))
-                (delete-region (point-min) (point))
-                (pop-to-buffer buf nil)
-                (error "Spurious communication from process %s, see buffer %s"
-                       (process-name (tq-process tq))
-                       (buffer-name buf)))
-            (goto-char (point-min))
-            (when (re-search-forward (tq-queue-head-regexp tq) nil t)
-              (setq done nil)
-              (let ((answer (buffer-substring (point-min) (point)))
-                    (fn (tq-queue-head-fn tq))
-                    (closure (tq-queue-head-closure tq)))
-                (delete-region (point-min) (point))
-                (tq-queue-pop tq)
-                (condition-case-unless-debug err
-                    (funcall fn closure answer)
-                  (error
-                   (message "Error while processing tq callback: %s"
-                            (error-message-string err))))))))))))
+;; (defadvice tq-process-buffer (around bugfix activate)
+;;   "Fix a bug in trunk where the wrong callback gets called."
+;;   ;; FIXME: Make me iterative.
+;;   (let ((tq (ad-get-arg 0)))
+;;     (if (not (equal (car (process-command (tq-process tq)))
+;;                     pdf-info-epdfinfo-program))
+;;         ad-do-it
+;;       (let ((buffer (tq-buffer tq))
+;;             done)
+;;         (when (buffer-live-p buffer)
+;;           (set-buffer buffer)
+;;           (while (and (not done)
+;;                       (> (buffer-size) 0))
+;;             (setq done t)
+;;             (if (tq-queue-empty tq)
+;;                 (let ((buf (generate-new-buffer "*spurious*")))
+;;                   (copy-to-buffer buf (point-min) (point-max))
+;;                   (delete-region (point-min) (point))
+;;                   (pop-to-buffer buf nil)
+;;                   (error "Spurious communication from process %s, see buffer %s"
+;;                          (process-name (tq-process tq))
+;;                          (buffer-name buf)))
+;;               (goto-char (point-min))
+;;               (when (re-search-forward (tq-queue-head-regexp tq) nil t)
+;;                 (setq done nil)
+;;                 (let ((answer (buffer-substring (point-min) (point)))
+;;                       (fn (tq-queue-head-fn tq))
+;;                       (closure (tq-queue-head-closure tq)))
+;;                   (delete-region (point-min) (point))
+;;                   (tq-queue-pop tq)
+;;                   (condition-case-unless-debug err
+;;                       (funcall fn closure answer)
+;;                     (error
+;;                      (message "Error while processing tq callback: %s"
+;;                               (error-message-string err)))))))))))))
 
 
 ;; * ================================================================== *
