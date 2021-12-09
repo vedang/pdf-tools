@@ -10,6 +10,19 @@ doc = None
 def stringify(list):
     return ["'" + i + "'" for i in list]
 
+
+def normalize_edges(page_obj, edges):
+    "Transform vimura edges to (normalized) pdf-tools edges."
+    size = page_obj.mediabox_size
+    return [edges[i]/size[0] if i in [0, 2] else edges[i]/size[1]
+            for i in range(0, 4)]
+
+def denormalize_edges(page_obj, edges):
+    "Transform (normalized) pdf-tools edges to vimura edges."
+    size = page_obj.mediabox_size
+    return [edges[i]*size[0] if i in [0, 2] else edges[i]*size[1]
+            for i in range(0, 4)]
+
 def open(*args):
     global doc
     doc = fitz.open(args[0])
@@ -27,7 +40,10 @@ def pagesize(*args):
     size = doc[p].mediabox_size
     print("OK\n{}:{}\n.".format(size[0], size[1]))
 
-def renderpage(*args, **kwargs):
+def renderpage(*args,
+               foreground=None,
+               background=None,
+               highlight_text=None):
     doc = fitz.open(args[0])
     p = doc[int(args[1]) - 1]
     width = int(args[2])
@@ -38,11 +54,13 @@ def renderpage(*args, **kwargs):
 
     pix.save(tmpfile)
 
-    if len(args) > 3:
+    if highlight_text:
         with Image.open(tmpfile) as im:
-            draw = ImageDraw.Draw(im)
-            draw.line((0, 0) + im.size, fill=128)
-            draw.line((0, im.size[1], im.size[0], 0), fill=128)
+            draw = ImageDraw.Draw(im, 'RGBA')
+            edges = denormalize_edges(p,
+                                      [float(i)*zoom
+                                       for i in highlight_text.split()])
+            draw.rectangle(edges, fill=(128,128,128,128))  # foreground is lighter
 
             im.save(tmpfile, "PNG")
 
