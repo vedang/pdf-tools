@@ -61,6 +61,22 @@
   "Extract infos from pdf-files via a helper process."
   :group 'pdf-tools)
 
+(defcustom pdf-tools-server 'epdfinfo
+  "Backend for accessing pdf files.
+
+The ‘epdfinfo' server is the original and fastest server, written
+in C, implementing, a reasonable set but limited set of options
+provides by the freedesktop.org its Poppler PDF library.
+
+The ‘vimura' server is newer and because it is written in python
+and using the excellent, fast and very elaborate pymupdf library,
+it is much more hackable than the ‘epdfinfo' server. Ultimately,
+this backend should provide many additional features that are not
+provided by the ‘epdfinfo' server. "
+  :group 'pdf-tools
+  :type 'symbol
+  :options '(epdfinfo vimura))
+
 (defcustom pdf-info-epdfinfo-program
   (let ((executable (if (eq system-type 'windows-nt)
                         "epdfinfo.exe" "epdfinfo"))
@@ -82,6 +98,32 @@
                 (file-name-directory (car command-line-args))))
           ;; If we are running directly from the git repo.
           (try-directory (expand-file-name "../server"))
+          ;; Fall back to epdfinfo in the directory of this file.
+          (expand-file-name executable))))
+  "Filename of the epdfinfo executable."
+  :group 'pdf-info
+  :type 'file)
+
+(defcustom pdf-info-vimura-program
+  (let ((executable "vimura.py")
+        (default-directory
+          (or (and load-file-name
+                   (file-name-directory load-file-name))
+              default-directory)))
+    (cl-labels ((try-directory (directory)
+                  (and (file-directory-p directory)
+                       (file-executable-p (expand-file-name executable directory))
+                       (expand-file-name executable directory))))
+      (or (executable-find executable)
+          ;; This works if epdfinfo is in the same place as emacs and
+          ;; the editor was started with an absolute path, i.e. it is
+          ;; meant for Windows/Msys2.
+          (and (stringp (car-safe command-line-args))
+               (file-name-directory (car command-line-args))
+               (try-directory
+                (file-name-directory (car command-line-args))))
+          ;; If we are running directly from the git repo.
+          (try-directory (expand-file-name "../pymupdf/tq/server"))
           ;; Fall back to epdfinfo in the directory of this file.
           (expand-file-name executable))))
   "Filename of the epdfinfo executable."
@@ -198,6 +240,22 @@ This variable is initially `t', telling the code starting the
 server, that it never ran.")
 
 
+;; * ================================================================== *
+;; * Backend
+;; * ================================================================== *
+
+(defun pdf-tools-toggle-server ()
+  (interactive)
+  (when (and pdf-info--queue (listp pdf-info--queue))
+    (tq-close pdf-info--queue))
+  (let ((new-value (if (eq pdf-tools-server 'epdfinfo)
+                       'vimura
+                     'epdfinfo)))
+    (setq pdf-info-epdfinfo-program (pcase new-value
+                                      ('vimura pdf-info-vimura-program)
+                                      ('epdfinfo "/home/dalanicolai/spacemacs/elpa/27.2/develop/pdf-tools-20211209.2212/epdfinfo")))
+    (setq pdf-tools-server (print new-value))))
+
 ;; * ================================================================== *
 ;; * Process handling
 ;; * ================================================================== *
