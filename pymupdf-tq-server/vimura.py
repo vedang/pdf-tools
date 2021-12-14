@@ -45,7 +45,7 @@ def close(*args):
     print("OK\n1\n.")
 
 def number_of_pages(*args):
-    doc = fitz.open(args[0].replace("_", "-"))  # replace back (see while loop)
+    # doc = fitz.open(args[0].replace("_", "-"))  # replace back (see while loop)
     print("OK\n{}\n.".format(len(doc)))
 
 def pagesize(*args):
@@ -85,8 +85,11 @@ def renderpage(*args,
                alpha=None,
                highlight_text=None,
                highlight_region=None):
-    doc = fitz.open(args[0].replace("_", "-"))  # replace back (see while loop)
-    p = doc[int(args[1]) - 1]
+    global doc
+    if not doc:
+        doc = fitz.open(args[0].replace("_", "-"))  # replace back (see while loop)
+    page = int(args[1]) - 1
+    p = doc[page]
     width = int(args[2])
     zoom = width/p.mediabox_size[0]
     mat = fitz.Matrix(zoom, zoom)
