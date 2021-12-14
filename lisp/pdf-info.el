@@ -253,7 +253,7 @@ server, that it never ran.")
                      'epdfinfo)))
     (setq pdf-info-epdfinfo-program (pcase new-value
                                       ('vimura pdf-info-vimura-program)
-                                      ('epdfinfo "/home/dalanicolai/spacemacs/elpa/27.2/develop/pdf-tools-20211209.2212/epdfinfo")))
+                                      ('epdfinfo "/home/dalanicolai/spacemacs/elpa/27.2/develop/pdf-tools-20211210.51/epdfinfo")))
     (setq pdf-tools-server (print new-value))))
 
 ;; * ================================================================== *
@@ -1071,7 +1071,7 @@ A No-op, if BUFFER has not running server instance."
     (cond
      ((not (memq 'writable-annotations features)) nil)
      ((memq 'markup-annotations features)
-      (list 'text 'squiggly 'underline 'strike-out 'highlight))
+      (list 'text 'squiggly 'underline 'strike-out 'highlight 'line))
      (t (list 'text)))))
 
 (defun pdf-info-open (&optional file-or-buffer password)
