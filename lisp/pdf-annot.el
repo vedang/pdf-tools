@@ -80,7 +80,8 @@ Implement and describe basic org example."
     (highlight (color . "yellow"))
     (squiggly (color . "orange"))
     (strike-out(color . "red"))
-    (underline (color . "blue")))
+    (underline (color . "blue"))
+    (line (color . "black")))
   "An alist of initial properties for new annotations.
 
 The alist contains a sub-alist for each of the currently available
@@ -1061,14 +1062,14 @@ Return the new annotation."
     (error "Edges argument should be a single edge-list for text annotations"))
   (let* ((a (apply #'pdf-info-addannot
                    page
-                   (if (eq type 'text)
-                       (car edges)
-                     (apply #'pdf-util-edges-union
-                            (apply #'append
-                                   (mapcar
-                                    (lambda (e)
-                                      (pdf-info-getselection page e))
-                                    edges))))
+                   (pcase type
+                     ((or 'text 'line) (car edges))
+                     (_ (apply #'pdf-util-edges-union
+                             (apply #'append
+                                    (mapcar
+                                     (lambda (e)
+                                       (pdf-info-getselection page e))
+                                     edges)))))
                    type
                    nil
                    (if (not (eq type 'text)) edges)))
@@ -1234,6 +1235,14 @@ annotation color and PROPERTY-ALIST defines additional annotation
 properties. See also `pdf-annot-add-markup-annotation'."
   (interactive (list (pdf-view-active-region t)))
   (pdf-annot-add-markup-annotation list-of-edges 'highlight color property-alist))
+
+(defun pdf-annot-add-line-markup-annotation (list-of-edges
+                                                  &optional color property-alist)
+  "Add a new highlight annotation in the selected window.
+
+See also `pdf-annot-add-markup-annotation'."
+  (interactive (list (pdf-view-active-region t)))
+  (pdf-annot-add-markup-annotation list-of-edges 'line color property-alist))
 
 (defun pdf-annot-keyboard-annot-format-collection (search-results)
   "Transform SEARCH-RESULTS into useful collection.
