@@ -1340,6 +1340,7 @@ by a header."
                                 "pdf-annot-print-annotation-latex%s%s%s"
                                 page header contents)))
                  (data (pdf-cache-lookup-image page 0 nil hash))
+                 (org-preview-latex-default-process 'dvipng)
                  (org-format-latex-header
                   pdf-annot-latex-header)
                  (temporary-file-directory
