@@ -779,6 +779,32 @@ displayed page number."
       (error "No such label: %s" label))
     (pdf-view-goto-page (1+ index))))
 
+(defun pdf-view-center-in-window ()
+  "Center PDF in window horizontally."
+  (interactive)
+  (image-set-window-hscroll
+   (/ (* (- (car (pdf-view-image-size))
+            (window-pixel-width))
+         (window-width))
+      2 (window-pixel-width))) ; convert from pixel to character width
+  (pdf-view-redisplay t))
+
+(defun pdf-view-align-left ()
+  "Align left edge of pdf with left edge of window."
+  (interactive)
+  (image-set-window-hscroll 0)
+  (pdf-view-redisplay t))
+
+(defun pdf-view-align-right ()
+  "Align right edge of pdf with right edge of window."
+  (interactive)
+  (image-set-window-hscroll
+   (/ (* (- (car (pdf-view-image-size))
+            (window-pixel-width))
+         (window-width))
+      (window-pixel-width))) ; convert from pixel to character width
+  (pdf-view-redisplay t))
+
 
 ;; * ================================================================== *
 ;; * Slicing
