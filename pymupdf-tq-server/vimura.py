@@ -10,6 +10,8 @@ import pytz
 import fitz
 from PIL import Image, ImageDraw
 
+sys.stderr = open('vimura_err.log', 'w')
+
 logging.basicConfig(filename='vimura.log', filemode='w', level=logging.DEBUG)
 # logging.basicConfig(filename='vimura.log', encoding='utf-8', level=logging.DEBUG)
 
@@ -268,7 +270,7 @@ def addannot(*args):
 #     print("OK\n.")
 
 def editannot(*args):
-    key = args[1]  # .replace("_", "-")
+    key = args[1].replace("_", "-")
     key_parts = key.split("-")
     page, n = [int(i) for i in key_parts[1:]]
     p = doc[page - 1]
