@@ -5,6 +5,7 @@ Authors: Daniel Nicolai <dalanicolai@hotmail.com>
 '''
 
 import sys, io
+import traceback
 import logging
 import datetime as dt
 import time
@@ -314,20 +315,25 @@ def features(*args):
     print("OK\ncase-sensitive-search:writable-annotations:markup-annotations\n.")
 
 # server loop reading single lines
-while query := sys.stdin.readline():
-    logging.debug("This is the query: %s", query)
-    raw_commands = [[list(filter(len, i.split(":")))
-                 for i in j.split("\\")]
-                for j in list(filter(len, query.split("\n")))]
-    commands =  [[[item.replace("-", "_")  if i != 1 else item
-                 for i, item in enumerate(j)] for j in raw_commands[0]]]
-    if len(raw_commands) > 1:
-        commands += [raw_commands[1:]]
-    for c in commands:
-        arglist = stringify(c[0][1:])
-        # if len(c) > 1:
-        kwargs = ['='.join([k[0], "'" + k[1] + "'"]) for k in c[1:]]
-        arglist = arglist + kwargs
-        eval_string = c[0][0] + "(" + ", ".join(["{}"] * len(arglist)).format(*arglist) + ")"
-        logging.debug("This is the eval string: %s", eval_string)
-        eval(c[0][0] + "(" + ", ".join(["{}"] * len(arglist)).format(*arglist) + ")")
+try:
+    while query := sys.stdin.readline():
+        logging.debug("This is the query: %s", query)
+        raw_commands = [[list(filter(len, i.split(":")))
+                    for i in j.split("\\")]
+                    for j in list(filter(len, query.split("\n")))]
+        commands =  [[[item.replace("-", "_")  if i != 1 else item
+                    for i, item in enumerate(j)] for j in raw_commands[0]]]
+        if len(raw_commands) > 1:
+            commands += [raw_commands[1:]]
+        for c in commands:
+            arglist = stringify(c[0][1:])
+            # if len(c) > 1:
+            kwargs = ['='.join([k[0], "'" + k[1] + "'"]) for k in c[1:]]
+            arglist = arglist + kwargs
+            eval_string = c[0][0] + "(" + ", ".join(["{}"] * len(arglist)).format(*arglist) + ")"
+            logging.debug("This is the eval string: %s", eval_string)
+            eval(c[0][0] + "(" + ", ".join(["{}"] * len(arglist)).format(*arglist) + ")")
+except:
+    print("ERR")
+    print(traceback.format_exc())
+    print(".")
