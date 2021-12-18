@@ -112,7 +112,6 @@ def pagesize(*args):
 
 #     print("OK\n{}\n.".format(tmpfile))
 
-# TODO Use virtual file object for Pillow part
 def renderpage(*args,
                foreground=None,
                background=None,
@@ -263,13 +262,21 @@ def addannot(*args):
     page = int(args[1]) - 1
     p = doc[page]
     edges = fitz.Rect(denormalize_edges(p, [float(e) for e in args[3].split()]))
-    match args[2]:
-        case 'highlight':
-            p.add_highlight_annot(start=fitz.Point(point_to_word(edges[0:2])[0:2]),
-                                  stop=fitz.Point(point_to_word(edges[2:4])[2:4]))
-        case 'line':
-            p.add_line_annot(fitz.Point(edges[0:2]),
-                             fitz.Point(edges[2:4]))
+    if args[2] == "line":
+        p.add_line_annot(fitz.Point(edges.tl),
+                         fitz.Point(edges.br))
+    else:
+        b = fitz.Point(point_to_word(edges.tl)[0:2])
+        e = fitz.Point(point_to_word(edges.br)[2:4])
+        match args[2]:
+            case 'highlight':
+                p.add_highlight_annot(start=b, stop=e)
+            case 'squiggly':
+                p.add_squiggly_annot(start=b, stop=e)
+            case 'underline':
+                p.add_underline_annot(start=b, stop=e)
+            case 'strike_out':
+                p.add_strikeout_annot(start=b, stop=e)
     print("OK\n{}:{}:{}:annot-{}-{}:0:::D\\:{}:::1.0::::{}\
     \n.".format(args[1],
                 args[3],
