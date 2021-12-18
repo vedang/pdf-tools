@@ -35,33 +35,38 @@
    development tips and comments can be found in [[../wiki/PyMuPDF-backend][the wiki section]].
    
 *** Usage
-   Install this branch using a Quelpa recipe. In Spacemacs I am using the
-   following line of code to install pdf-tools from this branch of the
-   repository:
-  #+begin_src emacs-lisp :tangle yes
-    (pdf-tools :location (recipe
-                      :fetcher github
-                      :repo "dalanicolai/pdf-tools"
-                      :branch "pymupdf-tq"
-                      :files ("lisp/*.el"
-                              "README"
-                              "pymupdf-tq-server/*.py"
-                              ("build" "Makefile")
-                              ("build" "server")
-                              (:exclude "lisp/tablist.el" "lisp/tablist-filter.el"))))
-  #+end_src 
-  You could also simply install the ~vimura.py~ file directly in your pdf-tools
-  directory, but I am not sure if all functions will work correctly (in
-  particular the search functionality, as I have made a small (temporary?)
-  change to ~pdf-isearch.el~)
+    Install this branch using a Quelpa recipe. In Spacemacs I am using the
+    following line of code to install pdf-tools from this branch of the
+    repository:
+    #+begin_src emacs-lisp :tangle yes
+      (pdf-tools :location (recipe
+                            :fetcher github
+                            :repo "dalanicolai/pdf-tools"
+                            :branch "pymupdf-tq"
+                            :files ("lisp/*.el"
+                                    "README"
+                                    "pymupdf-tq-server/*.py"
+                                    ("build" "Makefile")
+                                    ("build" "server")
+                                    (:exclude "lisp/tablist.el" "lisp/tablist-filter.el"))))
+    #+end_src 
+    You could also simply install the ~vimura.py~ file directly in your pdf-tools
+    directory, but I am not sure if all functions will work correctly (in
+    particular the search functionality, as I have made a small (temporary?)
+    change to ~pdf-isearch.el~)
    
-  Install the [[https://pypi.org/project/PyMuPDF/][PyMuPDF]], [[https://pypi.org/project/Pillow/][Pillow]] and [[https://pypi.org/project/pytz/][pytz]] python packages in your preferred python
-  environment (and make sure that Emacs uses the interpreter from the
-  environment).
+    Install the [[https://pypi.org/project/PyMuPDF/][PyMuPDF]], [[https://pypi.org/project/Pillow/][Pillow]] and [[https://pypi.org/project/pytz/][pytz]] python packages in your preferred python
+    environment (and make sure that Emacs uses the interpreter from the
+    environment).
 
-  Finally after loading pdf-tools, select the vimura server via ~M-x
-  pdf-tools-toggle-server~.
-  
+    Finally after loading pdf-tools, select the vimura server via ~M-x
+    pdf-tools-toggle-server~.
+
+*** Comment
+    The PyMuPDF backend currently only selects/activates per word (instead of
+    per character, e.g. for highlighting). Selection per character would be
+    perfectly possible but requires a little extra python code to be written.
+   
 ** About this package
    PDF Tools is, among other things, a replacement of DocView for PDF
    files.  The key difference is that pages are not pre-rendered by
