@@ -4,12 +4,12 @@
 Authors: Daniel Nicolai <dalanicolai@hotmail.com>
 '''
 
-import sys
+import sys, io
 import logging
 import datetime as dt
 import time
-import pytz
 
+import pytz
 
 import fitz
 from PIL import Image, ImageDraw
@@ -112,6 +112,7 @@ def pagesize(*args):
 
 #     print("OK\n{}\n.".format(tmpfile))
 
+# TODO Use virtual file object for Pillow part
 def renderpage(*args,
                foreground=None,
                background=None,
@@ -135,10 +136,9 @@ def renderpage(*args,
     pix = p.get_pixmap(matrix=mat)
     tmpfile = "/tmp/tmpimg"
 
-    pix.save(tmpfile)
-
     if highlight_text or highlight_region or highlight_line:
-        with Image.open(tmpfile) as im:
+        image_data = pix.tobytes()
+        with Image.open(io.BytesIO(image_data)) as im:
             draw = ImageDraw.Draw(im, 'RGBA')
             edges_from_type = highlight_text or highlight_region or highlight_line
             drag_edges = edges_from_type.split()
@@ -162,6 +162,9 @@ def renderpage(*args,
                 draw.rectangle(list(r), fill=(128, 128, 128, 128))
 
             im.save(tmpfile, "PNG")
+    else:
+        pix.save(tmpfile)
+
 
     print("OK\n{}\n.".format(tmpfile))
 
