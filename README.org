@@ -9,6 +9,131 @@
 [[https://stable.melpa.org/#/pdf-tools][http://stable.melpa.org/packages/pdf-tools-badge.svg]]
 [[https://melpa.org/#/pdf-tools][http://melpa.org/packages/pdf-tools-badge.svg]] [[https://ci.appveyor.com/project/vedang/pdf-tools][https://ci.appveyor.com/api/projects/status/yqic2san0wi7o5v8/branch/master?svg=true]]
 
+** About this pymupdf-tq branch
+   In this branch an alternative pdf-tools server, which is [[https://pymupdf.readthedocs.io/en/latest/][PyMuPDF]] based and
+   accordingly written in python, is being developed. The goal for of this
+   branch is to 'lower the bar' for maintaining and extending pdf-tools. Now the
+   rather 'demanding' requirement of having a very good knowledge of the C
+   programming language for extending the pdf-tools server, now gets 'lowered'
+   to a requirement of merely having a very limited knowledge of the python
+   programming language. In combination with some moderate knowledge of Emacs
+   lisp for extending the client, this opens the possibility to quite
+   straightforwardly implement line and arrow annotation features. Additionally,
+   with slightly more effort, an ink/freehand annotation feature could be
+   implemented. Enthusiastic hackers, could add pdf-form support and, as some
+   users have requested, keyboard navigation/selection support (implementing a
+   cursor).
+
+   With the help of the more then excellent [[https://pymupdf.readthedocs.io/en/latest/][PyMuPDF documentation]], writing the
+   python code for these features should be quite straightforward. However
+   writing the elisp/client code could be tricky. But enthusiastic hackers can
+   always count on help from the community. A least the author of the initial
+   code for this backend (and the [[https://elpa.gnu.org/devel/sketch-mode.html][sketch-mode]] package and several other Emacs
+   packages), generously offers his full assistance.
+
+   If you would like to hack on pdf-tools/this backend, then a kinds of
+   development tips and comments can be found in [[../wiki/PyMuPDF-backend][the wiki section]].
+   
+*** Usage
+   Install this branch using a Quelpa recipe. In Spacemacs I am using the
+   following line of code to install pdf-tools from this branch of the
+   repository:
+  #+begin_src emacs-lisp :tangle yes
+    (pdf-tools :location (recipe
+                      :fetcher github
+                      :repo "dalanicolai/pdf-tools"
+                      :branch "pymupdf-tq"
+                      :files ("lisp/*.el"
+                              "README"
+                              "pymupdf-tq-server/*.py"
+                              ("build" "Makefile")
+                              ("build" "server")
+                              (:exclude "lisp/tablist.el" "lisp/tablist-filter.el"))))
+  #+end_src 
+  You could also simply install the ~vimura.py~ file directly in your pdf-tools
+  directory, but I am not sure if all functions will work correctly (in
+  particular the search functionality, as I have made a small (temporary?)
+  change to ~pdf-isearch.el~)
+   
+  Install the [[https://pypi.org/project/PyMuPDF/][PyMuPDF]], [[https://pypi.org/project/Pillow/][Pillow]] and [[https://pypi.org/project/pytz/][pytz]] python packages in your preferred python
+  environment (and make sure that Emacs uses the interpreter from the
+  environment).
+
+  Finally after loading pdf-tools, select the vimura server via ~M-x
+  pdf-tools-toggle-server~.
+  
+** About this package
+   PDF Tools is, among other things, a replacement of DocView for PDF
+   files.  The key difference is that pages are not pre-rendered by
+   e.g. ghostscript and stored in the file-system, but rather created
+   on-demand and stored in memory.
+
+   This rendering is performed by a special library named, for
+   whatever reason, poppler, running inside a server program.  This
+   program is called ~epdfinfo~ and its job is to successively
+   read requests from Emacs and produce the proper results, i.e. the
+   PNG image of a PDF page.
+
+   Actually, displaying PDF files is just one part of PDF Tools.
+   Since poppler can provide us with all kinds of information about a
+   document and is also able to modify it, there is a lot more we can
+   do with it. [[http://www.dailymotion.com/video/x2bc1is_pdf-tools-tourdeforce_tech?forcedQuality%3Dhd720][Watch]]
+
+   Please read also about [[#known-problems][known problems.]]
+
+** Features
+   + View :: View PDF documents in a buffer with DocView-like
+             bindings.
+   + Isearch :: Interactively search PDF documents like any other
+                buffer, either for a string or a PCRE.
+   + Occur :: List lines matching a string or regexp in one or more
+              PDF documents.
+   + Follow ::
+    Click on highlighted links, moving to some part of a different
+    page, some external file, a website or any other URI.  Links may
+    also be followed by keyboard commands.
+   + Annotations :: Display and list text and markup annotations (like
+                    underline), edit their contents and attributes
+                    (e.g. color), move them around, delete them or
+                    create new ones and then save the modifications
+                    back to the PDF file.
+   + Attachments :: Save files attached to the PDF-file or list them
+                    in a dired buffer.
+   + Outline :: Use imenu or a special buffer to examine and navigate
+                the PDF's outline.
+   + SyncTeX :: Jump from a position on a page directly to the TeX
+                source and vice versa.
+   + Virtual ::
+    Use a collection of documents as if it were one, big single PDF.
+
+   + Misc ::
+     - Display PDF's metadata.
+     - Mark a region and kill the text from the PDF.
+     - Keep track of visited pages via a history.
+     - Apply a color filter for reading in low light conditions.
+
+** Installation
+   The package may be installed via MELPA and it will try to build the
+   server part when it is activated the first time.  Though the next
+   section regarding build-prerequisites is still relevant, the rest
+   of the installation instructions assume a build from within a git
+   repository. (The MELPA package has a different directory
+   structure.)
+
+*** Server prerequisites
+    You'll need GNU Emacs \ge 24.3 and some form of a GNU/Linux OS.
+    Other operating systems are currently not supported (patches
+    welcome).  The following instructions assume a Debian-based
+    system. (The prerequisites may be installed automatically on this
+    kind of systems, see [[#compilation][Compilation]] .)
+
+    First make sure a suitable build-system is installed.  We need at
+    least a C/C++ compiler (both ~gcc~ and ~g++~), ~make~, ~automake~
+    and ~autoconf~.
+
+    Next we need to install a few libraries PDF Tools depends on, some
+    of which are probably already on your system.
+    
 The ~pdf-tools~ Wiki is maintained at https://pdftools.wiki. Head to the site if you find it easier to navigate a website for reading a manual. All the topics on the site are listed at https://pdftools.wiki/impulse.
 
 * About PDF Tools
@@ -49,6 +174,7 @@ You'll need GNU Emacs \ge 24.3 and some form of a GNU/Linux OS. Other operating 
 First make sure a suitable build-system is installed. We need at least a C/C++ compiler (both ~gcc~ and ~g++~), ~make~, ~automake~ and ~autoconf~.
 
 Next we need to install a few libraries ~pdf-tools~ depends on, some of which are probably already on your system.
+    
 #+begin_src sh
   $ sudo apt install libpng-dev zlib1g-dev libpoppler-glib-dev libpoppler-private-dev
 #+end_src
