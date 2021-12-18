@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+'''
+Authors: Daniel Nicolai <dalanicolai@hotmail.com>
+'''
+
 import sys
 import logging
 import datetime as dt
@@ -218,26 +222,32 @@ def print_links(page):
     l = p.first_link
     i = 0
     while l:
-        r, g, b = [int(i*255) for i in l.colors['stroke']]
-        print("{}:{}:link:annot-{}-{}:0:{}::".format(page + 1,
-                                                     " ".join([str(e) for e in l.rect]),
-                                                     page + 1,
-                                                     len(list(p.annots())) + i,
-                                                     "#{:02x}{:02x}{:02x}".format(r, g, b)))
+        logging.debug("p and stroke are %s, %s", p, l.colors['stroke'])
+        if s := l.colors['stroke']:
+            r, g, b = [int(i*255) for i in s]
+            print("{}:{}:link:annot-{}-{}:0:{}::".format(page + 1,
+                                                         " ".join([str(e) for e in l.rect]),
+                                                         page + 1,
+                                                         len(list(p.annots())) + i,
+                                                         "#{:02x}{:02x}{:02x}".format(r, g, b)))
         l = l.next
         i += 1
 
 def getannots(*args):
+    global doc
+    doc = fitz.open(args[0])
     start_page = int(args[1]) - 1
     end_page = int(args[2])
     if end_page <= 0:
         end_page = len(doc)
     print("OK")
     for p in range(start_page, end_page):
+        logging.debug("p and doc are %s, %s", p, doc)
         for i, a in  enumerate(doc[p].annots()):
+            logging.debug("i and a are %s, %s", i, a)
             r, g, b = [int(c*255) for c in a.colors['stroke']]
             print("{}:{}:{}:annot-{}-{}:0:::D\\:{}:::1.0::::{}".format(p + 1,
-                                                                       " ".join([str(e) for e in a.rect]),
+                                                                       " ".join([str(e) for e in normalize_edges(doc[p], a.rect)]),
                                                                        a.type[1].lower(),
                                                                        p + 1,
                                                                        i,
@@ -270,6 +280,7 @@ def addannot(*args):
 #     print("OK\n.")
 
 def editannot(*args):
+    logging.debug("Run editannot with args: %s", args)
     key = args[1].replace("_", "-")
     key_parts = key.split("-")
     page, n = [int(i) for i in key_parts[1:]]
