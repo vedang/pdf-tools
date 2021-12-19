@@ -288,6 +288,7 @@ regarding display of the region in the later function.")
     (define-key map [down-mouse-1] 'pdf-view-mouse-set-region)
     (define-key map [M-down-mouse-1] 'pdf-view-mouse-set-region-rectangle)
     (define-key map [C-down-mouse-1] 'pdf-view-mouse-extend-region)
+    (define-key map [C-M-down-mouse-1] 'pdf-view-mouse-set-region-line)
     (define-key map [remap kill-region] 'pdf-view-kill-ring-save)
     (define-key map [remap kill-ring-save] 'pdf-view-kill-ring-save)
     (define-key map [remap mark-whole-buffer] 'pdf-view-mark-whole-page)
@@ -1305,7 +1306,7 @@ Deactivate the region if DEACTIVATE-P is non-nil."
     (pdf-view-redisplay t)))
 
 (defun pdf-view-mouse-set-region (event &optional allow-extend-p
-                                        rectangle-p)
+                                        rectangle-p line-p)
   "Select a region of text using the mouse with mouse event EVENT.
 
 Allow for stacking of regions, if ALLOW-EXTEND-P is non-nil.
@@ -1374,7 +1375,7 @@ Stores the region in `pdf-view-active-region'."
                                                 (+ (car begin) (car dxy))))
                                     (max 0 (min (cdr size)
                                                 (+ (cdr begin) (cdr dxy)))))))))
-                (let ((iregion (if rectangle-p
+                (let ((iregion (if (and rectangle-p (not line-p))
                                    (list (min (car begin) (car end))
                                          (min (cdr begin) (cdr end))
                                          (max (car begin) (car end))
@@ -1385,7 +1386,7 @@ Stores the region in `pdf-view-active-region'."
                         (pdf-util-scale-pixel-to-relative iregion))
                   (pdf-view-display-region
                    (cons region pdf-view-active-region)
-                   rectangle-p)
+                   rectangle-p line-p)
                   (pdf-util-scroll-to-edges iregion)))))
       (setq pdf-view-active-region
             (append pdf-view-active-region
@@ -1408,7 +1409,17 @@ This is more useful for commands like
   (interactive "@e")
   (pdf-view-mouse-set-region event nil t))
 
-(defun pdf-view-display-region (&optional region rectangle-p)
+(defun pdf-view-mouse-set-region-line (event)
+  "Like `pdf-view-mouse-set-region' but displays as a rectangle.
+
+EVENT is the mouse event.
+
+This is more useful for commands like
+`pdf-view-extract-region-image'."
+  (interactive "@e")
+  (pdf-view-mouse-set-region event nil t t))
+
+(defun pdf-view-display-region (&optional region rectangle-p line-p)
   ;; TODO: write documentation!
   (unless region
     (pdf-view-assert-active-region)
@@ -1421,9 +1432,13 @@ This is more useful for commands like
     (pdf-view-display-image
      (pdf-view-create-image
          (if rectangle-p
-             (pdf-info-renderpage-highlight
-              page width nil
-              `(,(car colors) ,(cdr colors) 0.35 ,@region))
+             (if line-p
+                 (pdf-info-renderpage-line
+                  page width nil
+                  `(,(car colors) ,(cdr colors) 0.35 ,@region))
+               (pdf-info-renderpage-highlight
+                page width nil
+                `(,(car colors) ,(cdr colors) 0.35 ,@region)))
            (pdf-info-renderpage-text-regions
             page width nil nil
             `(,(car colors) ,(cdr colors) ,@region)))

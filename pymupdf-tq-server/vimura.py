@@ -119,7 +119,7 @@ def renderpage(*args,
                alpha=None,
                highlight_text=None,
                highlight_region=None,
-               highlight_line=None):
+               draw_line=None):
     global doc, current_page, current_page_text, zoom
     logging.debug("And these are the args: %s", args)
     logging.debug("And the keyword args: %s\n\n", kwargs)
@@ -136,30 +136,35 @@ def renderpage(*args,
     pix = p.get_pixmap(matrix=mat)
     tmpfile = "/tmp/tmpimg"
 
-    if highlight_text or highlight_region or highlight_line:
+    if highlight_text or highlight_region or draw_line:
         image_data = pix.tobytes()
         with Image.open(io.BytesIO(image_data)) as im:
             draw = ImageDraw.Draw(im, 'RGBA')
-            edges_from_type = highlight_text or highlight_region or highlight_line
+            edges_from_type = highlight_text or highlight_region or draw_line
             drag_edges = edges_from_type.split()
+            logging.debug("These are the edges_from_type and drag_edges: %s, %s", edges_from_type, drag_edges)
             # edges = denormalize_edges(p, [float(e) for e in [0, drag_edges[1], 1, drag_edges[3]]])
             edges = denormalize_edges(p, [float(e) for e in drag_edges])
-            if highlight_line:
-                edges = [i*zoom for i in edges]
-            else:
-                selection = fitz.get_highlight_selection(p,
-                                                         start=fitz.Point(point_to_word(edges[0:2])[0:2]),
-                                                         stop=fitz.Point(point_to_word(edges[2:4])[2:4]))
+            selection = fitz.get_highlight_selection(p,
+                                                     start=fitz.Point(point_to_word(edges[0:2])[0:2]),
+                                                     stop=fitz.Point(point_to_word(edges[2:4])[2:4]))
             if highlight_text:
+                selection = fitz.get_highlight_selection(p,
+                                                        start=fitz.Point(point_to_word(edges[0:2])[0:2]),
+                                                        stop=fitz.Point(point_to_word(edges[2:4])[2:4]))
                 s = [[i*zoom for i in r] for r in selection]
             else:
-                s = [edges]
+                s = [[i*zoom for i in edges]]
             # words = p.get_text('words', sort=True, clip=edges)
             # word_rects = [[i*zoom for i in w[0:4]] for w in words]
             # for w in word_rects:
             #     draw.rectangle(w, fill=(128, 128, 128, 128))
             for r in s:
-                draw.rectangle(list(r), fill=(128, 128, 128, 128))
+                if draw_line:
+                    logging.debug("These are line r: %s", [tuple(r[0:2]), tuple(r[2:4])])
+                    draw.line([tuple(r[:2]), tuple(r[2:4])], fill="red", width=2)
+                else:
+                    draw.rectangle(list(r), fill=(128, 128, 128, 128))
 
             im.save(tmpfile, "PNG")
     else:
