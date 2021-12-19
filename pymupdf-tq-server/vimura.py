@@ -4,8 +4,12 @@
 Authors: Daniel Nicolai <dalanicolai@hotmail.com>
 '''
 
+# TODO Create separate annotation_print functions
+# see also xpoppler_annot_type_string in epdfinfo.c
+
 import sys, io
 import traceback
+import getpass
 import logging
 import datetime as dt
 import time
@@ -317,9 +321,6 @@ def addannot(*args):
                 pdf_date(),
                 args[3]))
 
-# def editannot(*args):
-#     print("OK\n.")
-
 def editannot(*args):
     logging.debug("Run editannot with args: %s", args)
     key = args[1].replace("_", "-")
@@ -364,6 +365,6 @@ try:
             logging.debug("This is the eval string: %s", eval_string)
             eval(c[0][0] + "(" + ", ".join(["{}"] * len(arglist)).format(*arglist) + ")")
 except:
-    print("ERR")
+    print("ERR")  # response 'discovered' in epdfinfo.h
     print(traceback.format_exc())
     print(".")
