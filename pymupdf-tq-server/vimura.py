@@ -236,6 +236,21 @@ def print_links(page):
         l = l.next
         i += 1
 
+# TODO create links for other types
+# (see xpoppler_action_type_string in epdfinfo.c)
+def pagelinks(filepath, real_pn):
+    p = doc[int(real_pn) - 1]
+    size = p.mediabox_size
+    print("OK")
+    for l in p.links(kinds=[fitz.LINK_GOTO]):
+        edges = l['from']
+        dest_height = l['to'][1]/size[1]
+        print("{}:goto-dest::{}:{}".format(" ".join(str(i) for i in normalize_edges(p, edges)),
+                                           l['page'] + 1,
+                                           dest_height))
+    print(".")
+
+
 def getannots(*args):
     global doc
     doc = fitz.open(args[0])
