@@ -262,15 +262,25 @@ def getannots(*args):
     for p in range(start_page, end_page):
         logging.debug("p and doc are %s, %s", p, doc)
         for i, a in  enumerate(doc[p].annots()):
+            annot_info = a.info
             logging.debug("i and a are %s, %s", i, a)
+            annot_rect = " ".join([str(e) for e in normalize_edges(doc[p], a.rect)])
+            annot_popup_rect = " ".join([str(e) for e in normalize_edges(doc[p], a.popup_rect)])
             r, g, b = [int(c*255) for c in a.colors['stroke']]
-            print("{}:{}:{}:annot-{}-{}:0:::D\\:{}:::1.0::::{}".format(p + 1,
-                                                                       " ".join([str(e) for e in normalize_edges(doc[p], a.rect)]),
-                                                                       a.type[1].lower(),
-                                                                       p + 1,
-                                                                       i,
-                                                                       pdf_date(),
-                                                                       "#{:02x}{:02x}{:02x}".format(r, g, b)))
+            # TODO find out how pdf sets user name to replace 'getpass'
+            print(
+                "{}:{}:{}:annot-{}-{}:0:{}:{}:D\\:{}:{}::1.0:{}:{}::{}".format(p + 1,
+                                                                                 annot_rect,
+                                                                                 a.type[1].lower(),
+                                                                                 p + 1,
+                                                                                 i,
+                                                                                 "#{:02x}{:02x}{:02x}".format(r, g, b),
+                                                                                 annot_info['content'],
+                                                                                 annot_info['creationDate'],
+                                                                                 getpass.getuser(),
+                                                                                 annot_popup_rect,
+                                                                                 annot_info['creationDate'],
+                                                                                 annot_rect))
         print_links(p)
     print(".")
 
