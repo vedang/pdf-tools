@@ -1660,7 +1660,7 @@ Return the data of the corresponding PNG image."
               (value (pop commands)))
           (setq value
                 (cl-case kw
-                  ((:crop-to :highlight-line :highlight-region :highlight-text)
+                  ((:crop-to :highlight-region :highlight-text :draw-line)
                    (mapconcat 'number-to-string value " "))
                   ((:foreground :background)
                    (pdf-util-hexcolor value))
@@ -1736,6 +1736,36 @@ Return the data of the corresponding PNG image."
                   :alpha ,(pop elt)
                   ,@(cl-mapcan (lambda (edges)
                                  `(:highlight-region ,edges))
+                               elt)))
+              regions))))
+
+(defun pdf-info-renderpage-line (page width
+                                           &optional file-or-buffer
+                                           &rest regions)
+  "Highlight regions on PAGE with width WIDTH using REGIONS.
+
+REGIONS is a list determining the background color, a alpha value
+and the regions to render. So each element should look like \(FILL-COLOR
+STROKE-COLOR ALPHA \(LEFT TOP RIGHT BOT\) \(LEFT TOP RIGHT BOT\) ... \)
+.
+
+For the other args see `pdf-info-renderpage'.
+
+Return the data of the corresponding PNG image."
+
+  (when (consp file-or-buffer)
+    (push file-or-buffer regions)
+    (setq file-or-buffer nil))
+
+  (apply 'pdf-info-renderpage
+    page width file-or-buffer
+    (apply 'append
+      (mapcar (lambda (elt)
+                `(:background ,(pop elt)
+                  :foreground ,(pop elt)
+                  :alpha ,(pop elt)
+                  ,@(cl-mapcan (lambda (edges)
+                                 `(:draw-line ,edges))
                                elt)))
               regions))))
 
