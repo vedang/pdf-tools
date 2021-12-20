@@ -11,7 +11,6 @@ import sys, io
 import traceback
 import getpass
 import logging
-import base64
 import datetime as dt
 import time
 
@@ -116,8 +115,7 @@ def renderpage(*args,
     zoom = width/p.mediabox_size[0]
     mat = fitz.Matrix(zoom, zoom)
     pix = p.get_pixmap(matrix=mat)
-    # tmpfile = "/tmp/tmpimg"
-    im_data = pix.tobytes()
+    tmpfile = "/tmp/tmpimg"
 
     if highlight_text or highlight_region or draw_line:
         image_data = pix.tobytes()
@@ -146,17 +144,16 @@ def renderpage(*args,
                 else:
                     draw.rectangle(list(r), fill=(128, 128, 128, 128))
 
-            im_bytes = io.BytesIO()
-            im.save(im_bytes, "PNG")
-            im_data = im_bytes.getvalue()
+            im.save(tmpfile, "PNG")
+    else:
+        pix.save(tmpfile)
 
-    im_data64 = base64.b64encode(im_data).decode()
 
-    print("OK\n{}\n.".format(im_data64))
+    print("OK\n{}\n.".format(tmpfile))
 
-def getselection(filepath, real_pn, rect, style):
-    p = doc[int(real_pn) - 1]
-    if rect == "0 0 1 1":
+def getselection(*args):
+    p = doc[int(args[1]) - 1]
+    if args[2] == "0 0 1 1":
         size = p.mediabox_size
         selections = [[str(j[i]/size[0])
                        if i in [0, 2]
@@ -166,7 +163,7 @@ def getselection(filepath, real_pn, rect, style):
         selections_formatted = "\n".join([" ".join(j) for j in selections])
         print("OK\n{}\n.".format(selections_formatted))
     else:
-        print("OK\n{}\n.".format(rect))
+        print("OK\n{}\n.".format(args[2]))
 
 def get_text_line(text, word):
     line_text = ""
