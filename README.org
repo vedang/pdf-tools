@@ -33,7 +33,18 @@
 
    If you would like to hack on pdf-tools/this backend, then a kinds of
    development tips and comments can be found in [[../wiki/PyMuPDF-backend][the wiki section]].
-   
+
+*** Acknowledgements
+    The development of PDF-tools has been more or less a , very high quality,
+    man project that was contributed by Andreas Politz. We would hereby like to
+    express our special thanks to him for this outstanding package.
+
+    The server in this branch is PyMuPDF based> PyMuPDF is a very complete,
+    powerful and outstandingly documented python library. Therefore, special
+    thanks also goes to the developers of PyMuPDF (and its core library [[https://mupdf.com/][MuPDF]]
+    developed by Artifex Software, Inc.), and in particular to Jorj McKie for
+    his generous support.
+
 *** Usage
     Install this branch using a Quelpa recipe. In Spacemacs I am using the
     following line of code to install pdf-tools from this branch of the
@@ -61,6 +72,10 @@
 
     Finally after loading pdf-tools, select the vimura server via ~M-x
     pdf-tools-toggle-server~.
+
+*** Arrow annotations
+    Use =C-M-down-mouse-1= (Ctrl+Alt + mouse left button) to draw arrow
+    annotations.
 
 *** Comment
     The PyMuPDF backend currently only selects/activates per word (instead of
