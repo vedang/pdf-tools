@@ -88,6 +88,9 @@ def number_of_pages(*args):
     print("OK\n{}\n.".format(len(doc)))
 
 def pagesize(*args):
+    global doc  # this function sometimes needs to load the doc
+    if not doc:
+        doc = fitz.open(args[0])  #.replace("_", "-"))  # replace back (see while loop)
     p = int(args[1]) - 1
     size = doc[p].mediabox_size
     print("OK\n{}:{}\n.".format(size[0], size[1]))
@@ -125,9 +128,6 @@ def renderpage(*args,
             logging.debug("These are the edges_from_type and drag_edges: %s, %s", edges_from_type, drag_edges)
             # edges = denormalize_edges(p, [float(e) for e in [0, drag_edges[1], 1, drag_edges[3]]])
             edges = denormalize_edges(p, [float(e) for e in drag_edges])
-            selection = fitz.get_highlight_selection(p,
-                                                     start=fitz.Point(point_to_word(edges[0:2])[0:2]),
-                                                     stop=fitz.Point(point_to_word(edges[2:4])[2:4]))
             if highlight_text:
                 selection = fitz.get_highlight_selection(p,
                                                         start=fitz.Point(point_to_word(edges[0:2])[0:2]),
@@ -340,6 +340,6 @@ try:
             logging.debug("This is the eval string: %s", eval_string)
             eval(c[0][0] + "(" + ", ".join(["{}"] * len(arglist)).format(*arglist) + ")")
 except:
-    print("ERR")  # response 'discovered' in epdfinfo.h
+    print("ERR")  # see ‘pdf-info-query--parse-response'
     print(traceback.format_exc())
     print(".")
