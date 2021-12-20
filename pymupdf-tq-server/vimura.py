@@ -11,6 +11,8 @@ import sys, io
 import traceback
 import getpass
 import logging
+
+import base64
 import datetime as dt
 import time
 
@@ -91,32 +93,6 @@ def pagesize(*args):
     size = doc[p].mediabox_size
     print("OK\n{}:{}\n.".format(size[0], size[1]))
 
-# def renderpage(*args,
-#                foreground=None,
-#                background=None,
-#                highlight_text=None):
-#     doc = fitz.open(args[0])
-#     p = doc[int(args[1]) - 1]
-#     width = int(args[2])
-#     zoom = width/p.mediabox_size[0]
-#     mat = fitz.Matrix(zoom, zoom)
-#     pix = p.get_pixmap(matrix=mat)
-#     tmpfile = "/tmp/tmpimg"
-
-#     pix.save(tmpfile)
-
-#     if highlight_text:
-#         with Image.open(tmpfile) as im:
-#             draw = ImageDraw.Draw(im, 'RGBA')
-#             edges = denormalize_edges(p,
-#                                       [float(i)*zoom
-#                                        for i in highlight_text.split()])
-#             draw.rectangle(edges, fill=(128,128,128,128))  # foreground is lighter
-
-#             im.save(tmpfile, "PNG")
-
-#     print("OK\n{}\n.".format(tmpfile))
-
 def renderpage(*args,
                foreground=None,
                background=None,
@@ -138,7 +114,8 @@ def renderpage(*args,
     zoom = width/p.mediabox_size[0]
     mat = fitz.Matrix(zoom, zoom)
     pix = p.get_pixmap(matrix=mat)
-    tmpfile = "/tmp/tmpimg"
+    # tmpfile = "/tmp/tmpimg"
+    im_data = pix.tobytes()
 
     if highlight_text or highlight_region or draw_line:
         image_data = pix.tobytes()
@@ -170,16 +147,17 @@ def renderpage(*args,
                 else:
                     draw.rectangle(list(r), fill=(128, 128, 128, 128))
 
-            im.save(tmpfile, "PNG")
-    else:
-        pix.save(tmpfile)
+            im_bytes = io.BytesIO()
+            im.save(im_bytes, "PNG")
+            im_data = im_bytes.getvalue()
 
+    im_data64 = base64.b64encode(im_data).decode()
 
-    print("OK\n{}\n.".format(tmpfile))
+    print("OK\n{}\n.".format(im_data64))
 
-def getselection(*args):
-    p = doc[int(args[1]) - 1]
-    if args[2] == "0 0 1 1":
+def getselection(filepath, real_pn, rect, style):
+    p = doc[int(real_pn) - 1]
+    if rect == "0 0 1 1":
         size = p.mediabox_size
         selections = [[str(j[i]/size[0])
                        if i in [0, 2]
@@ -189,7 +167,7 @@ def getselection(*args):
         selections_formatted = "\n".join([" ".join(j) for j in selections])
         print("OK\n{}\n.".format(selections_formatted))
     else:
-        print("OK\n{}\n.".format(args[2]))
+        print("OK\n{}\n.".format(rect))
 
 def get_text_line(text, word):
     line_text = ""
