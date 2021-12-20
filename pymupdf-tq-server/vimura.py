@@ -239,8 +239,6 @@ def pagelinks(filepath, real_pn):
 
 
 def getannots(*args):
-    global doc
-    doc = fitz.open(args[0])
     start_page = int(args[1]) - 1
     end_page = int(args[2])
     if end_page <= 0:
