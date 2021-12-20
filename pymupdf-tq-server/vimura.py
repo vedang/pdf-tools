@@ -273,8 +273,14 @@ def addannot(*args):
     p = doc[page]
     edges = fitz.Rect(denormalize_edges(p, [float(e) for e in args[3].split()]))
     if args[2] == "line":
-        p.add_line_annot(fitz.Point(edges.tl),
-                         fitz.Point(edges.br))
+        annot = p.add_line_annot(fitz.Point(edges.tl),
+                                 fitz.Point(edges.br))
+        # logging.debug("annot is %s", annot,)
+        blue = (0, 0, 1)
+        annot.set_colors(stroke=blue, fill=blue)
+        # see https://pymupdf.readthedocs.io/en/latest/vars.html#annotation-line-ending-styles
+        annot.set_line_ends(0, fitz.PDF_ANNOT_LE_CLOSED_ARROW)
+        annot.update()  # (fill_color=blue)
     else:
         b = fitz.Point(point_to_word(edges.tl)[0:2])
         e = fitz.Point(point_to_word(edges.br)[2:4])
