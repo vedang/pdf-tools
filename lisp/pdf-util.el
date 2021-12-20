@@ -625,16 +625,18 @@ See `make-temp-file' for the arguments."
 
 Return the file's content as a unibyte string, unless MULTIBYTE-P
 is non-nil."
-  (unwind-protect
-      (with-temp-buffer
-        (set-buffer-multibyte multibyte-p)
-        (insert-file-contents-literally filename)
-        (buffer-substring-no-properties
-         (point-min)
-         (point-max)))
-    (when (and filename
-               (file-exists-p filename))
-      (delete-file filename))))
+  (pcase pdf-tools-server
+    ('vimura (base64-decode-string filename))
+    ('epdfinfo (unwind-protect
+                   (with-temp-buffer
+                     (set-buffer-multibyte multibyte-p)
+                     (insert-file-contents-literally filename)
+                     (buffer-substring-no-properties
+                      (point-min)
+                      (point-max)))
+                 (when (and filename
+                            (file-exists-p filename))
+                   (delete-file filename))))))
 
 (defun pdf-util-hexcolor (color)
   "Return COLOR in hex-format.
