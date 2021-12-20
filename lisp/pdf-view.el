@@ -1388,10 +1388,12 @@ Stores the region in `pdf-view-active-region'."
                    (cons region pdf-view-active-region)
                    rectangle-p line-p)
                   (pdf-util-scroll-to-edges iregion)))))
-      (setq pdf-view-active-region
-            (append pdf-view-active-region
-                    (list region)))
-      (pdf-view--push-mark))))
+      (if (eq this-command 'pdf-view-mouse-set-region-line)
+          (pdf-annot-add-line-markup-annotation region)
+        (setq pdf-view-active-region
+              (append pdf-view-active-region
+                      (list region)))
+        (pdf-view--push-mark)))))
 
 (defun pdf-view-mouse-extend-region (event)
   "Extend the currently active region with mouse event EVENT."
