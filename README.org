@@ -32,7 +32,7 @@
    packages), generously offers his full assistance.
 
    If you would like to hack on pdf-tools/this backend, then a kinds of
-   development tips and comments can be found in [[../wiki/PyMuPDF-backend][the wiki section]].
+   development tips and comments can be found in [[../../wiki/PyMuPDF-backend][the wiki section]].
 
 *** Acknowledgements
     The development of PDF-tools has been more or less a , very high quality,
