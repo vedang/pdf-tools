@@ -44,6 +44,12 @@
     developed by Artifex Software, Inc.), and in particular to Jorj McKie for
     his generous support.
 
+*** Requirements
+    - Python *version 3.10*
+    - [[https://pypi.org/project/PyMuPDF/][PyMuPDF]]
+    - [[https://pypi.org/project/Pillow/][Pillow]]
+    - [[https://pypi.org/project/pytz/][pytz]]
+    
 *** Usage
     Install this branch using a Quelpa recipe. In Spacemacs I am using the
     following line of code to install pdf-tools from this branch of the
