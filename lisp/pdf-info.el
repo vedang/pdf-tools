@@ -349,14 +349,22 @@ error."
       (when (eq pdf-info-restart-process-p 'ask)
         (setq pdf-info-restart-process-p nil))
       (error "The epdfinfo server quit"))
-    (pdf-info-check-epdfinfo)
+    ;; (pdf-info-check-epdfinfo)
+    (setenv "PYTHONSTARTUP" "/home/dalanicolai/test/python-tq-startup.el")
     (let* (
            ;; (process-connection-type)    ;Avoid 4096 Byte bug #12440.
            (default-directory "~")
            (proc (apply #'start-process
                         "epdfinfo" " *epdfinfo*" pdf-info-epdfinfo-program
+                        "-q"
                         (when pdf-info-epdfinfo-error-filename
                           (list pdf-info-epdfinfo-error-filename)))))
+      (process-send-string proc (with-temp-buffer
+                                  ;; (insert-file-contents-literally "~/git/pdf-tools/pymupdf-tq-server/vimura.py")
+                                  (insert-file-contents-literally "/home/dalanicolai/test/pythontq.py")
+                                  (buffer-string)))
+      (set-process-filter proc
+			                    (lambda (_process string) string))
       (with-current-buffer " *epdfinfo*"
         (erase-buffer))
       (set-process-query-on-exit-flag proc nil)
@@ -428,7 +436,7 @@ error."
                         (setq status s response r done t)))))
     (pdf-info-query--log query t)
     (tq-enqueue
-     pdf-info--queue query "^\\.\n" closure callback)
+     pdf-info--queue (concat "tq_query('" (substring query 0 -1) "')\n") "^\\.\n" closure callback)
     (unless pdf-info-asynchronous
       (while (and (not done)
                   (eq (process-status (pdf-info-process))
