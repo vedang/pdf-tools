@@ -574,8 +574,8 @@ necessary buffer-locals have been loaded."
 	'pdf-view-previous-line-or-previous-page)
       (define-key map (kbd "r") 'revert-buffer)
       (define-key map (kbd "m") 'pdf-view-position-to-register))
-    (let ((map pdf-sync-minor-mode-map))
-      (define-key map [double-mouse-1] 'pdf-sync-backward-search-mouse))
+    (when (boundp 'pdf-sync-minor-mode-map)
+      (define-key 'pdf-sync-minor-mode-map [double-mouse-1] 'pdf-sync-backward-search-mouse))
 
     ;; redisplay to remove region/point
     (pdf-view-redisplay)))
