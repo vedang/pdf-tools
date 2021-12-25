@@ -361,7 +361,7 @@ error."
                           (list pdf-info-epdfinfo-error-filename)))))
       (process-send-string proc (with-temp-buffer
                                   ;; (insert-file-contents-literally "~/git/pdf-tools/pymupdf-tq-server/vimura.py")
-                                  (insert-file-contents-literally "/home/dalanicolai/test/pythontq.py")
+                                  (insert-file-contents-literally "/home/dalanicolai/git/private/pdf-tools/pymupdf-tq-server/vimura.py")
                                   (buffer-string)))
       (set-process-filter proc
 			                    (lambda (_process string) string))

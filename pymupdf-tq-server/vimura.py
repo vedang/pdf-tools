@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 import sys, io
+import traceback
 import logging
+import getpass
 import datetime as dt
 import time
 
@@ -73,62 +75,62 @@ def pagesize(*args):
     size = doc[p].mediabox_size
     print("OK\n{}:{}\n.".format(size[0], size[1]))
 
+# def renderpage(*args,
+#                foreground=None,
+#                background=None,
+#                alpha=None,
+#                highlight_text=None,
+#                highlight_region=None,
+#                draw_line=None):
+#     global doc, current_page, current_page_text, zoom
+#     logging.debug("And these are the args: %s", args)
+#     if not doc:
+#         doc = fitz.open(args[0])  #.replace("_", "-"))  # replace back (see while loop)
+#     page = int(args[1]) - 1
+#     p = doc[page]
+#     if page != current_page:
+#         current_page_text = p.get_text("words")
+#         current_page = page
+#     width = int(args[2])
+#     zoom = width/p.mediabox_size[0]
+#     mat = fitz.Matrix(zoom, zoom)
+#     pix = p.get_pixmap(matrix=mat)
+#     tmpfile = "/tmp/tmpimg"
+#     pix.save(tmpfile)
+#     print("OK\n{}\n.".format(tmpfile))
+#     if highlight_text or highlight_region or draw_line:
+#         image_data = pix.tobytes()
+#         with Image.open(io.BytesIO(image_data)) as im:
+#             draw = ImageDraw.Draw(im, 'RGBA')
+#             edges_from_type = highlight_text or highlight_region or draw_line
+#             drag_edges = edges_from_type.split()
+#             logging.debug("These are the edges_from_type and drag_edges: %s, %s", edges_from_type, drag_edges)
+#             # edges = denormalize_edges(p, [float(e) for e in [0, drag_edges[1], 1, drag_edges[3]]])
+#             edges = denormalize_edges(p, [float(e) for e in drag_edges])
+#             if highlight_text:
+#                 selection = fitz.get_highlight_selection(p,
+#                                                         start=fitz.Point(point_to_word(edges[0:2])[0:2]),
+#                                                         stop=fitz.Point(point_to_word(edges[2:4])[2:4]))
+#                 s = [[i*zoom for i in r] for r in selection]
+#             else:
+#                 s = [[i*zoom for i in edges]]
+#             # words = p.get_text('words', sort=True, clip=edges)
+#             # word_rects = [[i*zoom for i in w[0:4]] for w in words]
+#             # for w in word_rects:
+#             #     draw.rectangle(w, fill=(128, 128, 128, 128))
+#             for r in s:
+#                 if draw_line:
+#                     logging.debug("These are line r: %s", [tuple(r[0:2]), tuple(r[2:4])])
+#                     draw.line([tuple(r[:2]), tuple(r[2:4])], fill="red", width=2)
+#                 else:
+#                     draw.rectangle(list(r), fill=(128, 128, 128, 128))
+
+#             im.save(tmpfile, "PNG")
+#     else:
+#         pix.save(tmpfile)
+#     print("OK\n{}\n.".format(tmpfile))
+
 def renderpage(*args,
-               foreground=None,
-               background=None,
-               alpha=None,
-               highlight_text=None,
-               highlight_region=None,
-               draw_line=None):
-    global doc, current_page, current_page_text, zoom
-    logging.debug("And these are the args: %s", args)
-    if not doc:
-        doc = fitz.open(args[0])  #.replace("_", "-"))  # replace back (see while loop)
-    page = int(args[1]) - 1
-    p = doc[page]
-    if page != current_page:
-        current_page_text = p.get_text("words")
-        current_page = page
-    width = int(args[2])
-    zoom = width/p.mediabox_size[0]
-    mat = fitz.Matrix(zoom, zoom)
-    pix = p.get_pixmap(matrix=mat)
-    tmpfile = "/tmp/tmpimg"
-    pix.save(tmpfile)
-    print("OK\n{}\n.".format(tmpfile))
-    # if highlight_text or highlight_region or draw_line:
-    #     image_data = pix.tobytes()
-    #     with Image.open(io.BytesIO(image_data)) as im:
-    #         draw = ImageDraw.Draw(im, 'RGBA')
-    #         edges_from_type = highlight_text or highlight_region or draw_line
-    #         drag_edges = edges_from_type.split()
-    #         logging.debug("These are the edges_from_type and drag_edges: %s, %s", edges_from_type, drag_edges)
-    #         # edges = denormalize_edges(p, [float(e) for e in [0, drag_edges[1], 1, drag_edges[3]]])
-    #         edges = denormalize_edges(p, [float(e) for e in drag_edges])
-    #         if highlight_text:
-    #             selection = fitz.get_highlight_selection(p,
-    #                                                     start=fitz.Point(point_to_word(edges[0:2])[0:2]),
-    #                                                     stop=fitz.Point(point_to_word(edges[2:4])[2:4]))
-    #             s = [[i*zoom for i in r] for r in selection]
-    #         else:
-    #             s = [[i*zoom for i in edges]]
-    #         # words = p.get_text('words', sort=True, clip=edges)
-    #         # word_rects = [[i*zoom for i in w[0:4]] for w in words]
-    #         # for w in word_rects:
-    #         #     draw.rectangle(w, fill=(128, 128, 128, 128))
-    #         for r in s:
-    #             if draw_line:
-    #                 logging.debug("These are line r: %s", [tuple(r[0:2]), tuple(r[2:4])])
-    #                 draw.line([tuple(r[:2]), tuple(r[2:4])], fill="red", width=2)
-    #             else:
-    #                 draw.rectangle(list(r), fill=(128, 128, 128, 128))
-
-    #         im.save(tmpfile, "PNG")
-    # else:
-    #     pix.save(tmpfile)
-    # print("OK\n{}\n.".format(tmpfile))
-
-def renderpage2(*args,
                foreground=None,
                background=None,
                alpha=None,
@@ -159,6 +161,7 @@ def renderpage2(*args,
             logging.debug("These are the edges_from_type and drag_edges: %s, %s", edges_from_type, drag_edges)
             # edges = denormalize_edges(p, [float(e) for e in [0, drag_edges[1], 1, drag_edges[3]]])
             edges = denormalize_edges(p, [float(e) for e in drag_edges])
+            logging.debug("Test")
             if highlight_text:
                 selection = fitz.get_highlight_selection(p,
                                                         start=fitz.Point(point_to_word(edges[0:2])[0:2]),
@@ -166,19 +169,23 @@ def renderpage2(*args,
                 s = [[i*zoom for i in r] for r in selection]
             else:
                 s = [[i*zoom for i in edges]]
+            logging.debug("first here")
             # words = p.get_text('words', sort=True, clip=edges)
             # word_rects = [[i*zoom for i in w[0:4]] for w in words]
             # for w in word_rects:
             #     draw.rectangle(w, fill=(128, 128, 128, 128))
             for r in s:
+                logging.debug("also here")
                 if draw_line:
                     logging.debug("These are line r: %s", [tuple(r[0:2]), tuple(r[2:4])])
                     draw.line([tuple(r[:2]), tuple(r[2:4])], fill="red", width=2)
                 else:
+                    logging.debug("and even here")
                     draw.rectangle(list(r), fill=(128, 128, 128, 128))
-
+            logging.debug("here")
             im.save(tmpfile, "PNG")
     else:
+        logging.debug("and here")
         pix.save(tmpfile)
     print("OK\n{}\n.".format(tmpfile))
 
@@ -198,16 +205,24 @@ def print_links(page):
         if s := l.colors['stroke']:
             r, g, b = [int(i*255) for i in s]
             print("{}:{}:link:annot-{}-{}:0:{}::".format(page + 1,
+                                                            " ".join([str(e) for e in l.rect]),
+                                                            page + 1,
+                                                            len(list(p.annots())) + i,
+                                                            "#{:02x}{:02x}{:02x}".format(r, g, b)))
+        else:
+            print("{}:{}:link:annot-{}-{}:0:{}::".format(page + 1,
                                                          " ".join([str(e) for e in l.rect]),
                                                          page + 1,
                                                          len(list(p.annots())) + i,
-                                                         "#{:02x}{:02x}{:02x}".format(r, g, b)))
+                                                         ""))
         l = l.next
         i += 1
 
 # TODO create links for other types
 # (see xpoppler_action_type_string in epdfinfo.c)
 def pagelinks(filepath, real_pn):
+    # print("OK\n.")
+    logging.debug("dit zijn pagelinkgs")
     p = doc[int(real_pn) - 1]
     size = p.mediabox_size
     print("OK")
@@ -220,21 +235,21 @@ def pagelinks(filepath, real_pn):
     print(".")
 
 def getselection(*args):
-    print("OK\n.")
-    # p = doc[int(args[1]) - 1]
-    # if args[2] == "0 0 1 1":
-    #     size = p.mediabox_size
-    #     selections = [[str(j[i]/size[0])
-    #                    if i in [0, 2]
-    #                    else str(j[i]/size[1])
-    #                    for i in range(0, 4)]
-    #                   for j in p.get_text("words")]
-    #     selections_formatted = "\n".join([" ".join(j) for j in selections])
-    #     print("OK\n{}\n.".format(selections_formatted))
-    # else:
-    #     print("OK\n{}\n.".format(args[2]))
+    p = doc[int(args[1]) - 1]
+    if args[2] == "0 0 1 1":
+        size = p.mediabox_size
+        selections = [[str(j[i]/size[0])
+                       if i in [0, 2]
+                       else str(j[i]/size[1])
+                       for i in range(0, 4)]
+                      for j in p.get_text("words")]
+        selections_formatted = "\n".join([" ".join(j) for j in selections])
+        print("OK\n{}\n.".format(selections_formatted))
+    else:
+        print("OK\n{}\n.".format(args[2]))
 
 def getannots(*args):
+    logging.debug("annot is %s", args)
     start_page = int(args[1]) - 1
     end_page = int(args[2])
     if end_page <= 0:
@@ -324,20 +339,25 @@ def features(*args):
     print("OK\ncase-sensitive-search:writable-annotations:markup-annotations\n.")
 
 def tq_query(query):
-    logging.debug("This is the query: %s", query)
-    raw_commands = [[list(filter(len, i.split(":")))
-            for i in j.split("\\")]
-            for j in list(filter(len, query.split("\n")))]
-    commands =  [[[item.replace("-", "_")  if i != 1 else item
-            for i, item in enumerate(j)] for j in raw_commands[0]]]
-    if len(raw_commands) > 1:
-        commands += [raw_commands[1:]]
-    for c in commands:
-        arglist = stringify(c[0][1:])
-        # if len(c) > 1:
-        kwargs = ['='.join([k[0], "'" + k[1] + "'"]) for k in c[1:]]
-        arglist = arglist + kwargs
-        eval_string = c[0][0] + "(" + ", ".join(["{}"] * len(arglist)).format(*arglist) + ")"
-        logging.debug("This is the eval string: %s", eval_string)
-        eval(c[0][0] + "(" + ", ".join(["{}"] * len(arglist)).format(*arglist) + ")")
+    try:
+        logging.debug("This is the query: %s", query)
+        raw_commands = [[list(filter(len, i.split(":")))
+                for i in j.split("\\")]
+                for j in list(filter(len, query.split("\n")))]
+        commands =  [[[item.replace("-", "_")  if i != 1 else item
+                for i, item in enumerate(j)] for j in raw_commands[0]]]
+        if len(raw_commands) > 1:
+            commands += [raw_commands[1:]]
+        for c in commands:
+            arglist = stringify(c[0][1:])
+            # if len(c) > 1:
+            kwargs = ['='.join([k[0], "'" + k[1] + "'"]) for k in c[1:]]
+            arglist = arglist + kwargs
+            eval_string = c[0][0] + "(" + ", ".join(["{}"] * len(arglist)).format(*arglist) + ")"
+            logging.debug("This is the eval string: %s", eval_string)
+            eval(c[0][0] + "(" + ", ".join(["{}"] * len(arglist)).format(*arglist) + ")")
+    except:
+        print("ERR")  # see ‘pdf-info-query--parse-response'
+        print(traceback.format_exc())
+        print(".")
 
