@@ -71,7 +71,7 @@ remove the entry if the new value is `eql' to DEFAULT."
 
 (require 'register)
 (unless (fboundp 'register-read-with-preview)
-  (defalias 'register-read-with-preview 'read-char
+  (defalias 'register-read-with-preview #'read-char
     "Compatibility alias for pdf-tools."))
 
 ;; In Emacs 24.3 window-width does not have a PIXELWISE argument.
@@ -303,6 +303,42 @@ See `pdf-util-scale' for the LIST-OF-EDGES-OR-POS argument."
           result
         (car result)))))
 
+(defmacro pdf-util-with-edges (list-of-edges &rest body)
+  "Provide some convenient macros for the edges in LIST-OF-EDGES.
+
+LIST-OF-EDGES should be a list of variables \(X ...\), each one
+holding a list of edges. Inside BODY the symbols X-left, X-top,
+X-right, X-bot, X-width and X-height expand to their respective
+values."
+
+  (declare (indent 1) (debug (sexp &rest form)))
+  (unless (cl-every 'symbolp list-of-edges)
+    (error "Argument should be a list of symbols"))
+  (let ((list-of-syms
+         (mapcar (lambda (edge)
+                   (cons edge (mapcar
+                               (lambda (kind)
+                                 (intern (format "%s-%s" edge kind)))
+                               '(left top right bot width height))))
+                 list-of-edges)))
+    (macroexpand-all
+     `(cl-symbol-macrolet
+          ,(apply #'nconc
+                  (mapcar
+                   (lambda (edge-syms)
+                     (let ((edge (nth 0 edge-syms))
+                           (syms (cdr edge-syms)))
+                       `((,(pop syms) (nth 0 ,edge))
+                         (,(pop syms) (nth 1 ,edge))
+                         (,(pop syms) (nth 2 ,edge))
+                         (,(pop syms) (nth 3 ,edge))
+                         (,(pop syms) (- (nth 2 ,edge)
+                                         (nth 0 ,edge)))
+                         (,(pop syms) (- (nth 3 ,edge)
+                                         (nth 1 ,edge))))))
+                   list-of-syms))
+        ,@body))))
+
 (defun pdf-util-edges-transform (region elts &optional to-region-p)
   "Translate ELTS according to REGION.
 
@@ -355,43 +391,6 @@ depending on the input."
             result
           (car result))))))
 
-(defmacro pdf-util-with-edges (list-of-edges &rest body)
-  "Provide some convenient macros for the edges in LIST-OF-EDGES.
-
-LIST-OF-EDGES should be a list of variables \(X ...\), each one
-holding a list of edges. Inside BODY the symbols X-left, X-top,
-X-right, X-bot, X-width and X-height expand to their respective
-values."
-
-  (declare (indent 1) (debug (sexp &rest form)))
-  (unless (cl-every 'symbolp list-of-edges)
-    (error "Argument should be a list of symbols"))
-  (let ((list-of-syms
-         (mapcar (lambda (edge)
-                   (cons edge (mapcar
-                               (lambda (kind)
-                                 (intern (format "%s-%s" edge kind)))
-                               '(left top right bot width height))))
-                 list-of-edges)))
-    (macroexpand-all
-     `(cl-symbol-macrolet
-          ,(apply 'nconc
-                  (mapcar
-                   (lambda (edge-syms)
-                     (let ((edge (nth 0 edge-syms))
-                           (syms (cdr edge-syms)))
-                       `((,(pop syms) (nth 0 ,edge))
-                         (,(pop syms) (nth 1 ,edge))
-                         (,(pop syms) (nth 2 ,edge))
-                         (,(pop syms) (nth 3 ,edge))
-                         (,(pop syms) (- (nth 2 ,edge)
-                                         (nth 0 ,edge)))
-                         (,(pop syms) (- (nth 3 ,edge)
-                                         (nth 1 ,edge))))))
-                   list-of-syms))
-        ,@body))))
-
-
 ;; * ================================================================== *
 ;; * Scrolling
 ;; * ================================================================== *
@@ -415,7 +414,7 @@ Returns a list of pixel edges."
                   (+ x0 (- (nth 2 edges) (nth 0 edges)))))
          (y1 (min (cdr isize)
                   (+ y0 (- (nth 3 edges) (nth 1 edges))))))
-    (mapcar 'round (list x0 y0 x1 y1))))
+    (mapcar #'round (list x0 y0 x1 y1))))
 
 (defun pdf-util-required-hscroll (edges &optional eager-p context-pixel)
   "Return the amount of scrolling necessary, to make image EDGES visible.
@@ -560,7 +559,7 @@ killed."
         (setq pdf-util--dedicated-directory
               (make-temp-file (convert-standard-filename (pdf-util-temp-prefix))
                               t))
-        (add-hook 'kill-buffer-hook 'pdf-util-delete-dedicated-directory
+        (add-hook 'kill-buffer-hook #'pdf-util-delete-dedicated-directory
                   nil t)))
     pdf-util--dedicated-directory))
 
@@ -648,7 +647,7 @@ Signal an error, if color is invalid."
     (let ((values (color-values color)))
       (unless values
         (signal 'wrong-type-argument (list 'color-defined-p color)))
-      (apply 'format "#%02x%02x%02x"
+      (apply #'format "#%02x%02x%02x"
              (mapcar (lambda (c) (lsh c -8))
                      values)))))
 
@@ -689,6 +688,10 @@ string."
             (top . ,dy)
             ,@tooltip-frame-parameters)))
     (tooltip-show text)))
+
+;; FIXME: Defined in `pdf-view' but we can't require it here because it
+;; requires us :-(
+(defvar pdf-view-midnight-colors)
 
 (defun pdf-util-tooltip-arrow (image-top &optional timeout)
   (pdf-util-assert-pdf-window)
@@ -735,7 +738,8 @@ string."
 
 (defvar pdf-util--face-colors-cache (make-hash-table))
 
-(defadvice enable-theme (after pdf-util-clear-faces-cache activate)
+(advice-add 'enable-theme :after #'pdf-util--clear-faces-cache)
+(defun pdf-util--clear-faces-cache (&rest _)
   (clrhash pdf-util--face-colors-cache))
 
 (defun pdf-util-face-colors (face &optional dark-p)
@@ -762,7 +766,7 @@ colors, otherwise light."
                   (let ((colors
                          (cons (face-attribute face :foreground nil 'default)
                                (face-attribute face :background nil 'default))))
-                    (puthash face `(,(mapcar 'copy-sequence spec)
+                    (puthash face `(,(mapcar #'copy-sequence spec)
                                     ((,bg . ,colors) ,@color-alist))
                              pdf-util--face-colors-cache)
                     colors)
@@ -859,15 +863,14 @@ them is nil, it means there is gap at this position in the
 respective sequence."
 
   (cl-macrolet ((make-matrix (rows columns)
-                  (list 'apply (list 'quote 'vector)
-                        (list 'cl-loop 'for 'i 'from 1 'to rows
-                              'collect (list 'make-vector columns nil))))
+                  `(apply #'vector
+                          (cl-loop for i from 1 to ,rows
+                                   collect (make-vector ,columns nil))))
                 (mset (matrix row column newelt)
-                  (list 'aset (list 'aref matrix row) column newelt))
+                  `(aset (aref ,matrix ,row) ,column ,newelt))
                 (mref (matrix row column)
-                  (list 'aref (list 'aref matrix row) column)))
-    (let* ((nil-value nil)
-           (len1 (length seq1))
+                  `(aref (aref ,matrix ,row) ,column)))
+    (let* ((len1 (length seq1))
            (len2 (length seq2))
            (d (make-matrix (1+ len1) (1+ len2)))
            (prefix-p (memq alignment-type '(prefix infix)))
@@ -903,7 +906,7 @@ respective sequence."
                  (= (mref d i j)
                     (1- (mref d (1- i) j))))
             (cl-decf i)
-            (push (cons (elt seq1 i) nil-value) alignment))
+            (push (cons (elt seq1 i) nil) alignment))
            ((and (> j 0)
                  (= (mref d i j)
                     (+ (mref d i (1- j))
@@ -911,13 +914,14 @@ respective sequence."
                                (and (= i len1) prefix-p))
                            0 -1))))
             (cl-decf j)
-            (push (cons nil-value (elt seq2 j)) alignment))
+            (push (cons nil (elt seq2 j)) alignment))
            (t
             (cl-assert (and (> i 0) (> j 0)) t)
             (cl-decf i)
             (cl-decf j)
             (push (cons (elt seq1 i)
-                        (elt seq2 j)) alignment))))
+                        (elt seq2 j))
+                  alignment))))
         (cons (mref d len1 len2) alignment)))))
 
 
@@ -934,7 +938,7 @@ See also `regexp-quote'."
       (when (memq ch to-escape)
         (push ?\\ escaped))
       (push ch escaped))
-    (apply 'string (nreverse escaped))))
+    (apply #'string (nreverse escaped))))
 
 (defun pdf-util-frame-ppi ()
   "Return the PPI of the current frame."
@@ -1059,10 +1063,10 @@ of the last commands given earlier in SPEC. E.g. a call like
        image-file out-file
        :foreground \"black\"
        :background \"white\"
-       :commands '\(\"-fill\" \"%f\" \"-draw\" \"rectangle %x,%y,%X,%Y\"\)
-       :apply '\(\(0 0 10 10\) \(10 10 20 20\)\)
-       :commands '\(\"-fill\" \"%b\" \"-draw\" \"rectangle %x,%y,%X,%Y\"\)
-       :apply '\(\(10 0 20 10\) \(0 10 10 20\)\)\)
+       :commands '(\"-fill\" \"%f\" \"-draw\" \"rectangle %x,%y,%X,%Y\")
+       :apply '((0 0 10 10) (10 10 20 20))
+       :commands '(\"-fill\" \"%b\" \"-draw\" \"rectangle %x,%y,%X,%Y\")
+       :apply '((10 0 20 10) (0 10 10 20)))
 
 would draw a 4x4 checkerboard pattern in the left corner of the
 image, while leaving the rest of it as it was.
@@ -1072,7 +1076,7 @@ Returns OUT-FILE.
 See url `http://www.imagemagick.org/script/convert.php'."
   (pdf-util-assert-convert-program)
   (let* ((cmds (pdf-util-convert--create-commands spec))
-         (status (apply 'call-process
+         (status (apply #'call-process
                         pdf-util-convert-program nil
                         (get-buffer-create "*pdf-util-convert-output*")
                         nil
@@ -1097,7 +1101,7 @@ Returns the convert process."
             callback nil))
     (let* ((cmds (pdf-util-convert--create-commands spec))
            (proc
-            (apply 'start-process "pdf-util-convert"
+            (apply #'start-process "pdf-util-convert"
                    (get-buffer-create "*pdf-util-convert-output*")
                    pdf-util-convert-program
                    `(,in-file ,@cmds ,out-file))))
@@ -1122,7 +1126,7 @@ Return the converted PNG image as a string.  See also
             (set-buffer-file-coding-system 'binary)
             (insert image-data))
           (pdf-util-munch-file
-           (apply 'pdf-util-convert
+           (apply #'pdf-util-convert
                   in-file out-file specs)))
       (when (file-exists-p in-file)
         (delete-file in-file))
@@ -1224,10 +1228,10 @@ If RELATIVE-P is non-nil, also check that all values <= 1."
 (defun pdf-util-edges-union (&rest edges)
   (if (null (cdr edges))
       (car edges)
-    (list (apply 'min (mapcar 'car edges))
-          (apply 'min (mapcar 'cadr edges))
-          (apply 'max (mapcar 'cl-caddr edges))
-          (apply 'max (mapcar 'cl-cadddr edges)))))
+    (list (apply #'min (mapcar #'car edges))
+          (apply #'min (mapcar #'cadr edges))
+          (apply #'max (mapcar #'cl-caddr edges))
+          (apply #'max (mapcar #'cl-cadddr edges)))))
 
 (defun pdf-util-edges-intersection-area (e1 e2)
   (let ((inters (pdf-util-edges-intersection e1 e2)))

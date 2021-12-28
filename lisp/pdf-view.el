@@ -34,7 +34,7 @@
 (require 'password-cache)
 
 (declare-function cua-copy-region "cua-base")
-
+(declare-function pdf-tools-pdf-buffer-p "pdf-tools")
 
 ;; * ================================================================== *
 ;; * Customizations
@@ -401,16 +401,15 @@ PNG images in Emacs buffers."
 		  (current-buffer)))
 
 (unless (version< emacs-version "24.4")
+  (advice-add 'cua-copy-region
+	          :before-until
+	          #'cua-copy-region--pdf-view-advice)
   (defun cua-copy-region--pdf-view-advice (&rest _)
     "If the current buffer is in `pdf-view' mode, call
 `pdf-view-kill-ring-save'."
     (when (eq major-mode 'pdf-view-mode)
       (pdf-view-kill-ring-save)
-      t))
-
-  (advice-add 'cua-copy-region
-	      :before-until
-	      #'cua-copy-region--pdf-view-advice))
+      t)))
 
 (defun pdf-view-check-incompatible-modes (&optional buffer)
   "Check BUFFER for incompatible modes, maybe issue a warning."
@@ -580,6 +579,9 @@ For example, (pdf-view-shrink 1.25) decreases size by 20%."
 ;; * ================================================================== *
 ;; * Moving by pages and scrolling
 ;; * ================================================================== *
+
+(defvar pdf-view-inhibit-redisplay nil)
+(defvar pdf-view-inhibit-hotspots nil)
 
 (defun pdf-view-goto-page (page &optional window)
   "Go to PAGE in PDF.
@@ -878,9 +880,6 @@ See also `pdf-view-set-slice-from-bounding-box'."
 ;; * ================================================================== *
 ;; * Display
 ;; * ================================================================== *
-
-(defvar pdf-view-inhibit-redisplay nil)
-(defvar pdf-view-inhibit-hotspots nil)
 
 (defun pdf-view-image-type ()
   "Return the image type that should be used.

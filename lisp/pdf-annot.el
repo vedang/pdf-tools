@@ -53,17 +53,14 @@ called.
 
 This hook is meant to allow for custom annotations.  FIXME:
 Implement and describe basic org example."
-  :group 'pdf-annot
   :type 'hook)
 
 (defcustom pdf-annot-default-text-annotation-properties nil
   "Alist of initial properties for new text annotations."
-  :group 'pdf-annot
   :type '(alist :key-type symbol :value-type sexp))
 
 (defcustom pdf-annot-default-markup-annotation-properties nil
   "Alist of initial properties for new markup annotations."
-  :group 'pdf-annot
   :type '(alist :key-type symbol :value-type sexp))
 
 (make-obsolete-variable 'pdf-annot-default-text-annotation-properties
@@ -107,7 +104,6 @@ would use a green color for highlight and a red one for other
 annotations.  Additionally the label for all annotations is set
 to \"Joe\"."
 
-  :group 'pdf-annot
   :type (let* ((label '(cons :tag "Label" (const label) string))
                (contents '(cons :tag "Contents" (const contents) string))
                (color '(cons :tag "Color" (const color) color))
@@ -147,7 +143,6 @@ will be used.
 
 If all of them return nil, the default function
 `pdf-annot-print-annotation-default' is used."
-  :group 'pdf-annot
   :type 'hook)
 
 (defcustom pdf-annot-latex-string-predicate
@@ -157,7 +152,6 @@ If all of them return nil, the default function
 
 It receives a string and should return non-nil, if string is a
 LaTeX fragment."
-  :group 'pdf-annot
   :type 'function)
 
 (defcustom pdf-annot-latex-header
@@ -166,7 +160,6 @@ LaTeX fragment."
   "Header used when latex compiling annotations.
 The default value is `org-format-latex-header' +
 \"\\n\\\\setlength{\\\\textwidth}{12cm}\"."
-  :group 'pdf-annot
   :type 'string)
 
 (defcustom pdf-annot-tweak-tooltips t
@@ -179,17 +172,14 @@ order to display text properties;
 
 `tooltip-hide-delay' is set to infinity, in order to not being
 annoyed while reading the annotations."
-  :group 'pdf-annot
   :type 'boolean)
 
 (defcustom pdf-annot-activate-created-annotations nil
   "Whether to activate (i.e. edit) created annotations."
-  :group 'pdf-annot
   :type 'boolean)
 
 (defcustom pdf-annot-attachment-display-buffer-action nil
   "The display action used when displaying attachments."
-  :group 'pdf-annot
   :type display-buffer--action-custom-type)
 
 (defconst pdf-annot-annotation-types
@@ -204,7 +194,6 @@ annoyed while reading the annotations."
       (list 'text 'file 'squiggly 'highlight 'underline 'strike-out)
     (list 'text 'file))
   "A list of annotation types displayed in the list buffer."
-  :group 'pdf-annot
   :type `(set ,@(mapcar (lambda (type)
                           (list 'const type))
                         pdf-annot-annotation-types)))
@@ -293,25 +282,24 @@ current buffer, because that won't run the hooks properly."
   "The prefix to use for `pdf-annot-minor-mode-map'.
 
 Setting this after the package was loaded has no effect."
-  :group 'pdf-annot
   :type 'key-sequence)
 
 (defvar pdf-annot-minor-mode-map
   (let ((kmap (make-sparse-keymap))
         (smap (make-sparse-keymap)))
     (define-key kmap pdf-annot-minor-mode-map-prefix smap)
-    (define-key smap "l" 'pdf-annot-list-annotations)
+    (define-key smap "l" #'pdf-annot-list-annotations)
     ;; (define-key smap "d" 'pdf-annot-toggle-display-annotations)
-    (define-key smap "a" 'pdf-annot-attachment-dired)
+    (define-key smap "a" #'pdf-annot-attachment-dired)
     (when (pdf-info-writable-annotations-p)
-      (define-key smap "D" 'pdf-annot-delete)
-      (define-key smap "t" 'pdf-annot-add-text-annotation)
+      (define-key smap "D" #'pdf-annot-delete)
+      (define-key smap "t" #'pdf-annot-add-text-annotation)
       (when (pdf-info-markup-annotations-p)
-        (define-key smap "m" 'pdf-annot-add-markup-annotation)
-        (define-key smap "s" 'pdf-annot-add-squiggly-markup-annotation)
-        (define-key smap "u" 'pdf-annot-add-underline-markup-annotation)
-        (define-key smap "o" 'pdf-annot-add-strikeout-markup-annotation)
-        (define-key smap "h" 'pdf-annot-add-highlight-markup-annotation)))
+        (define-key smap "m" #'pdf-annot-add-markup-annotation)
+        (define-key smap "s" #'pdf-annot-add-squiggly-markup-annotation)
+        (define-key smap "u" #'pdf-annot-add-underline-markup-annotation)
+        (define-key smap "o" #'pdf-annot-add-strikeout-markup-annotation)
+        (define-key smap "h" #'pdf-annot-add-highlight-markup-annotation)))
     kmap)
   "Keymap used for `pdf-annot-minor-mode'.")
 
@@ -331,14 +319,14 @@ Setting this after the package was loaded has no effect."
       (setq tooltip-hide-delay 3600))
     (pdf-view-add-hotspot-function 'pdf-annot-hotspot-function 9)
     (add-hook 'pdf-info-close-document-hook
-              'pdf-annot-attachment-delete-base-directory nil t)
+              #'pdf-annot-attachment-delete-base-directory nil t)
     (when (featurep 'savehist)
       (add-to-list 'savehist-minibuffer-history-variables
                    'pdf-annot-color-history)))
    (t
     (pdf-view-remove-hotspot-function 'pdf-annot-hotspot-function)
     (remove-hook 'pdf-info-close-document-hook
-                 'pdf-annot-attachment-delete-base-directory t)))
+                 #'pdf-annot-attachment-delete-base-directory t)))
   (pdf-view-redisplay t))
 
 (defun pdf-annot-create-context-menu (a)
@@ -539,7 +527,7 @@ the variable is nil and this function is called again."
             (run-hook-with-args
              'pdf-annot-modified-functions closure)
           (setq pdf-annot-delayed-modified-annotations nil)
-          (apply 'pdf-view-redisplay-pages pages))))))
+          (apply #'pdf-view-redisplay-pages pages))))))
 
 (defun pdf-annot-equal (a1 a2)
   "Return non-nil, if annotations A1 and A2 are equal.
@@ -905,11 +893,11 @@ i.e. a non mouse-movement event is read."
 
 (defun pdf-annot-hotspot-function (page size)
   "Create image hotspots for page PAGE of size SIZE."
-  (apply 'nconc (mapcar (lambda (a)
-                          (unless (eq (pdf-annot-get a 'type)
-                                      'link)
-                            (pdf-annot-create-hotspots a size)))
-                        (pdf-annot-getannots page))))
+  (apply #'nconc (mapcar (lambda (a)
+                           (unless (eq (pdf-annot-get a 'type)
+                                       'link)
+                             (pdf-annot-create-hotspots a size)))
+                         (pdf-annot-getannots page))))
 
 (defun pdf-annot-create-hotspots (a size)
   "Return a list of image hotspots for annotation A."
@@ -1037,7 +1025,7 @@ Return the new annotation."
   (when (and (eq type 'text)
              (> (length edges) 1))
     (error "Edges argument should be a single edge-list for text annotations"))
-  (let* ((a (apply 'pdf-info-addannot
+  (let* ((a (apply #'pdf-info-addannot
                    page
                    (if (eq type 'text)
                        (car edges)
@@ -1236,7 +1224,7 @@ Suppresses successive duplicate entries of keys after the first
 occurrence in ALISTS."
 
   (let (merged)
-    (dolist (elt (apply 'append alists))
+    (dolist (elt (apply #'append alists))
       (unless (assq (car elt) merged)
         (push elt merged)))
     (nreverse merged)))
@@ -1300,7 +1288,7 @@ property."
           (t
            (format "%s"
                    (mapconcat
-                    'identity
+                    #'identity
                     (mapcar
                      (lambda (property)
                        (pdf-annot-print-property
@@ -1400,7 +1388,6 @@ is about to be edited in this buffer.
 The default value turns on `latex-mode' if
 `pdf-annot-latex-string-predicate' returns non-nil on the
 annotation's contents and otherwise `text-mode'. "
-  :group 'pdf-annot
   :type 'function)
 
 (defcustom pdf-annot-edit-contents-display-buffer-action
@@ -1409,14 +1396,13 @@ annotation's contents and otherwise `text-mode'. "
     (inhibit-same-window . t)
     (window-height . 0.25))
   "Display action when showing the edit buffer."
-  :group 'pdf-annot
   :type display-buffer--action-custom-type)
 
 (defvar pdf-annot-edit-contents-minor-mode-map
   (let ((kmap (make-sparse-keymap)))
     (set-keymap-parent kmap text-mode-map)
-    (define-key kmap (kbd "C-c C-c") 'pdf-annot-edit-contents-commit)
-    (define-key kmap (kbd "C-c C-q") 'pdf-annot-edit-contents-abort)
+    (define-key kmap (kbd "C-c C-c") #'pdf-annot-edit-contents-commit)
+    (define-key kmap (kbd "C-c C-q") #'pdf-annot-edit-contents-abort)
     kmap))
 
 (define-minor-mode pdf-annot-edit-contents-minor-mode
@@ -1506,7 +1492,6 @@ annotation's contents and otherwise `text-mode'. "
      display-buffer-pop-up-window)
     (inhibit-same-window . t))
   "Display action used when displaying the list buffer."
-  :group 'pdf-annot
   :type display-buffer--action-custom-type)
 
 (defcustom pdf-annot-list-format
@@ -1526,12 +1511,10 @@ Currently supported properties are page, type, label, date and contents."
              (type (integer :value 10 :tag "Column Width" ))
              (label (integer :value 24 :tag "Column Width"))
              (date (integer :value 24 :tag "Column Width"))
-             (contents (integer :value 56 :tag "Column Width")))
-  :group 'pdf-annot)
+             (contents (integer :value 56 :tag "Column Width"))))
 
 (defcustom pdf-annot-list-highlight-type nil
   "Whether to highlight \"Type\" column annotation list with annotation color."
-  :group 'pdf-annot
   :type 'boolean)
 
 (defvar-local pdf-annot-list-buffer nil)
@@ -1540,8 +1523,8 @@ Currently supported properties are page, type, label, date and contents."
 
 (defvar pdf-annot-list-mode-map
   (let ((km (make-sparse-keymap)))
-    (define-key km (kbd "C-c C-f") 'pdf-annot-list-follow-minor-mode)
-    (define-key km (kbd "SPC") 'pdf-annot-list-display-annotation-from-id)
+    (define-key km (kbd "C-c C-f") #'pdf-annot-list-follow-minor-mode)
+    (define-key km (kbd "SPC") #'pdf-annot-list-display-annotation-from-id)
     km))
 
 (defun pdf-annot-property-completions (property)
@@ -1575,10 +1558,10 @@ belong to the same page and A1 is displayed above/left of A2."
 (defun pdf-annot-list-entries ()
   (unless (buffer-live-p pdf-annot-list-document-buffer)
     (error "No PDF document associated with this buffer"))
-  (mapcar 'pdf-annot-list-create-entry
+  (mapcar #'pdf-annot-list-create-entry
           (sort (pdf-annot-getannots nil pdf-annot-list-listed-types
                                      pdf-annot-list-document-buffer)
-                'pdf-annot-compare-annotations)))
+                #'pdf-annot-compare-annotations)))
 
 (defun pdf-annot--make-entry-formatter (a)
   (lambda (fmt)
@@ -1664,7 +1647,7 @@ belong to the same page and A1 is displayed above/left of A2."
         (tabulated-list-print)
         (setq tablist-context-window-function
               (lambda (id) (pdf-annot-list-context-function id buffer))
-              tablist-operations-function 'pdf-annot-list-operation-function)
+              tablist-operations-function #'pdf-annot-list-operation-function)
         (let ((list-buffer (current-buffer)))
           (with-current-buffer buffer
             (setq pdf-annot-list-buffer list-buffer))))
@@ -1675,9 +1658,9 @@ belong to the same page and A1 is displayed above/left of A2."
       (tablist-move-to-major-column)
       (tablist-display-context-window))
     (add-hook 'pdf-info-close-document-hook
-              'pdf-annot-list-update nil t)
+              #'pdf-annot-list-update nil t)
     (add-hook 'pdf-annot-modified-functions
-              'pdf-annot-list-update nil t)))
+              #'pdf-annot-list-update nil t)))
 
 (defun pdf-annot-list-goto-annotation (a)
   (with-current-buffer (pdf-annot-get-buffer a)
@@ -1725,7 +1708,7 @@ belong to the same page and A1 is displayed above/left of A2."
        (when (buffer-live-p pdf-annot-list-document-buffer)
          (with-current-buffer pdf-annot-list-document-buffer
            (pdf-annot-with-atomic-modifications
-             (dolist (a (mapcar 'pdf-annot-getannot ids))
+             (dolist (a (mapcar #'pdf-annot-getannot ids))
                (pdf-annot-delete a)))))))
     (find-entry
      (cl-destructuring-bind (id)
@@ -1775,17 +1758,17 @@ belong to the same page and A1 is displayed above/left of A2."
   ""
   :group 'pdf-annot
   (unless (derived-mode-p 'pdf-annot-list-mode)
-    (error "No in pdf-annot-list-mode."))
+    (error "Not in pdf-annot-list-mode"))
   (cond
    (pdf-annot-list-follow-minor-mode
     (add-hook 'tablist-selection-changed-functions
-              'pdf-annot-list-display-annotation-from-id nil t)
+              #'pdf-annot-list-display-annotation-from-id nil t)
     (let ((id (tabulated-list-get-id)))
       (when id
         (pdf-annot-list-display-annotation-from-id id))))
    (t
     (remove-hook 'tablist-selection-changed-functions
-                 'pdf-annot-list-display-annotation-from-id t))))
+                 #'pdf-annot-list-display-annotation-from-id t))))
 
 (provide 'pdf-annot)
 ;;; pdf-annot.el ends here

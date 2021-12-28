@@ -1,4 +1,4 @@
-
+;; -*- lexical-binding: t; -*-
 
 ;; * ================================================================== *
 ;; * Tests for pdf-cache.el
@@ -28,4 +28,3 @@
                     (pdf-cache--make-image 1 1 "1" nil)
                     (pdf-cache--make-image 3 1 "3" nil))))
     (should-not (pdf-cache-get-image 4 1))))
-

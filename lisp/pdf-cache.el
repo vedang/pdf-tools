@@ -65,13 +65,13 @@ be prefetched and their order."
 (defun pdf-cache--initialize ()
   (unless pdf-cache--data
     (setq pdf-cache--data (make-hash-table))
-    (add-hook 'pdf-info-close-document-hook 'pdf-cache-clear-data nil t)
+    (add-hook 'pdf-info-close-document-hook #'pdf-cache-clear-data nil t)
     (add-hook 'pdf-annot-modified-functions
-              'pdf-cache--clear-data-of-annotations
+              #'pdf-cache--clear-data-of-annotations
               nil t)))
 
 (defun pdf-cache--clear-data-of-annotations (fn)
-  (apply 'pdf-cache-clear-data-of-pages
+  (apply #'pdf-cache-clear-data-of-pages
          (mapcar (lambda (a)
                    (cdr (assq 'page a)))
                  (funcall fn t))))
@@ -195,7 +195,7 @@ Does not modify the cache.  See also `pdf-cache-get-image'."
                      (list page min-width max-width hash)
                      pdf-cache--image-cache
                      :test (lambda (spec image)
-                             (apply 'pdf-cache--image-match image spec))))))
+                             (apply #'pdf-cache--image-match image spec))))))
     (and image
          (pdf-cache--image/data image))))
 
@@ -229,9 +229,9 @@ the HASH argument.
 
 This function always returns nil."
   (unless pdf-cache--image-cache
-    (add-hook 'pdf-info-close-document-hook 'pdf-cache-clear-images nil t)
+    (add-hook 'pdf-info-close-document-hook #'pdf-cache-clear-images nil t)
     (add-hook 'pdf-annot-modified-functions
-              'pdf-cache--clear-images-of-annotations nil t))
+              #'pdf-cache--clear-images-of-annotations nil t))
   (push (pdf-cache--make-image page width data hash)
         pdf-cache--image-cache)
   ;; Forget old image(s).
@@ -267,7 +267,7 @@ from the cache."
 
 
 (defun pdf-cache--clear-images-of-annotations (fn)
-  (apply 'pdf-cache-clear-images-of-pages
+  (apply #'pdf-cache-clear-images-of-pages
          (mapcar (lambda (a)
                    (cdr (assq 'page a)))
                  (funcall fn t))))
@@ -298,13 +298,13 @@ If such an image is not available in the cache, call
 See also `pdf-info-renderpage-text-regions' and
 `pdf-cache-renderpage'."
   (if pdf-cache-image-inihibit
-      (apply 'pdf-info-renderpage-text-regions
+      (apply #'pdf-info-renderpage-text-regions
              page width single-line-p nil selection)
     (let ((hash (sxhash
                  (format "%S" (cons 'renderpage-text-regions
                                     (cons single-line-p selection))))))
       (or (pdf-cache-get-image page width width hash)
-          (let ((data (apply 'pdf-info-renderpage-text-regions
+          (let ((data (apply #'pdf-info-renderpage-text-regions
                              page width single-line-p nil selection)))
             (pdf-cache-put-image page width data hash)
             data)))))
@@ -315,13 +315,13 @@ See also `pdf-info-renderpage-text-regions' and
 See also `pdf-info-renderpage-highlight' and
 `pdf-cache-renderpage'."
   (if pdf-cache-image-inihibit
-      (apply 'pdf-info-renderpage-highlight
+      (apply #'pdf-info-renderpage-highlight
              page width nil regions)
     (let ((hash (sxhash
                  (format "%S" (cons 'renderpage-highlight
                                     regions)))))
       (or (pdf-cache-get-image page width width hash)
-          (let ((data (apply 'pdf-info-renderpage-highlight
+          (let ((data (apply #'pdf-info-renderpage-highlight
                              page width nil regions)))
             (pdf-cache-put-image page width data hash)
             data)))))
@@ -344,14 +344,14 @@ See also `pdf-info-renderpage-highlight' and
   (cond
    (pdf-cache-prefetch-minor-mode
     (pdf-util-assert-pdf-buffer)
-    (add-hook 'pre-command-hook 'pdf-cache--prefetch-stop nil t)
+    (add-hook 'pre-command-hook #'pdf-cache--prefetch-stop nil t)
     ;; FIXME: Disable the time when the buffer is killed or it's
     ;; major-mode changes.
     (setq pdf-cache--prefetch-timer
-          (run-with-idle-timer (or pdf-cache-prefetch-delay 1)
-              t 'pdf-cache--prefetch-start (current-buffer))))
+          (run-with-idle-timer (or pdf-cache-prefetch-delay 1) t
+                               #'pdf-cache--prefetch-start (current-buffer))))
    (t
-    (remove-hook 'pre-command-hook 'pdf-cache--prefetch-stop t))))
+    (remove-hook 'pre-command-hook #'pdf-cache--prefetch-stop t))))
 
 (defun pdf-cache-prefetch-pages-function-default ()
   (let ((page (pdf-view-current-page)))
@@ -413,7 +413,8 @@ See also `pdf-info-renderpage-highlight' and
                           (message "Prefetched page %s." page))
                         ;; Avoid max-lisp-eval-depth
                         (run-with-timer
-                            0.001 nil 'pdf-cache--prefetch-pages window image-width)))))))
+                         0.001 nil
+                         #'pdf-cache--prefetch-pages window image-width)))))))
           (condition-case err
               (pdf-info-renderpage page image-width)
             (error

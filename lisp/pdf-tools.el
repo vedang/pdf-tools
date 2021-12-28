@@ -2,12 +2,13 @@
 
 ;; Copyright (C) 2013, 2014  Andreas Politz
 
-;; Author: Andreas Politz <politza@fh-trier.de>
+;; Author: Andreas Politz <mail@andreas-politz.de>
+;; Maintainer: Vedang Manerikar <vedang.manerikar@gmail.com>
 ;; URL: http://github.com/vedang/pdf-tools/
 ;; Keywords: files, multimedia
 ;; Package: pdf-tools
 ;; Version: 1.0
-;; Package-Requires: ((emacs "24.3") (tablist "1.0") (let-alist "1.0.4"))
+;; Package-Requires: ((emacs "24.3") (nadvice "0.3") (tablist "1.0") (let-alist "1.0.4"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -307,10 +308,11 @@ Returns the buffer of the compilation process."
   (unless callback (setq callback #'ignore))
   (unless build-directory
     (setq build-directory (pdf-tools-locate-build-directory)))
-  (cl-check-type target-directory file-directory)
+  (cl-check-type target-directory (satisfies file-directory-p))
   (setq target-directory (file-name-as-directory
                           (expand-file-name target-directory)))
-  (cl-check-type build-directory (and (not null) file-directory))
+  (cl-check-type build-directory (and (not null)
+                                      (satisfies file-directory-p)))
   (when (and skip-dependencies-p force-dependencies-p)
     (error "Can't simultaneously skip and force dependencies"))
   (let* ((compilation-auto-jump-to-first-error nil)
@@ -428,7 +430,7 @@ See `pdf-view-mode' and `pdf-tools-enabled-modes'."
   (when (memq 'pdf-virtual-global-minor-mode
               pdf-tools-enabled-modes)
     (pdf-virtual-global-minor-mode 1))
-  (add-hook 'pdf-view-mode-hook 'pdf-tools-enable-minor-modes)
+  (add-hook 'pdf-view-mode-hook #'pdf-tools-enable-minor-modes)
   (dolist (buf (buffer-list))
     (with-current-buffer buf
       (when (and (not (derived-mode-p 'pdf-view-mode))
@@ -446,7 +448,7 @@ See `pdf-view-mode' and `pdf-tools-enabled-modes'."
     (remove pdf-tools-magic-mode-alist-entry magic-mode-alist))
   (pdf-occur-global-minor-mode -1)
   (pdf-virtual-global-minor-mode -1)
-  (remove-hook 'pdf-view-mode-hook 'pdf-tools-enable-minor-modes)
+  (remove-hook 'pdf-view-mode-hook #'pdf-tools-enable-minor-modes)
   (dolist (buf (buffer-list))
     (with-current-buffer buf
       (when (pdf-util-pdf-buffer-p buf)
@@ -504,7 +506,7 @@ MODES defaults to `pdf-tools-enabled-modes'."
     (princ "PDF Tools Help\n\n")
     (princ "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     (dolist (m (cons 'pdf-view-mode
-                     (sort (copy-sequence pdf-tools-modes) 'string<)))
+                     (sort (copy-sequence pdf-tools-modes) #'string<)))
       (princ (format "`%s' is " m))
       (describe-function-1 m)
       (terpri) (terpri)
