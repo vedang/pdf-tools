@@ -188,7 +188,7 @@ This variable should only be let-bound.")
 (defvar pdf-info--queue t
   "Internally used transmission-queue for the server.
 
-This variable is initially `t', telling the code starting the
+This variable is initially t, telling the code starting the
 server, that it never ran.")
 
 
@@ -307,7 +307,10 @@ error."
 
 (advice-add 'tq-process-buffer :around #'pdf-info--tq-workaround)
 (defun pdf-info--tq-workaround (orig-fun tq &rest args)
-  "Fix a bug in trunk where the wrong callback gets called."
+  "Fix a bug in trunk where the wrong callback gets called.
+
+ORIG-FUN is the callback that should be called. TQ and ARGS are
+the transmission-queue and arguments to the callback."
   ;; FIXME: Make me iterative.
   (if (not (equal (car (process-command (tq-process tq)))
                   pdf-info-epdfinfo-program))
@@ -379,7 +382,7 @@ error."
                  (not (eq (process-status (pdf-info-process))
                           'run))
                  (not (eq cmd 'quit)))
-        (error "The epdfinfo server quit unexpectedly."))
+        (error "The epdfinfo server quit unexpectedly"))
       (cond
        ((null status) response)
        ((eq status 'error)
@@ -387,7 +390,7 @@ error."
        ((eq status 'interrupted)
         (error "epdfinfo: Command was interrupted"))
        (t
-        (error "internal error: invalid response status"))))))
+        (error "Internal error: invalid response status"))))))
 
 (defun pdf-info-interrupt ()
   "FIXME: This command does currently nothing."
@@ -882,7 +885,7 @@ i.e. `pdf-info-asynchronous' is non-nil, transparently.
          (when (and (not ,done)
                     (not (eq (process-status (pdf-info-process))
                              'run)))
-           (error "The epdfinfo server quit unexpectedly."))
+           (error "The epdfinfo server quit unexpectedly"))
          (when ,status
            (error "epdfinfo: %s" ,response))
          ,response))))

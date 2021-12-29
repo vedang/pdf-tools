@@ -63,6 +63,11 @@ be prefetched and their order."
 (defvar pdf-annot-modified-functions)
 
 (defun pdf-cache--initialize ()
+  "Initialize the cache to store document data.
+
+Note: The cache is only initialized once. After that it needs to
+be cleared before this function makes any changes to it. This is
+an internal function and not meant to be directly used."
   (unless pdf-cache--data
     (setq pdf-cache--data (make-hash-table))
     (add-hook 'pdf-info-close-document-hook #'pdf-cache-clear-data nil t)
@@ -71,6 +76,11 @@ be prefetched and their order."
               nil t)))
 
 (defun pdf-cache--clear-data-of-annotations (fn)
+  "Clear the data cache when annotations are modified.
+
+FN is a closure as described in `pdf-annot-modified-functions'.
+
+Note: This is an internal function and not meant to be directly used."
   (apply #'pdf-cache-clear-data-of-pages
          (mapcar (lambda (a)
                    (cdr (assq 'page a)))
@@ -99,6 +109,7 @@ is nil and VALUE undefined."
       (cons nil nil))))
 
 (defun pdf-cache--data-clear (key &optional page)
+  "Remove KEY from the cache of PAGE."
   (pdf-cache--initialize)
   (puthash page
            (assq-delete-all key (gethash page pdf-cache--data))
@@ -106,11 +117,13 @@ is nil and VALUE undefined."
   nil)
 
 (defun pdf-cache-clear-data-of-pages (&rest pages)
+  "Remove all PAGES from the cache."
   (when pdf-cache--data
     (dolist (page pages)
       (remhash page pdf-cache--data))))
 
 (defun pdf-cache-clear-data ()
+  "Remove the entire cache."
   (interactive)
   (when pdf-cache--data
     (clrhash pdf-cache--data)))
@@ -162,11 +175,22 @@ Make sure, not to modify it's return value." command)))
 (defvar-local pdf-cache--image-cache nil)
 
 (defmacro pdf-cache--make-image (page width data hash)
+  "Make the image that we store in the image cache.
+
+An image is a tuple of PAGE WIDTH DATA HASH."
   `(list ,page ,width ,data ,hash))
-(defmacro pdf-cache--image/page (img) `(nth 0 ,img))
-(defmacro pdf-cache--image/width (img) `(nth 1 ,img))
-(defmacro pdf-cache--image/data (img) `(nth 2 ,img))
-(defmacro pdf-cache--image/hash (img) `(nth 3 ,img))
+(defmacro pdf-cache--image/page (img)
+  "Return the page value for IMG."
+  `(nth 0 ,img))
+(defmacro pdf-cache--image/width (img)
+  "Return the width value for IMG."
+  `(nth 1 ,img))
+(defmacro pdf-cache--image/data (img)
+  "Return the data value for IMG."
+  `(nth 2 ,img))
+(defmacro pdf-cache--image/hash (img)
+  "Return the hash value for IMG."
+  `(nth 3 ,img))
 
 (defun pdf-cache--image-match (image page min-width &optional max-width hash)
   "Match IMAGE with specs.
@@ -190,6 +214,9 @@ hash-value is `eql' to HASH."
 (defun pdf-cache-lookup-image (page min-width &optional max-width hash)
   "Return PAGE's cached PNG data as a string or nil.
 
+Return an image of at least MIN-WIDTH and, if non-nil, maximum
+width MAX-WIDTH and `eql' HASH value.
+
 Does not modify the cache.  See also `pdf-cache-get-image'."
   (let ((image (car (cl-member
                      (list page min-width max-width hash)
@@ -203,7 +230,7 @@ Does not modify the cache.  See also `pdf-cache-get-image'."
   "Return PAGE's PNG data as a string.
 
 Return an image of at least MIN-WIDTH and, if non-nil, maximum
-width MAX-WIDTH and `eql' hash value.
+width MAX-WIDTH and `eql' HASH value.
 
 Remember that image was recently used.
 
@@ -267,12 +294,18 @@ from the cache."
 
 
 (defun pdf-cache--clear-images-of-annotations (fn)
+  "Clear the images cache when annotations are modified.
+
+FN is a closure as described in `pdf-annot-modified-functions'.
+
+Note: This is an internal function and not meant to be directly used."
   (apply #'pdf-cache-clear-images-of-pages
          (mapcar (lambda (a)
                    (cdr (assq 'page a)))
                  (funcall fn t))))
 
 (defun pdf-cache-clear-images-of-pages (&rest pages)
+  "Remove all images of PAGES from the image cache."
   (pdf-cache-clear-images-if
    (lambda (page &rest _) (memq page pages))))
 
@@ -354,6 +387,10 @@ See also `pdf-info-renderpage-highlight' and
     (remove-hook 'pre-command-hook #'pdf-cache--prefetch-stop t))))
 
 (defun pdf-cache-prefetch-pages-function-default ()
+  "The default function to prefetch pages.
+
+See `pdf-cache-prefetch-pages-function' for an explanation of
+what this function does."
   (let ((page (pdf-view-current-page)))
     (pdf-util-remove-duplicates
      (cl-remove-if-not
@@ -382,6 +419,9 @@ See also `pdf-info-renderpage-highlight' and
 
 (defvar pdf-view-use-scaling)
 (defun pdf-cache--prefetch-pages (window image-width)
+  "Internal function to prefetch pages and store them in the cache.
+
+WINDOW and IMAGE-WIDTH decide the page and scale of the final image."
   (when (and (eq window (selected-window))
              (pdf-util-pdf-buffer-p))
     (let ((page (pop pdf-cache--prefetch-pages)))

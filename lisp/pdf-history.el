@@ -110,7 +110,7 @@ represents the current page."
      (1- (length pdf-history-stack))))
 
 (defun pdf-history-backward (n)
-  "Go N-times backward in the history."
+  "Go N times backward in the history."
   (interactive "p")
   (cond
    ((and (> n 0)
@@ -128,7 +128,7 @@ represents the current page."
    (t 0)))
 
 (defun pdf-history-forward (n)
-  "Go N-times forward in the history."
+  "Go N times forward in the history."
   (interactive "p")
   (pdf-history-backward (- n)))
 
