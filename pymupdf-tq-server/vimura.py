@@ -189,12 +189,17 @@ def renderpage(*args,
         pix.save(tmpfile)
     print("OK\n{}\n.".format(tmpfile))
 
-def pdf_date ():
+def pdf_date():
     now = dt.datetime.now(pytz.timezone(time.tzname[0]))
     ans_date  = now.strftime('%Y%m%d%H%M%S%z')
     # insert dingle quotes,
     # see https://pymupdf.readthedocs.io/en/latest/document.html#Document.metadata
     return ans_date[:-2] + "'" + ans_date[-2:] + "'"
+
+def asn_to_date(asn):
+    time = asn.split("D:")[-1]
+    time_obj = dt.datetime.strptime(time.replace("'", ""), "%Y%m%d%H%M%S%z")
+    return time_obj.strftime("%a %b %d %H\:%M\:%S %Y")
 
 def print_links(page):
     p = doc[page]
@@ -343,6 +348,20 @@ def outline(*args):
     print("OK")
     for i in toc:
         print("{}:goto-dest:{}:{}:0.0".format(i[0], i[1], i[2]))
+    print(".")
+
+def metadata(*args):
+    md = doc.metadata
+    print("OK")
+    print("{}:{}:{}:{}:{}:{}:{}:{}:{}".format(md['title'],
+                                              md['author'],
+                                              md['subject'],
+                                              md['keywords'],
+                                              md['creator'],
+                                              md['producer'],
+                                              md['format'],
+                                              asn_to_date(md['creationDate']),
+                                              asn_to_date(md['modDate'])))
     print(".")
 
 def tq_query(query):
