@@ -338,6 +338,13 @@ def delannot(*args):
 def features(*args):
     print("OK\ncase-sensitive-search:writable-annotations:markup-annotations\n.")
 
+def outline(*args):
+    toc = doc.get_toc()
+    print("OK")
+    for i in toc:
+        print("{}:goto-dest:{}:{}:0.0".format(i[0], i[1], i[2]))
+    print(".")
+
 def tq_query(query):
     try:
         logging.debug("This is the query: %s", query)
