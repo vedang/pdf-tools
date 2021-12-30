@@ -5,6 +5,7 @@
 #+Maintainer_Email: vedang.manerikar@gmail.com
 
 [[https://app.circleci.com/pipelines/github/vedang/pdf-tools][https://circleci.com/gh/vedang/pdf-tools.svg?style=svg]]
+[[https://elpa.nongnu.org/nongnu/pdf-tools.html][http://elpa.nongnu.org/nongnu/pdf-tools.svg]]
 [[https://stable.melpa.org/#/pdf-tools][http://stable.melpa.org/packages/pdf-tools-badge.svg]]
 [[https://melpa.org/#/pdf-tools][http://melpa.org/packages/pdf-tools-badge.svg]] [[https://ci.appveyor.com/project/vedang/pdf-tools][https://ci.appveyor.com/api/projects/status/yqic2san0wi7o5v8/branch/master?svg=true]]
 
