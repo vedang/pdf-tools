@@ -284,7 +284,6 @@ regarding display of the region in the later function.")
     ;; Reconvert
     (define-key map (kbd "C-c C-c")   'doc-view-mode)
     (define-key map (kbd "g")         'revert-buffer)
-    (define-key map (kbd "r")         'revert-buffer)
     ;; Region
     (define-key map [down-mouse-1] 'pdf-view-mouse-set-region)
     (define-key map [M-down-mouse-1] 'pdf-view-mouse-set-region-rectangle)

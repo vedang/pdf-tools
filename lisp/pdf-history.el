@@ -40,6 +40,8 @@
   (let ((kmap (make-sparse-keymap)))
     (define-key kmap (kbd "B") #'pdf-history-backward)
     (define-key kmap (kbd "N") #'pdf-history-forward)
+    (define-key kmap (kbd "l") #'pdf-history-backward)
+    (define-key kmap (kbd "r") #'pdf-history-forward)
     kmap)
   "Keymap used in `pdf-history-minor-mode'.")
 

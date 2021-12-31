@@ -366,7 +366,7 @@ PDFView Mode is an Emacs PDF viewer. It displays PDF files as PNG images in Emac
 | Jump to Occur Line                            | ~RETURN~              |
 | Pick a Link and Jump                          | ~F~                   |
 | Incremental Search in Links                   | ~f~                   |
-| History Back / Forwards                       | ~B~ / ~N~             |
+| History Back / Forwards                       | ~l~ / ~r~             |
 | Display Outline                               | ~o~                   |
 | Jump to Section from Outline                  | ~RETURN~              |
 | Jump to Page                                  | ~M-g g~               |
