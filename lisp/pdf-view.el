@@ -786,9 +786,9 @@ displayed page number."
 ;; * ================================================================== *
 
 (defun pdf-view-set-slice (x y width height &optional window)
-  ;; TODO: add WINDOW to docstring.
-  "Set the slice of the pages that should be displayed.
+  "Set the slice of the pages that should be displayed in WINDOW.
 
+WINDOW defaults to `selected-window' if not provided.
 X, Y, WIDTH and HEIGHT should be relative coordinates, i.e. in
 \[0;1\].  To reset the slice use `pdf-view-reset-slice'."
   (unless (equal (pdf-view-current-slice window)
@@ -825,8 +825,9 @@ dragging it to its bottom-right corner.  See also
                   (/ 1.0 (float (cdr size))))))))
 
 (defun pdf-view-set-slice-from-bounding-box (&optional window)
-  ;; TODO: add WINDOW to docstring.
   "Set the slice from the page's bounding-box.
+
+WINDOW defaults to `selected-window' if not provided.
 
 The result is that the margins are almost completely cropped,
 much more accurate than could be done manually using
@@ -848,8 +849,9 @@ See also `pdf-view-bounding-box-margin'."
            (append slice (and window (list window))))))
 
 (defun pdf-view-reset-slice (&optional window)
-  ;; TODO: add WINDOW to doctring.
-  "Reset the current slice.
+  "Reset the current slice and redisplay WINDOW.
+
+WINDOW defaults to `selected-window' if not provided.
 
 After calling this function the whole page will be visible
 again."
@@ -873,8 +875,9 @@ See also `pdf-view-set-slice-from-bounding-box'."
     (add-hook 'pdf-view-change-page-hook
               'pdf-view-set-slice-from-bounding-box nil t))
    (t
-    (remove-hook 'pdf-view-change-page-hook
-                 'pdf-view-set-slice-from-bounding-box t))))
+    (progn (remove-hook 'pdf-view-change-page-hook
+                        'pdf-view-set-slice-from-bounding-box t)
+           (pdf-view-reset-slice)))))
 
 
 ;; * ================================================================== *
