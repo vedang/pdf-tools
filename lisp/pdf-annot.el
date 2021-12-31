@@ -1368,6 +1368,7 @@ by a header."
                                 page header contents)))
                  (data (pdf-cache-lookup-image page 0 nil hash))
                  (org-preview-latex-default-process 'dvipng)
+                 (org-latex-create-formula-image-program 'dvipng) ; For Emacs<26
                  (org-format-latex-header
                   pdf-annot-latex-header)
                  (temporary-file-directory
