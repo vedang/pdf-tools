@@ -11,3 +11,7 @@ test/test.log
 test/test.out
 test/test.upa
 test/test.upb
+*.elc
+/lisp/pdf-tools-autoloads.el
+/pdf-tools-autoloads.el
+/pdf-tools-pkg.el

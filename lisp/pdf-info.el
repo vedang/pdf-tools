@@ -85,14 +85,12 @@
           ;; Fall back to epdfinfo in the directory of this file.
           (expand-file-name executable))))
   "Filename of the epdfinfo executable."
-  :group 'pdf-info
   :type 'file)
 
 (defcustom pdf-info-epdfinfo-error-filename nil
   "Filename for error output of the epdfinfo executable.
 
 If nil, discard any error messages.  Useful for debugging."
-  :group 'pdf-info
   :type `(choice (const :tag "None" nil)
                  ,@(when (file-directory-p "/tmp/")
                      '((const "/tmp/epdfinfo.log")))
@@ -103,14 +101,12 @@ If nil, discard any error messages.  Useful for debugging."
 
 If this is non-nil, all communication with the epdfinfo program
 will be logged to the buffer \"*pdf-info-log*\"."
-  :group 'pdf-info
   :type 'boolean)
 
 (defcustom pdf-info-log-entry-max 512
   "Maximum number of characters in a single log entry.
 
 This variable has no effect if `pdf-info-log' is nil."
-  :group 'pdf-info
   :type 'integer)
 
 (defcustom pdf-info-restart-process-p 'ask
@@ -123,7 +119,6 @@ ask -- ask whether to restart or not.
 
 If it is `ask', the server quits and you answer no, this variable
 is set to nil."
-  :group 'pdf-info
   :type '(choice (const :tag "Do nothing" nil)
                  (const :tag "Restart silently" t)
                  (const :tag "Always ask" ask)))
@@ -133,7 +128,6 @@ is set to nil."
 
 The hook is run in the documents buffer, if it exists. Otherwise
 in a `with-temp-buffer' form."
-  :group 'pdf-info
   :type 'hook)
 
 
@@ -194,7 +188,7 @@ This variable should only be let-bound.")
 (defvar pdf-info--queue t
   "Internally used transmission-queue for the server.
 
-This variable is initially `t', telling the code starting the
+This variable is initially t, telling the code starting the
 server, that it never ran.")
 
 
@@ -311,41 +305,44 @@ error."
       (setq pdf-info--queue (tq-create proc))))
   pdf-info--queue)
 
-(defadvice tq-process-buffer (around bugfix activate)
-  "Fix a bug in trunk where the wrong callback gets called."
+(advice-add 'tq-process-buffer :around #'pdf-info--tq-workaround)
+(defun pdf-info--tq-workaround (orig-fun tq &rest args)
+  "Fix a bug in trunk where the wrong callback gets called.
+
+ORIG-FUN is the callback that should be called. TQ and ARGS are
+the transmission-queue and arguments to the callback."
   ;; FIXME: Make me iterative.
-  (let ((tq (ad-get-arg 0)))
-    (if (not (equal (car (process-command (tq-process tq)))
-                    pdf-info-epdfinfo-program))
-        ad-do-it
-      (let ((buffer (tq-buffer tq))
-            done)
-        (when (buffer-live-p buffer)
-          (set-buffer buffer)
-          (while (and (not done)
-                      (> (buffer-size) 0))
-            (setq done t)
-            (if (tq-queue-empty tq)
-                (let ((buf (generate-new-buffer "*spurious*")))
-                  (copy-to-buffer buf (point-min) (point-max))
-                  (delete-region (point-min) (point))
-                  (pop-to-buffer buf nil)
-                  (error "Spurious communication from process %s, see buffer %s"
-                         (process-name (tq-process tq))
-                         (buffer-name buf)))
-              (goto-char (point-min))
-              (when (re-search-forward (tq-queue-head-regexp tq) nil t)
-                (setq done nil)
-                (let ((answer (buffer-substring (point-min) (point)))
-                      (fn (tq-queue-head-fn tq))
-                      (closure (tq-queue-head-closure tq)))
-                  (delete-region (point-min) (point))
-                  (tq-queue-pop tq)
-                  (condition-case-unless-debug err
-                      (funcall fn closure answer)
-                    (error
-                     (message "Error while processing tq callback: %s"
-                              (error-message-string err)))))))))))))
+  (if (not (equal (car (process-command (tq-process tq)))
+                  pdf-info-epdfinfo-program))
+      (apply orig-fun tq args)
+    (let ((buffer (tq-buffer tq))
+          done)
+      (when (buffer-live-p buffer)
+        (set-buffer buffer)
+        (while (and (not done)
+                    (> (buffer-size) 0))
+          (setq done t)
+          (if (tq-queue-empty tq)
+              (let ((buf (generate-new-buffer "*spurious*")))
+                (copy-to-buffer buf (point-min) (point-max))
+                (delete-region (point-min) (point))
+                (pop-to-buffer buf nil)
+                (error "Spurious communication from process %s, see buffer %s"
+                       (process-name (tq-process tq))
+                       (buffer-name buf)))
+            (goto-char (point-min))
+            (when (re-search-forward (tq-queue-head-regexp tq) nil t)
+              (setq done nil)
+              (let ((answer (buffer-substring (point-min) (point)))
+                    (fn (tq-queue-head-fn tq))
+                    (closure (tq-queue-head-closure tq)))
+                (delete-region (point-min) (point))
+                (tq-queue-pop tq)
+                (condition-case-unless-debug err
+                    (funcall fn closure answer)
+                  (error
+                   (message "Error while processing tq callback: %s"
+                            (error-message-string err))))))))))))
 
 
 ;; * ================================================================== *
@@ -357,8 +354,9 @@ error."
   (pdf-info-process-assert-running)
   (unless (symbolp cmd)
     (setq cmd (intern cmd)))
-  (let* ((query (concat (mapconcat 'pdf-info-query--escape
-                                   (cons cmd args) ":") "\n"))
+  (let* ((query (concat (mapconcat #'pdf-info-query--escape
+                                   (cons cmd args) ":")
+                        "\n"))
          (callback
           (lambda (closure response)
             (cl-destructuring-bind (status &rest result)
@@ -384,7 +382,7 @@ error."
                  (not (eq (process-status (pdf-info-process))
                           'run))
                  (not (eq cmd 'quit)))
-        (error "The epdfinfo server quit unexpectedly."))
+        (error "The epdfinfo server quit unexpectedly"))
       (cond
        ((null status) response)
        ((eq status 'error)
@@ -392,7 +390,7 @@ error."
        ((eq status 'interrupted)
         (error "epdfinfo: Command was interrupted"))
        (t
-        (error "internal error: invalid response status"))))))
+        (error "Internal error: invalid response status"))))))
 
 (defun pdf-info-interrupt ()
   "FIXME: This command does currently nothing."
@@ -483,7 +481,7 @@ interrupted."
      (mapcar (lambda (elt)
                (cl-assert (= 1 (length (cadr elt))) t)
                `(,(aref (cadr elt) 0)
-                 ,(mapcar 'string-to-number
+                 ,(mapcar #'string-to-number
                           (split-string (car elt) " " t))))
              response))
     (regexp-flags
@@ -499,7 +497,7 @@ interrupted."
                      (pdf-util-highlight-regexp-in-string
                       (regexp-quote (nth 1 r)) (nth 2 r))))
           (edges . ,(mapcar (lambda (m)
-                              (mapcar 'string-to-number
+                              (mapcar #'string-to-number
                                       (split-string m " " t)))
                             (cddr (cdr r))))))
       response))
@@ -511,7 +509,7 @@ interrupted."
     (pagelinks
      (mapcar (lambda (r)
                `((edges .
-                        ,(mapcar 'string-to-number ;area
+                        ,(mapcar #'string-to-number ;area
                                  (split-string (pop r) " " t)))
                  ,@(pdf-info-query--transform-action r)))
              response))
@@ -534,10 +532,10 @@ interrupted."
      (or (caar response) ""))
     (getselection
      (mapcar (lambda (line)
-               (mapcar 'string-to-number
+               (mapcar #'string-to-number
                        (split-string (car line) " " t)))
              response))
-    (features (mapcar 'intern (car response)))
+    (features (mapcar #'intern (car response)))
     (pagesize
      (setq response (car response))
      (cons (round (string-to-number (car response)))
@@ -545,15 +543,15 @@ interrupted."
     ((getannot editannot addannot)
      (pdf-info-query--transform-annotation (car response)))
     (getannots
-     (mapcar 'pdf-info-query--transform-annotation response))
+     (mapcar #'pdf-info-query--transform-annotation response))
     (getattachments
-     (mapcar 'pdf-info-query--transform-attachment response))
+     (mapcar #'pdf-info-query--transform-attachment response))
     ((getattachment-from-annot)
      (pdf-info-query--transform-attachment (car response)))
     (boundingbox
-     (mapcar 'string-to-number (car response)))
+     (mapcar #'string-to-number (car response)))
     (synctex-forward-search
-     (let ((list (mapcar 'string-to-number (car response))))
+     (let ((list (mapcar #'string-to-number (car response))))
        `((page . ,(car list))
          (edges . ,(cdr list)))))
     (synctex-backward-search
@@ -575,7 +573,7 @@ interrupted."
            (push value options)
            (push key options)))
        options))
-    (pagelabels (mapcar 'car response))
+    (pagelabels (mapcar #'car response))
     (ping (caar response))
     (t response)))
 
@@ -604,7 +602,7 @@ interrupted."
       (cl-destructuring-bind (page edges type id flags color contents modified &rest rest)
           a
         (setq a1 `((page . ,(string-to-number page))
-                   (edges . ,(mapcar 'string-to-number
+                   (edges . ,(mapcar #'string-to-number
                                      (split-string edges " " t)))
                    (type . ,(intern type))
                    (id . ,(intern id))
@@ -623,7 +621,7 @@ interrupted."
                                   (and o (string-to-number o))))
                     (popup-edges . ,(let ((p (not-empty popup-edges)))
                                       (when p
-                                        (mapcar 'string-to-number
+                                        (mapcar #'string-to-number
                                                 (split-string p " " t)))))
                     (popup-is-open . ,(equal popup-is-open "1"))
                     (created . ,(pdf-info-parse-pdf-date (not-empty created)))))
@@ -639,7 +637,7 @@ interrupted."
                     '(squiggly highlight underline strike-out))
               (setq a3 `((markup-edges
                           . ,(mapcar (lambda (r)
-                                       (mapcar 'string-to-number
+                                       (mapcar #'string-to-number
                                                (split-string r " " t)))
                                      rest)))))))))
       (append a1 a2 a3))))
@@ -851,9 +849,8 @@ i.e. `pdf-info-asynchronous' is non-nil, transparently.
                ;; Let-bind responses corresponding to their variables,
                ;; i.e. keys in alist RESULTS.
                (let (,@(mapcar (lambda (var)
-                                 (list var (list 'cdr (list 'assq (list 'quote var)
-                                                            results))))
-                               (mapcar 'car let-forms)))
+                                 `(,var (cdr (assq ',var ,results))))
+                               (mapcar #'car let-forms)))
                  (setq ,status (not (not ,first-error))
                        ,response (or ,first-error
                                      (with-current-buffer ,buffer
@@ -888,7 +885,7 @@ i.e. `pdf-info-asynchronous' is non-nil, transparently.
          (when (and (not ,done)
                     (not (eq (process-status (pdf-info-process))
                              'run)))
-           (error "The epdfinfo server quit unexpectedly."))
+           (error "The epdfinfo server quit unexpectedly"))
          (when ,status
            (error "epdfinfo: %s" ,response))
          ,response))))
@@ -920,7 +917,7 @@ restart it."
         (tq-close pdf-info--queue))
       (set (make-local-variable 'pdf-info--queue) nil)
       (pdf-info-process-assert-running t)
-      (add-hook 'kill-buffer-hook 'pdf-info-kill-local-server nil t)
+      (add-hook 'kill-buffer-hook #'pdf-info-kill-local-server nil t)
       pdf-info--queue)))
 
 (defun pdf-info-kill-local-server (&optional buffer)
@@ -1259,7 +1256,7 @@ Return the text contained in the selection."
    'gettext
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
-   (mapconcat 'number-to-string edges " ")
+   (mapconcat #'number-to-string edges " ")
    (cl-case selection-style
      (glyph 0)
      (word 1)
@@ -1278,7 +1275,7 @@ aforementioned function, when called with the same arguments."
    'getselection
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
-   (mapconcat 'number-to-string edges " ")
+   (mapconcat #'number-to-string edges " ")
    (cl-case selection-style
      (glyph 0)
      (word 1)
@@ -1314,7 +1311,7 @@ contains at most one element."
    'charlayout
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
-   (mapconcat 'number-to-string edges-or-pos " ")))
+   (mapconcat #'number-to-string edges-or-pos " ")))
 
 (defun pdf-info-pagesize (page &optional file-or-buffer)
   "Return the size of PAGE as a cons \(WIDTH . HEIGHT\)
@@ -1428,7 +1425,7 @@ returns."
     (push file-or-buffer markup-edges)
     (setq file-or-buffer nil))
   (apply
-   'pdf-info-query
+   #'pdf-info-query
    'addannot
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
@@ -1488,11 +1485,11 @@ The server must support modifying annotations for this to work."
               (t
                (list (car elt) (cdr elt)))))
           modifications)))
-    (apply 'pdf-info-query
+    (apply #'pdf-info-query
            'editannot
            (pdf-info--normalize-file-or-buffer file-or-buffer)
            id
-           (apply 'append edits))))
+           (apply #'append edits))))
 
 (defun pdf-info-save (&optional file-or-buffer)
   "Save FILE-OR-BUFFER.
@@ -1590,7 +1587,7 @@ Return the data of the corresponding PNG image."
   (when (keywordp file-or-buffer)
     (push file-or-buffer commands)
     (setq file-or-buffer nil))
-  (apply 'pdf-info-query
+  (apply #'pdf-info-query
     'renderpage
     (pdf-info--normalize-file-or-buffer file-or-buffer)
     page
@@ -1602,7 +1599,7 @@ Return the data of the corresponding PNG image."
           (setq value
                 (cl-case kw
                   ((:crop-to :highlight-line :highlight-region :highlight-text)
-                   (mapconcat 'number-to-string value " "))
+                   (mapconcat #'number-to-string value " "))
                   ((:foreground :background)
                    (pdf-util-hexcolor value))
                   (:alpha
@@ -1636,9 +1633,9 @@ Return the data of the corresponding PNG image."
     (push file-or-buffer regions)
     (setq file-or-buffer nil))
 
-  (apply 'pdf-info-renderpage
+  (apply #'pdf-info-renderpage
     page width file-or-buffer
-    (apply 'append
+    (apply #'append
       (mapcar (lambda (elt)
                 `(:foreground ,(pop elt)
                   :background ,(pop elt)
@@ -1668,9 +1665,9 @@ Return the data of the corresponding PNG image."
     (push file-or-buffer regions)
     (setq file-or-buffer nil))
 
-  (apply 'pdf-info-renderpage
+  (apply #'pdf-info-renderpage
     page width file-or-buffer
-    (apply 'append
+    (apply #'append
       (mapcar (lambda (elt)
                 `(:background ,(pop elt)
                   :foreground ,(pop elt)
@@ -1701,7 +1698,7 @@ Returns a list \(LEFT TOP RIGHT BOT\)."
     (setq file-or-buffer nil))
   (unless (= (% (length options) 2) 0)
     (error "Missing a option value"))
-  (apply 'pdf-info-query
+  (apply #'pdf-info-query
     'setoptions
     (pdf-info--normalize-file-or-buffer file-or-buffer)
     (let (soptions)
