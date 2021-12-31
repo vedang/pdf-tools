@@ -5,10 +5,12 @@ From this version onward, we will follow Semantic Versioning for new ~pdf-tools~
 ** Raise the minimum supported version of Emacs to 25.1
 Drop support for Emacs 24. This allows for some code cleanup.
 * Version 0.91
-** Make changes required by for newer versions of Emacs
+** Make changes required by newer versions of Emacs
 A number of changes are made to support new elisp / package changes. There is no impact of this on existing users.
+- Emacs 27, Emacs 28 and Emacs 29 are supported now.
+- Synctex 1.21 is supported now.
 ** Improve overall install experience
-Running ~M-x pdf-tools-install~ should _just work_.
+Running ~M-x pdf-tools-install~ should _just work_ now.
 ** Add support for high-resolution displays (Retina display on Mac)
 Setting ~pdf-view-use-scaling~ to a non-nil value now renders crisp images on high-resolution displays.
 * Version 0.90
