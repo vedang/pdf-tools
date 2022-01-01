@@ -343,6 +343,63 @@ def delannot(*args):
 def features(*args):
     print("OK\ncase-sensitive-search:writable-annotations:markup-annotations\n.")
 
+# TODO the epdfinfo server return all kinds of flags here (e.g. as commented
+# out below). The flags are not necessary for basic functionality but for full
+# 'search feature parity', these values should probably obtained via the
+# pymupdf equivalents of those flags.
+def regexp_flags(*args):
+    print("OK")
+    # print("caseless:1")
+    # print("multiline:2")
+    # print("dotall:4")
+    # print("extended:8")
+    # print("anchored:16")
+    # print("dollar-endonly:32")
+    # print("ungreedy:512")
+    # print("raw:2048")
+    # print("no-auto-capture:4096")
+    # print("optimize:8192")
+    # print("dupnames:524288")
+    # print("newline-cr:1048576")
+    # print("newline-lf:2097152")
+    # print("newline-crlf:3145728")
+    # print("match-anchored:16")
+    # print("match-notbol:128")
+    # print("match-noteol:256")
+    # print("match-notempty:1024")
+    # print("match-partial:32768")
+    # print("match-newline-cr:1048576")
+    # print("match-newline-lf:2097152")
+    # print("match-newline-crlf:3145728")
+    # print("match-newline-any:4194304")
+    print(".")
+
+def get_text_line(text, word):
+    line_text = ""
+    i = 0
+    while (t := text[i][3]) <= word[3]:
+        if t == word[3]:
+            line_text += text[i][4] + " "
+        i += 1
+    return line_text
+
+def search_regexp(*args):
+    start_page = int(args[1]) - 1
+    end_page = int(args[2])
+    print("OK")
+    for i in range(start_page, end_page):
+        p = doc[i]
+        hits = p.search_for(args[3])
+        if hits:
+            page_text = p.get_text("words")
+        for h in hits:
+            nh = [i for i in normalize_edges(p, h)]
+            print('{}:{}:{}:{}'.format(i+1,
+                                       args[3],
+                                       get_text_line(page_text, h),
+                                       " ".join([str(n) for n in nh])))
+    print(".")
+
 def outline(*args):
     toc = doc.get_toc()
     print("OK")
