@@ -1288,10 +1288,11 @@ URI.
 In the first two cases, PAGE may be 0 and TOP nil, which means
 these data is unspecified."
   (cl-check-type page natnum)
-  (pdf-info-query
-   'pagelinks
-   (pdf-info--normalize-file-or-buffer file-or-buffer)
-   page))
+  (when (string= (file-name-extension buffer-file-name) "pdf")
+    (pdf-info-query
+     'pagelinks
+     (pdf-info--normalize-file-or-buffer file-or-buffer)
+     page)))
 
 (defun pdf-info-number-of-pages (&optional file-or-buffer)
   "Return the number of pages in document FILE-OR-BUFFER."

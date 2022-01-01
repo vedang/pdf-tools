@@ -447,17 +447,18 @@ PAGES defaults to all pages, TYPES to all types and BUFFER to the
 current buffer."
 
   (pdf-util-assert-pdf-buffer buffer)
-  (unless buffer
-    (setq buffer (current-buffer)))
-  (unless (listp types)
-    (setq types (list types)))
-  (with-current-buffer buffer
-    (let (result)
-      (dolist (a (pdf-info-getannots pages))
-        (when (or (null types)
-                  (memq (pdf-annot-get a 'type) types))
-          (push (pdf-annot-create a) result)))
-      result)))
+  (when (string= (file-name-extension buffer-file-name) "pdf")
+    (unless buffer
+      (setq buffer (current-buffer)))
+    (unless (listp types)
+      (setq types (list types)))
+    (with-current-buffer buffer
+      (let (result)
+        (dolist (a (pdf-info-getannots pages))
+          (when (or (null types)
+                    (memq (pdf-annot-get a 'type) types))
+            (push (pdf-annot-create a) result)))
+        result))))
 
 (defun pdf-annot-getannot (id &optional buffer)
   "Return the annotation object for annotation ID.
