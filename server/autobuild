@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 ##
 ## Installs package dependencies and builds the application.
@@ -64,16 +64,7 @@ which()
     if [ -z "$1" ]; then
         return 1
     fi
-    IFS=:
-    for dir in $PATH; do
-        if [ -x "$dir/$1" ]; then
-            printf "%s" "$dir/$1"
-            unset IFS
-            return 0
-        fi
-    done
-    unset IFS
-    return 1
+    command -v "$1"
 }
 
 # Quote $@ for the shell.

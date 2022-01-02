@@ -1,141 +1,104 @@
 -*- org -*-
 
-* Version 1.0
-** Added experimental support for high-resolution displays.
-   Set `pdf-view-use-scaling' to a non-nil value in order to enable,
-   if the appropriate image-formats and monitor are available.
+* Version 1.0.0 (Under Development)
+From this version onward, we will follow Semantic Versioning for new ~pdf-tools~ releases.
+** Raise the minimum supported version of Emacs to 25.1
+Drop support for Emacs 24. This allows for some code cleanup.
+* Version 0.91
+** Change the keybindings for traversing history
+This is a minor but *breaking change*. ~l~ (backward) and ~r~ (forward) are the conventional bindings for history navigation in Emacs, but ~pdf-tools~ uses ~B~ and ~N~. The previous keybindings are kept as-is for people who were used to it, while introducing ~l~ and ~r~ keybindings as well.
+
+This is a breaking change because ~r~ was previously bound to ~revert-buffer~. However, ~g~ is also bound to ~revert-buffer~ and is the conventional binding for ~revert~ so this should be okay.
+
+** Make changes required by newer versions of Emacs
+A number of changes are made to support new elisp / package changes. There is no impact of this on existing users.
+- Emacs 27, Emacs 28 and Emacs 29 are supported now.
+- Synctex 1.21 is supported now.
+** Improve overall install experience
+Running ~M-x pdf-tools-install~ should _just work_ now.
+** Add support for high-resolution displays (Retina display on Mac)
+Setting ~pdf-view-use-scaling~ to a non-nil value now renders crisp images on high-resolution displays.
 * Version 0.90
 ** The displayed columns when listing annotations is now customizable
-   See variable pdf-annot-list-format and
-   pdf-annot-list-highlight-type.
+See variable ~pdf-annot-list-format~ and ~pdf-annot-list-highlight-type~.
 ** Improved handling of default annotation properties
-   A new variable pdf-annot-default-annotation-properties was
-   introduced, subsuming and obsoleting
-   pdf-annot-default-text-annotation-properties and
-   pdf-annot-default-markup-annotation-properties.  The new variable
-   let's the user choose default properties, e.g. a color, for all
-   supported annotations separately.
+A new variable ~pdf-annot-default-annotation-properties~ was introduced, subsuming and obsoleting ~pdf-annot-default-text-annotation-properties~ and ~pdf-annot-default-markup-annotation-properties~. The new variable lets the user choose default properties, e.g. a color, for all supported annotations separately.
 ** Provide a faster "boot-loader"
-   The autoloaded function pdf-loader-install acts as a replacement
-   for pdf-tools-install and makes Emacs load and use PDF Tools as
-   soon as a PDF file is opened, but not sooner.
+The autoloaded function ~pdf-loader-install~ acts as a replacement for ~pdf-tools-install~ and makes Emacs load and use PDF Tools as soon as a PDF file is opened, but not sooner.
 ** Improved the process of (re)compiling the server
-   This obsoletes the variable pdf-tools-handle-upgrades, which does
-   nothing anymore.   
+This obsoletes the variable ~pdf-tools-handle-upgrades~, which does nothing anymore.
 * Version 0.80
 ** Tablist package
-   The files tablist.el and tablist-filter.el are no longer part of
-   pdf-tools, but continue to live on in the tablist package, on which
-   pdf-tools now depends on.
+The files ~tablist.el~ and ~tablist-filter.el~ are no longer part of ~pdf-tools~, but continue to live on in the ~tablist~ package, on which ~pdf-tools~ now depends on.
 ** View
 *** Encrypted files
-    When encountering an encrypted file, query for a password and
-    attempt to decrypt it.
+When encountering an encrypted file, query for a password and attempt to decrypt it.
 *** Backward sync from isearch
-    In isearch, press M-s s to visit the source of the current match.
+In ~isearch~, press ~M-s s~ to visit the source of the current match.
 *** Disable unicode in mode-line
-    New variable pdf-view-use-unicode-lighter which allows for
-    disabling the use of unicode in the mode-line.
+New variable ~pdf-view-use-unicode-lighter~ which allows for disabling the use of unicode in the mode-line.
 * Version 0.70
 ** View
 *** Register integration
-    The keys m and ' now set resp. jump to a register corresponding to
-    a position in the PDF. Also '' is handled special: It jumps to the
-    position before the last register-jump.
+The keys ~m~ and ~'~ now set respectively to jump to a register corresponding to a position in the PDF. Also ~''~ is handled special: It jumps to the position before the last register-jump.
 *** Export parts of a page as an image
+See ~pdf-view-extract-region-image~.
 ** Info
 *** Interface changes
-    The return value of many pdf-info-* functions was changed in order
-    to prefer alists over other data-structures (indexed lists,
-    trees).
+The return value of many pdf-info-* functions was changed in order to prefer alists over other data-structures (indexed lists, trees).
 ** Virtual PDF
-   A virtual PDF is a collection of pages (or parts thereof) of
-   arbitrary documents, which appear to the rest of pdf-tools as one
-   big PDF, though they are always read-only.
+A virtual PDF is a collection of pages (or parts thereof) of arbitrary documents, which appear to the rest of ~pdf-tools~ as one big PDF, though they are always read-only.
 
 * Version 0.60
 ** Regexp support
-   You may now search for perl-compatible regular expressions (PCRE)
-   in PDF documents, both via Isearch and Occur.  If that scares you,
-   customize the variable pdf-occur-prefer-string-search.
+You may now search for perl-compatible regular expressions (PCRE) in PDF documents, both via Isearch and Occur. If that scares you, customize the variable ~pdf-occur-prefer-string-search~.
 ** Occur
 *** Asynchronous search
-    Searching is performed asynchronously in a private server
-    instance, i.e. it doesn't block neither ordinary editing nor
-    pdf-view-mode.
+Searching is performed asynchronously in a private server instance, i.e. it doesn't block neither ordinary editing nor ~pdf-view-mode~.
 *** Moccur
-    Added the ability to search multiple documents in one occur
-    buffer.
+Added the ability to search multiple documents in one occur buffer.
 ** Isearch
 *** Occur Integration
-    M-s o now starts occur, while keeping the isearch session, like it
-    is in text-buffers.
+~M-s o~ now starts occur, while keeping the isearch session, like it is in text-buffers.
 *** Word search
-    M-s w now does a word search, which will also find hyphenated
-    words (as determined by pdf-isearch-hyphenation-character), though
-    not at page boundaries.
+~M-s w~ now does a word search, which will also find hyphenated words (as determined by ~pdf-isearch-hyphenation-character~), though not at page boundaries.
 ** View
 *** Navigate by pagelabels
-    M-g l may be used to jump to a page by label, i.e. it's displayed
-    number.
+~M-g l~ may be used to jump to a page by label, i.e. it's displayed number.
 *** Rendering
-    Added the ability to display the page as it would be printed
-    (e.g. w/o annotations) and to apply a color filter
-    (pdf-view-printer-minor-mode resp. pdf-view-midnight-minor-mode).
+Added the ability to display the page as it would be printed (e.g. w/o annotations) via ~pdf-view-printer-minor-mode~ and to apply a color filter via ~pdf-view-midnight-minor-mode~.
 ** Outline
-   New option `pdf-outline-display-labels', determining whether to
-   display labels instead of plain page-numbers.
+New option ~pdf-outline-display-labels~, determining whether to display labels instead of plain page-numbers.
 * Version 0.50
 ** PDF Tools is now available on MELPA.
 ** SyncTeX
 *** File name handling
-   SyncTeX is pretty picky about source filenames.  So instead of
-   trying various filenames and hoping for best, we find it by
-   directly inspecting the database.
+SyncTeX is pretty picky about source filenames. So instead of trying various filenames and hoping for best, we find it by directly inspecting the database.
 *** Heuristic backward search
-    Backward searching now tries to find the exact position in the
-    LaTeX buffer.  This may be disabled by setting
-    pdf-sync-backward-use-heuristic to nil.
+Backward searching now tries to find the exact position in the LaTeX buffer. This may be disabled by setting ~pdf-sync-backward-use-heuristic~ to ~nil~.
 *** Renamed most variables/functions/commands.
-    The old ones are still there but declared obsolete.
+The old ones are still there but declared obsolete.
 ** Compatible with Emacs 24.3
 ** Integrate with bookmark.el
 ** Compiling on OSX
-   PDF Tools should now compile on OSX, though it is unsupported.
+PDF Tools should now compile on OSX, though it is unsupported.
 ** MELPA
-   Try to handle an update via MELPA by package.el by shutting down
-   the server, recompiling and restarting it.  This may be deactivated
-   by setting pdf-tools-handle-upgrades to nil.
+Try to handle an update via MELPA by ~package.el~ by shutting down the server, recompiling and restarting it. This may be deactivated by setting ~pdf-tools-handle-upgrades~ to nil.
 ** Auto slicing
-   A new minor mode which will automatically slice the page according
-   to it's bounding box.
+A new minor mode which will automatically slice the page according to it's bounding box.
 * Version 0.40
-  I basically reimplemented the whole thing. (Not really, but a lot
-  has changed.)
+I basically reimplemented the whole thing. (Not really, but a lot has changed.)
 ** Displaying PDF Files.
-   Rendering is now done almost completely in libpoppler (no convert
-   anymore), while PNG images are kept in memory and files are solely
-   used as a means of exchange between Emacs and epdfinfo.  In
-   essence, display should be much faster.
+Rendering is now done almost completely in ~libpoppler~ (no convert anymore), while PNG images are kept in memory and files are solely used as a means of exchange between Emacs and ~epdfinfo~. In essence, display should be much faster.
 *** New Major Mode pdf-view
-    Hacking up doc-view.el to support a server-based ,,rendering
-    engine'' would have been to awkward. So a new major-mode was
-    needed : pdf-view-mode . Both are very similar regarding
-    user-interface.  Some differences are:
-    + Setting the width to `fit-width', `fit-height' or `fit-page'
-      keeps up with window-size changes.
-    + The values of the slice are relative, i.e. independent of the
-      image-size.
+Hacking up ~doc-view.el~ to support a server-based *rendering engine* would have been to awkward. So a new major-mode was needed : ~pdf-view-mode~. Both are very similar regarding user-interface. Some differences are:
++ Setting the width to ~fit-width~, ~fit-height~ or ~fit-page~ keeps up with window-size changes.
++ The values of the slice are relative, i.e. independent of the ~image-size~.
 *** PNG Image Cache
-    Image data is cached, in order to keep the time it needs to
-    display a page low.  Some pages are pre-loaded for the same reason,
-    while idling.  The number of cached images per buffer may be
-    customized using `pdf-cache-image-limit'.
+Image data is cached, in order to keep the time it needs to display a page low. Some pages are pre-loaded for the same reason, while idling. The number of cached images per buffer may be customized using ~pdf-cache-image-limit~.
 ** Annotations
 *** New supported types
-    Provided epdfinfo was build with a recent version of libpoppler,
-    you may now create and modify the following markup annotation
-    types: highlight, squiggly, underline and strike-out.
+Provided ~epdfinfo~ was build with a recent version of ~libpoppler~, you may now create and modify the following markup annotation types: highlight, squiggly, underline and strike-out.
 ** Various
 *** You may now select extended regions with C-mouse-1.
 *** Numerous other changes

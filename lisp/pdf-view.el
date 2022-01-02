@@ -34,7 +34,7 @@
 (require 'password-cache)
 
 (declare-function cua-copy-region "cua-base")
-
+(declare-function pdf-tools-pdf-buffer-p "pdf-tools")
 
 ;; * ================================================================== *
 ;; * Customizations
@@ -284,7 +284,6 @@ regarding display of the region in the later function.")
     ;; Reconvert
     (define-key map (kbd "C-c C-c")   'doc-view-mode)
     (define-key map (kbd "g")         'revert-buffer)
-    (define-key map (kbd "r")         'revert-buffer)
     ;; Region
     (define-key map [down-mouse-1] 'pdf-view-mouse-set-region)
     (define-key map [M-down-mouse-1] 'pdf-view-mouse-set-region-rectangle)
@@ -320,12 +319,7 @@ PNG images in Emacs buffers."
                    (not (and buffer-file-name
                              (file-readable-p buffer-file-name)))))
              (pdf-tools-pdf-buffer-p))
-    (let ((tempfile (pdf-util-make-temp-file
-                     (concat (if buffer-file-name
-                                 (file-name-nondirectory
-                                  buffer-file-name)
-                               (buffer-name))
-                             "-"))))
+    (let ((tempfile (pdf-util-make-temp-file)))
       (write-region nil nil tempfile nil 'no-message)
       (setq-local pdf-view--buffer-file-name tempfile)))
   ;; Decryption needs to be done before any other function calls into
@@ -407,16 +401,15 @@ PNG images in Emacs buffers."
 		  (current-buffer)))
 
 (unless (version< emacs-version "24.4")
+  (advice-add 'cua-copy-region
+	          :before-until
+	          #'cua-copy-region--pdf-view-advice)
   (defun cua-copy-region--pdf-view-advice (&rest _)
     "If the current buffer is in `pdf-view' mode, call
 `pdf-view-kill-ring-save'."
     (when (eq major-mode 'pdf-view-mode)
       (pdf-view-kill-ring-save)
-      t))
-
-  (advice-add 'cua-copy-region
-	      :before-until
-	      #'cua-copy-region--pdf-view-advice))
+      t)))
 
 (defun pdf-view-check-incompatible-modes (&optional buffer)
   "Check BUFFER for incompatible modes, maybe issue a warning."
@@ -586,6 +579,9 @@ For example, (pdf-view-shrink 1.25) decreases size by 20%."
 ;; * ================================================================== *
 ;; * Moving by pages and scrolling
 ;; * ================================================================== *
+
+(defvar pdf-view-inhibit-redisplay nil)
+(defvar pdf-view-inhibit-hotspots nil)
 
 (defun pdf-view-goto-page (page &optional window)
   "Go to PAGE in PDF.
@@ -790,9 +786,9 @@ displayed page number."
 ;; * ================================================================== *
 
 (defun pdf-view-set-slice (x y width height &optional window)
-  ;; TODO: add WINDOW to docstring.
-  "Set the slice of the pages that should be displayed.
+  "Set the slice of the pages that should be displayed in WINDOW.
 
+WINDOW defaults to `selected-window' if not provided.
 X, Y, WIDTH and HEIGHT should be relative coordinates, i.e. in
 \[0;1\].  To reset the slice use `pdf-view-reset-slice'."
   (unless (equal (pdf-view-current-slice window)
@@ -829,8 +825,9 @@ dragging it to its bottom-right corner.  See also
                   (/ 1.0 (float (cdr size))))))))
 
 (defun pdf-view-set-slice-from-bounding-box (&optional window)
-  ;; TODO: add WINDOW to docstring.
   "Set the slice from the page's bounding-box.
+
+WINDOW defaults to `selected-window' if not provided.
 
 The result is that the margins are almost completely cropped,
 much more accurate than could be done manually using
@@ -852,8 +849,9 @@ See also `pdf-view-bounding-box-margin'."
            (append slice (and window (list window))))))
 
 (defun pdf-view-reset-slice (&optional window)
-  ;; TODO: add WINDOW to doctring.
-  "Reset the current slice.
+  "Reset the current slice and redisplay WINDOW.
+
+WINDOW defaults to `selected-window' if not provided.
 
 After calling this function the whole page will be visible
 again."
@@ -877,16 +875,14 @@ See also `pdf-view-set-slice-from-bounding-box'."
     (add-hook 'pdf-view-change-page-hook
               'pdf-view-set-slice-from-bounding-box nil t))
    (t
-    (remove-hook 'pdf-view-change-page-hook
-                 'pdf-view-set-slice-from-bounding-box t))))
+    (progn (remove-hook 'pdf-view-change-page-hook
+                        'pdf-view-set-slice-from-bounding-box t)
+           (pdf-view-reset-slice)))))
 
 
 ;; * ================================================================== *
 ;; * Display
 ;; * ================================================================== *
-
-(defvar pdf-view-inhibit-redisplay nil)
-(defvar pdf-view-inhibit-hotspots nil)
 
 (defun pdf-view-image-type ()
   "Return the image type that should be used.

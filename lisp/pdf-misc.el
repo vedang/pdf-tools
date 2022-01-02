@@ -1,4 +1,4 @@
-;;; pdf-misc.el --- Miscellaneous commands for PDF buffer.
+;;; pdf-misc.el --- Miscellaneous commands for PDF buffer.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013, 2014  Andreas Politz
 
@@ -187,13 +187,15 @@
   :group 'pdf-misc
   (pdf-util-assert-pdf-buffer))
 
-(defun pdf-misc-popup-context-menu (event)
-  "Popup a context menu at position determined by EVENT."
+(defun pdf-misc-popup-context-menu ()
+  "Popup a context menu at position."
   (interactive "@e")
   (popup-menu
    (cons 'keymap
-         (cddr (lookup-key pdf-misc-menu-bar-minor-mode-map
-                           [menu-bar PDF\ Tools])))))
+         (cddr (or (lookup-key pdf-misc-menu-bar-minor-mode-map
+                               [menu-bar PDF\ Tools])
+                   (lookup-key pdf-misc-menu-bar-minor-mode-map
+                               [menu-bar pdf\ tools]))))))
 
 (defun pdf-misc-display-metadata ()
   "Display all available metadata in a separate buffer."
@@ -206,8 +208,7 @@
              (pad (apply' max (mapcar (lambda (d)
                                         (length (symbol-name (car d))))
                                       md)))
-             (fmt (format "%%%ds:%%s\n" pad))
-             window)
+             (fmt (format "%%%ds:%%s\n" pad)))
         (erase-buffer)
         (setq header-line-format (buffer-name buffer)
               buffer-read-only t)
@@ -278,7 +279,7 @@ use when printing the PDF. Optionally, save the choice"
 (defun pdf-misc-print-document (filename &optional interactive-p)
   (interactive
    (list (pdf-view-buffer-file-name) t))
-  (cl-check-type filename (and string file-readable))
+  (cl-check-type filename (and string (satisfies file-readable-p)))
   (let ((program (pdf-misc-print-program interactive-p))
         (args (append pdf-misc-print-program-args (list filename))))
     (unless program

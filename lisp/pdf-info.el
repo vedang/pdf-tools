@@ -61,6 +61,17 @@
   "Extract infos from pdf-files via a helper process."
   :group 'pdf-tools)
 
+(defcustom pdf-info-default-backend 'epdfinfo
+  "The default backend for pdf-tools.
+When this value is `epdfinfo' then use the original epdfinfo
+server which uses the poppler library rendering/editing the
+pdf's. When this value is `vimura' then use the newer, less
+tested, vimura server that uses the mupdf library for
+rendering/editing pdf's.
+
+The two servers provide different features, see the pdf-tools
+README for more information.")
+
 (defcustom pdf-tools-server 'epdfinfo
   "Backend for accessing pdf files.
 
@@ -101,6 +112,22 @@ provided by the ‘epdfinfo' server. "
           ;; Fall back to epdfinfo in the directory of this file.
           (expand-file-name executable))))
   "Filename of the epdfinfo executable."
+  :type 'file)
+
+(defcustom pdf-info-vimura-program
+  (let ((executable "vimura.py")
+        (default-directory
+          (or (and load-file-name
+                   (file-name-directory load-file-name))
+              default-directory)))
+    (cl-labels ((try-directory (directory)
+                               (and (file-directory-p directory)
+                                    (file-executable-p (expand-file-name executable directory))
+                                    (expand-file-name executable directory))))
+      (or (try-directory (expand-file-name "../vimura-server"))
+          ;; Fall back to epdfinfo in the directory of this file.
+          (expand-file-name executable))))
+  "Filename of the epdfinfo executable."
   :group 'pdf-info
   :type 'file)
 
@@ -134,7 +161,6 @@ provided by the ‘epdfinfo' server. "
   "Filename for error output of the epdfinfo executable.
 
 If nil, discard any error messages.  Useful for debugging."
-  :group 'pdf-info
   :type `(choice (const :tag "None" nil)
                  ,@(when (file-directory-p "/tmp/")
                      '((const "/tmp/epdfinfo.log")))
@@ -145,14 +171,12 @@ If nil, discard any error messages.  Useful for debugging."
 
 If this is non-nil, all communication with the epdfinfo program
 will be logged to the buffer \"*pdf-info-log*\"."
-  :group 'pdf-info
   :type 'boolean)
 
 (defcustom pdf-info-log-entry-max 512
   "Maximum number of characters in a single log entry.
 
 This variable has no effect if `pdf-info-log' is nil."
-  :group 'pdf-info
   :type 'integer)
 
 (defcustom pdf-info-restart-process-p 'ask
@@ -165,7 +189,6 @@ ask -- ask whether to restart or not.
 
 If it is `ask', the server quits and you answer no, this variable
 is set to nil."
-  :group 'pdf-info
   :type '(choice (const :tag "Do nothing" nil)
                  (const :tag "Restart silently" t)
                  (const :tag "Always ask" ask)))
@@ -175,7 +198,6 @@ is set to nil."
 
 The hook is run in the documents buffer, if it exists. Otherwise
 in a `with-temp-buffer' form."
-  :group 'pdf-info
   :type 'hook)
 
 
@@ -183,6 +205,8 @@ in a `with-temp-buffer' form."
 ;; * ================================================================== *
 ;; * Variables
 ;; * ================================================================== *
+
+(defvar pdf-info-current-backend pdf-info-default-backend)
 
 (defvar pdf-info-asynchronous nil
   "If non-nil process queries asynchronously.
@@ -236,7 +260,7 @@ This variable should only be let-bound.")
 (defvar pdf-info--queue t
   "Internally used transmission-queue for the server.
 
-This variable is initially `t', telling the code starting the
+This variable is initially t, telling the code starting the
 server, that it never ran.")
 
 
@@ -248,13 +272,11 @@ server, that it never ran.")
   (interactive)
   (when (and pdf-info--queue (listp pdf-info--queue))
     (tq-close pdf-info--queue))
-  (let ((new-value (if (eq pdf-tools-server 'epdfinfo)
-                       'vimura
-                     'epdfinfo)))
-    (setq pdf-info-epdfinfo-program (pcase new-value
-                                      ('vimura pdf-info-vimura-program)
-                                      ('epdfinfo "/home/dalanicolai/spacemacs/elpa/27.2/develop/pdf-tools-20211210.51/epdfinfo")))
-    (setq pdf-tools-server (print new-value))))
+  (setq pdf-info-current-backend (print (if (eq pdf-info-current-backend 'epdfinfo)
+                                            'vimura
+                                          'epdfinfo)))
+  (when (eq pdf-info-current-backend 'vimura)
+    (require 'pdf-script)))
 
 ;; * ================================================================== *
 ;; * Process handling
@@ -355,14 +377,22 @@ error."
       (when (eq pdf-info-restart-process-p 'ask)
         (setq pdf-info-restart-process-p nil))
       (error "The epdfinfo server quit"))
-    (pdf-info-check-epdfinfo)
+    ;; (pdf-info-check-epdfinfo)
+    (setenv "PYTHONSTARTUP" "/home/dalanicolai/test/python-tq-startup.el")
     (let* (
            ;; (process-connection-type)    ;Avoid 4096 Byte bug #12440.
            (default-directory "~")
+           (cmd-and-args (pcase pdf-info-current-backend
+                           ('epdfinfo (nconc (list pdf-info-epdfinfo-program)
+                                             (when pdf-info-epdfinfo-error-filename
+                                               (list pdf-info-epdfinfo-error-filename))))
+                           ('vimura '("python" "-q"))))
            (proc (apply #'start-process
-                        "epdfinfo" " *epdfinfo*" pdf-info-epdfinfo-program
-                        (when pdf-info-epdfinfo-error-filename
-                          (list pdf-info-epdfinfo-error-filename)))))
+                        "epdfinfo" " *epdfinfo*" cmd-and-args)))
+      (when (eq pdf-info-current-backend 'vimura)
+        (process-send-string proc (with-temp-buffer
+                                    (insert-file-contents-literally pdf-info-vimura-program)
+                                    (buffer-string))))
       (with-current-buffer " *epdfinfo*"
         (erase-buffer))
       (set-process-query-on-exit-flag proc nil)
@@ -416,8 +446,9 @@ error."
   (pdf-info-process-assert-running)
   (unless (symbolp cmd)
     (setq cmd (intern cmd)))
-  (let* ((query (concat (mapconcat 'pdf-info-query--escape
-                                   (cons cmd args) ":") "\n"))
+  (let* ((query (concat (mapconcat #'pdf-info-query--escape
+                                   (cons cmd args) ":")
+                        "\n"))
          (callback
           (lambda (closure response)
             (cl-destructuring-bind (status &rest result)
@@ -432,8 +463,11 @@ error."
                       (lambda (s r)
                         (setq status s response r done t)))))
     (pdf-info-query--log query t)
-    (tq-enqueue
-     pdf-info--queue query "^\\.\n" closure callback)
+    (tq-enqueue pdf-info--queue
+                (if (eq pdf-info-current-backend 'vimura)
+                    (concat "tq_query('" (substring query 0 -1) "')\n")
+                  query)
+                "^\\.\n" closure callback)
     (unless pdf-info-asynchronous
       (while (and (not done)
                   (eq (process-status (pdf-info-process))
@@ -443,7 +477,7 @@ error."
                  (not (eq (process-status (pdf-info-process))
                           'run))
                  (not (eq cmd 'quit)))
-        (error "The epdfinfo server quit unexpectedly."))
+        (error "The epdfinfo server quit unexpectedly"))
       (cond
        ((null status) response)
        ((eq status 'error)
@@ -451,7 +485,7 @@ error."
        ((eq status 'interrupted)
         (error "epdfinfo: Command was interrupted"))
        (t
-        (error "internal error: invalid response status"))))))
+        (error "Internal error: invalid response status"))))))
 
 (defun pdf-info-interrupt ()
   "FIXME: This command does currently nothing."
@@ -542,7 +576,7 @@ interrupted."
      (mapcar (lambda (elt)
                (cl-assert (= 1 (length (cadr elt))) t)
                `(,(aref (cadr elt) 0)
-                 ,(mapcar 'string-to-number
+                 ,(mapcar #'string-to-number
                           (split-string (car elt) " " t))))
              response))
     (regexp-flags
@@ -558,7 +592,7 @@ interrupted."
                      (pdf-util-highlight-regexp-in-string
                       (regexp-quote (nth 1 r)) (nth 2 r))))
           (edges . ,(mapcar (lambda (m)
-                              (mapcar 'string-to-number
+                              (mapcar #'string-to-number
                                       (split-string m " " t)))
                             (cddr (cdr r))))))
       response))
@@ -570,7 +604,7 @@ interrupted."
     (pagelinks
      (mapcar (lambda (r)
                `((edges .
-                        ,(mapcar 'string-to-number ;area
+                        ,(mapcar #'string-to-number ;area
                                  (split-string (pop r) " " t)))
                  ,@(pdf-info-query--transform-action r)))
              response))
@@ -593,10 +627,10 @@ interrupted."
      (or (caar response) ""))
     (getselection
      (mapcar (lambda (line)
-               (mapcar 'string-to-number
+               (mapcar #'string-to-number
                        (split-string (car line) " " t)))
              response))
-    (features (mapcar 'intern (car response)))
+    (features (mapcar #'intern (car response)))
     (pagesize
      (setq response (car response))
      (cons (round (string-to-number (car response)))
@@ -604,15 +638,15 @@ interrupted."
     ((getannot editannot addannot)
      (pdf-info-query--transform-annotation (car response)))
     (getannots
-     (mapcar 'pdf-info-query--transform-annotation response))
+     (mapcar #'pdf-info-query--transform-annotation response))
     (getattachments
-     (mapcar 'pdf-info-query--transform-attachment response))
+     (mapcar #'pdf-info-query--transform-attachment response))
     ((getattachment-from-annot)
      (pdf-info-query--transform-attachment (car response)))
     (boundingbox
-     (mapcar 'string-to-number (car response)))
+     (mapcar #'string-to-number (car response)))
     (synctex-forward-search
-     (let ((list (mapcar 'string-to-number (car response))))
+     (let ((list (mapcar #'string-to-number (car response))))
        `((page . ,(car list))
          (edges . ,(cdr list)))))
     (synctex-backward-search
@@ -634,7 +668,7 @@ interrupted."
            (push value options)
            (push key options)))
        options))
-    (pagelabels (mapcar 'car response))
+    (pagelabels (mapcar #'car response))
     (ping (caar response))
     (t response)))
 
@@ -663,7 +697,7 @@ interrupted."
       (cl-destructuring-bind (page edges type id flags color contents modified &rest rest)
           a
         (setq a1 `((page . ,(string-to-number page))
-                   (edges . ,(mapcar 'string-to-number
+                   (edges . ,(mapcar #'string-to-number
                                      (split-string edges " " t)))
                    (type . ,(intern type))
                    (id . ,(intern id))
@@ -682,7 +716,7 @@ interrupted."
                                   (and o (string-to-number o))))
                     (popup-edges . ,(let ((p (not-empty popup-edges)))
                                       (when p
-                                        (mapcar 'string-to-number
+                                        (mapcar #'string-to-number
                                                 (split-string p " " t)))))
                     (popup-is-open . ,(equal popup-is-open "1"))
                     (created . ,(pdf-info-parse-pdf-date (not-empty created)))))
@@ -698,7 +732,7 @@ interrupted."
                     '(squiggly highlight underline strike-out))
               (setq a3 `((markup-edges
                           . ,(mapcar (lambda (r)
-                                       (mapcar 'string-to-number
+                                       (mapcar #'string-to-number
                                                (split-string r " " t)))
                                      rest)))))))))
       (append a1 a2 a3))))
@@ -910,9 +944,8 @@ i.e. `pdf-info-asynchronous' is non-nil, transparently.
                ;; Let-bind responses corresponding to their variables,
                ;; i.e. keys in alist RESULTS.
                (let (,@(mapcar (lambda (var)
-                                 (list var (list 'cdr (list 'assq (list 'quote var)
-                                                            results))))
-                               (mapcar 'car let-forms)))
+                                 `(,var (cdr (assq ',var ,results))))
+                               (mapcar #'car let-forms)))
                  (setq ,status (not (not ,first-error))
                        ,response (or ,first-error
                                      (with-current-buffer ,buffer
@@ -947,7 +980,7 @@ i.e. `pdf-info-asynchronous' is non-nil, transparently.
          (when (and (not ,done)
                     (not (eq (process-status (pdf-info-process))
                              'run)))
-           (error "The epdfinfo server quit unexpectedly."))
+           (error "The epdfinfo server quit unexpectedly"))
          (when ,status
            (error "epdfinfo: %s" ,response))
          ,response))))
@@ -979,7 +1012,7 @@ restart it."
         (tq-close pdf-info--queue))
       (set (make-local-variable 'pdf-info--queue) nil)
       (pdf-info-process-assert-running t)
-      (add-hook 'kill-buffer-hook 'pdf-info-kill-local-server nil t)
+      (add-hook 'kill-buffer-hook #'pdf-info-kill-local-server nil t)
       pdf-info--queue)))
 
 (defun pdf-info-kill-local-server (&optional buffer)
@@ -1281,10 +1314,11 @@ URI.
 In the first two cases, PAGE may be 0 and TOP nil, which means
 these data is unspecified."
   (cl-check-type page natnum)
-  (pdf-info-query
-   'pagelinks
-   (pdf-info--normalize-file-or-buffer file-or-buffer)
-   page))
+  (when (string= (file-name-extension buffer-file-name) "pdf")
+    (pdf-info-query
+     'pagelinks
+     (pdf-info--normalize-file-or-buffer file-or-buffer)
+     page)))
 
 (defun pdf-info-number-of-pages (&optional file-or-buffer)
   "Return the number of pages in document FILE-OR-BUFFER."
@@ -1318,7 +1352,7 @@ Return the text contained in the selection."
    'gettext
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
-   (mapconcat 'number-to-string edges " ")
+   (mapconcat #'number-to-string edges " ")
    (cl-case selection-style
      (glyph 0)
      (word 1)
@@ -1337,7 +1371,7 @@ aforementioned function, when called with the same arguments."
    'getselection
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
-   (mapconcat 'number-to-string edges " ")
+   (mapconcat #'number-to-string edges " ")
    (cl-case selection-style
      (glyph 0)
      (word 1)
@@ -1373,7 +1407,7 @@ contains at most one element."
    'charlayout
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
-   (mapconcat 'number-to-string edges-or-pos " ")))
+   (mapconcat #'number-to-string edges-or-pos " ")))
 
 (defun pdf-info-pagesize (page &optional file-or-buffer)
   "Return the size of PAGE as a cons \(WIDTH . HEIGHT\)
@@ -1487,7 +1521,7 @@ returns."
     (push file-or-buffer markup-edges)
     (setq file-or-buffer nil))
   (apply
-   'pdf-info-query
+   #'pdf-info-query
    'addannot
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
@@ -1547,11 +1581,11 @@ The server must support modifying annotations for this to work."
               (t
                (list (car elt) (cdr elt)))))
           modifications)))
-    (apply 'pdf-info-query
+    (apply #'pdf-info-query
            'editannot
            (pdf-info--normalize-file-or-buffer file-or-buffer)
            id
-           (apply 'append edits))))
+           (apply #'append edits))))
 
 (defun pdf-info-save (&optional file-or-buffer)
   "Save FILE-OR-BUFFER.
@@ -1649,7 +1683,7 @@ Return the data of the corresponding PNG image."
   (when (keywordp file-or-buffer)
     (push file-or-buffer commands)
     (setq file-or-buffer nil))
-  (apply 'pdf-info-query
+  (apply #'pdf-info-query
     'renderpage
     (pdf-info--normalize-file-or-buffer file-or-buffer)
     page
@@ -1695,9 +1729,9 @@ Return the data of the corresponding PNG image."
     (push file-or-buffer regions)
     (setq file-or-buffer nil))
 
-  (apply 'pdf-info-renderpage
+  (apply #'pdf-info-renderpage
     page width file-or-buffer
-    (apply 'append
+    (apply #'append
       (mapcar (lambda (elt)
                 `(:foreground ,(pop elt)
                   :background ,(pop elt)
@@ -1727,6 +1761,36 @@ Return the data of the corresponding PNG image."
     (push file-or-buffer regions)
     (setq file-or-buffer nil))
 
+  (apply #'pdf-info-renderpage
+    page width file-or-buffer
+    (apply #'append
+      (mapcar (lambda (elt)
+                `(:background ,(pop elt)
+                  :foreground ,(pop elt)
+                  :alpha ,(pop elt)
+                  ,@(cl-mapcan (lambda (edges)
+                                 `(:highlight-region ,edges))
+                               elt)))
+              regions))))
+
+(defun pdf-info-renderpage-line (page width
+                                           &optional file-or-buffer
+                                           &rest regions)
+  "Highlight regions on PAGE with width WIDTH using REGIONS.
+
+REGIONS is a list determining the background color, a alpha value
+and the regions to render. So each element should look like \(FILL-COLOR
+STROKE-COLOR ALPHA \(LEFT TOP RIGHT BOT\) \(LEFT TOP RIGHT BOT\) ... \)
+.
+
+For the other args see `pdf-info-renderpage'.
+
+Return the data of the corresponding PNG image."
+
+  (when (consp file-or-buffer)
+    (push file-or-buffer regions)
+    (setq file-or-buffer nil))
+
   (apply 'pdf-info-renderpage
     page width file-or-buffer
     (apply 'append
@@ -1735,7 +1799,7 @@ Return the data of the corresponding PNG image."
                   :foreground ,(pop elt)
                   :alpha ,(pop elt)
                   ,@(cl-mapcan (lambda (edges)
-                                 `(:highlight-region ,edges))
+                                 `(:draw-line ,edges))
                                elt)))
               regions))))
 
@@ -1790,7 +1854,7 @@ Returns a list \(LEFT TOP RIGHT BOT\)."
     (setq file-or-buffer nil))
   (unless (= (% (length options) 2) 0)
     (error "Missing a option value"))
-  (apply 'pdf-info-query
+  (apply #'pdf-info-query
     'setoptions
     (pdf-info--normalize-file-or-buffer file-or-buffer)
     (let (soptions)

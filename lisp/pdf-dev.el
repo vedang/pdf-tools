@@ -31,7 +31,7 @@
     (file-name-directory load-file-name))))
 
 (defun pdf-dev-reload ()
-  "Reload lisp files from source."
+  "Reload Lisp files from source."
   (interactive)
   (let ((default-directory (expand-file-name
                             "lisp"
@@ -53,7 +53,7 @@ Quits the server and sets `pdf-info-epdfinfo-program' to
 Installs a `compilation-finish-functions' which will restart
 epdfinfo after a successful recompilation.
 
-Sets up `load-path' and reloads all PDF Tools lisp files."
+Sets up `load-path' and reloads all PDF Tools Lisp files."
   :group 'pdf-dev
   (let ((lisp-dir (expand-file-name "lisp" pdf-dev-root-directory)))
     (setq load-path (remove lisp-dir load-path))
@@ -71,6 +71,10 @@ Sets up `load-path' and reloads all PDF Tools lisp files."
       (remove-hook 'compilation-finish-functions 'pdf-dev-compilation-finished)))))
 
 (defun pdf-dev-compilation-finished (buffer status)
+  "Restart the epdfinfo server.
+
+BUFFER is the PDF buffer and STATUS is the compilation status of
+building epdfinfo."
   (with-current-buffer buffer
     (when (and (equal status "finished\n")
                (file-equal-p

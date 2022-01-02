@@ -128,7 +128,7 @@ keymap is `isearch-mode-map'.")
 (put 'image-scroll-down 'isearch-scroll t)
 
 (define-minor-mode pdf-isearch-active-mode
-  ""
+  "This mode is enabled when isearch is active in a PDF file."
   :group 'pdf-isearch
   (cond
    (pdf-isearch-active-mode
