@@ -25,7 +25,7 @@
   (interactive (list (region-beginning) (region-end)))
   (print (tq-enqueue pdf-info--queue
                      (concat "try: "
-                             (buffer-substring start end)
+                             (buffer-substring-no-properties start end)
                              ";print('.')\nexcept: print(traceback.format_exc());print('.')\n\n")
                      "^\\.\n"
                      nil
