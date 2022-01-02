@@ -86,6 +86,8 @@
     The PyMuPDF backend currently only selects/activates per word (instead of
     per character, e.g. for highlighting). Selection per character would be
     perfectly possible but requires a little extra python code to be written.
+    Also in some documents selection does not work totally as expected, this
+    might be fixable (a possible fix has been suggested [[https://github.com/pymupdf/PyMuPDF/discussions/1451#discussioncomment-1814271][here]]).
    
 ** About this package
    PDF Tools is, among other things, a replacement of DocView for PDF
