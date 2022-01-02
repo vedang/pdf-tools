@@ -392,6 +392,26 @@ def regexp_flags(*args):
     # print("match-newline-any:4194304")
     print(".")
 
+
+def search_string(*args):
+    start_page = int(args[1]) - 1
+    end_page = int(args[2])
+    for p in range(start_page, end_page):
+        page = doc[p]
+        page_width = page.mediabox_size[0]
+        rects = page.search_for(args[3])
+        print("OK")
+        for r in rects:
+            # word = p.get_text("text", clip=r)
+            line_r = [0, r[1], page_width, r[3]]
+            sentence = page.get_text("text", clip=line_r)
+            print("{}:{}:{}:{}".format(p + 1,
+                                       args[3],
+                                       sentence.rstrip("\n"),
+                                       normalize_edges(page, r)))
+    print(".")
+
+
 def get_text_line(text, word):
     line_text = ""
     i = 0

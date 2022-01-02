@@ -21,7 +21,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from vimura import *
 
 doc
-script_p = doc[4]
+my_p = doc[6]
+my_width = my_p.mediabox_size[0]
+rects = my_p.search_for("thank")
+rects[0]
+line_r = [0, rects[1][1], my_width, rects[1][3]]
+line_r
+my_p.get_text("text", clip=line_r)
+[my_p.get_text("text", clip=r) for r in rects]
+    print(my_p.get_text("text", clip=r))
 a = script_p.add_line_annot((0,0), (100, 100))
 print(list(script_p.annots()))
 print(x)
