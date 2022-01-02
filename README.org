@@ -11,11 +11,11 @@
 
 ** About this pymupdf-tq branch
    In this branch an alternative pdf-tools server, which is [[https://pymupdf.readthedocs.io/en/latest/][PyMuPDF]] based and
-   accordingly written in python, is being developed. The goal for of this
-   branch is to 'lower the bar' for maintaining and extending pdf-tools. Now the
-   rather 'demanding' requirement of having a very good knowledge of the C
-   programming language for extending the pdf-tools server, now gets 'lowered'
-   to a requirement of merely having a very limited knowledge of the python
+   accordingly written in python, is being developed. The goal of this branch is
+   to 'lower the bar' for maintaining and extending pdf-tools. The rather
+   'demanding' requirement of having a very good knowledge of the C programming
+   language for extending the pdf-tools server, now gets 'lowered' to a
+   requirement of merely having a very limited knowledge of the python
    programming language. In combination with some moderate knowledge of Emacs
    lisp for extending the client, this opens the possibility to quite
    straightforwardly implement line and arrow annotation features. Additionally,
@@ -25,13 +25,13 @@
    cursor).
 
    With the help of the more then excellent [[https://pymupdf.readthedocs.io/en/latest/][PyMuPDF documentation]], writing the
-   python code for these features should be quite straightforward. However
-   writing the elisp/client code could be tricky. But enthusiastic hackers can
-   always count on help from the community. A least the author of the initial
-   code for this backend (and the [[https://elpa.gnu.org/devel/sketch-mode.html][sketch-mode]] package and several other Emacs
-   packages), generously offers his full assistance.
+   python code for these features should be quite straightforward. Writing the
+   elisp/client code could be tricky, but enthusiastic hackers can always count
+   on help from the community. At least the author of the initial code for this
+   backend (and the [[https://elpa.gnu.org/devel/sketch-mode.html][sketch-mode]] package and several other Emacs packages),
+   generously offers his full assistance.
 
-   If you would like to hack on pdf-tools/this backend, then a kinds of
+   If you would like to hack on pdf-tools/this backend, then a kind of
    development tips and comments can be found in [[../../wiki/PyMuPDF-backend][the wiki section]].
 
 *** Acknowledgements
@@ -59,10 +59,10 @@
       (pdf-tools :location (recipe
                             :fetcher github
                             :repo "dalanicolai/pdf-tools"
-                            :branch "pymupdf-tq"
+                            :branch "tq-interpreter"
                             :files ("lisp/*.el"
                                     "README"
-                                    "pymupdf-tq-server/*.py"
+                                    "vimura-server/*.py"
                                     ("build" "Makefile")
                                     ("build" "server")
                                     (:exclude "lisp/tablist.el" "lisp/tablist-filter.el"))))

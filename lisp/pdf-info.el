@@ -61,6 +61,17 @@
   "Extract infos from pdf-files via a helper process."
   :group 'pdf-tools)
 
+(defcustom pdf-info-default-backend 'epdfinfo
+  "The default backend for pdf-tools.
+When this value is `epdfinfo' then use the original epdfinfo
+server which uses the poppler library rendering/editing the
+pdf's. When this value is `vimura' then use the newer, less
+tested, vimura server that uses the mupdf library for
+rendering/editing pdf's.
+
+The two servers provide different features, see the pdf-tools
+README for more information.")
+
 (defcustom pdf-tools-server 'epdfinfo
   "Backend for accessing pdf files.
 
@@ -110,19 +121,10 @@ provided by the ‘epdfinfo' server. "
                    (file-name-directory load-file-name))
               default-directory)))
     (cl-labels ((try-directory (directory)
-                  (and (file-directory-p directory)
-                       (file-executable-p (expand-file-name executable directory))
-                       (expand-file-name executable directory))))
-      (or (executable-find executable)
-          ;; This works if epdfinfo is in the same place as emacs and
-          ;; the editor was started with an absolute path, i.e. it is
-          ;; meant for Windows/Msys2.
-          (and (stringp (car-safe command-line-args))
-               (file-name-directory (car command-line-args))
-               (try-directory
-                (file-name-directory (car command-line-args))))
-          ;; If we are running directly from the git repo.
-          (try-directory (expand-file-name "../pymupdf/tq/server"))
+                               (and (file-directory-p directory)
+                                    (file-executable-p (expand-file-name executable directory))
+                                    (expand-file-name executable directory))))
+      (or (try-directory (expand-file-name "../vimura-server"))
           ;; Fall back to epdfinfo in the directory of this file.
           (expand-file-name executable))))
   "Filename of the epdfinfo executable."
@@ -177,6 +179,8 @@ in a `with-temp-buffer' form."
 ;; * ================================================================== *
 ;; * Variables
 ;; * ================================================================== *
+
+(defvar pdf-info-current-backend pdf-info-default-backend)
 
 (defvar pdf-info-asynchronous nil
   "If non-nil process queries asynchronously.
@@ -242,13 +246,11 @@ server, that it never ran.")
   (interactive)
   (when (and pdf-info--queue (listp pdf-info--queue))
     (tq-close pdf-info--queue))
-  (let ((new-value (if (eq pdf-tools-server 'epdfinfo)
-                       'vimura
-                     'epdfinfo)))
-    (setq pdf-info-epdfinfo-program (pcase new-value
-                                      ('vimura pdf-info-vimura-program)
-                                      ('epdfinfo "/home/dalanicolai/spacemacs/elpa/27.2/develop/pdf-tools-20211210.51/epdfinfo")))
-    (setq pdf-tools-server (print new-value))))
+  (setq pdf-info-current-backend (print (if (eq pdf-info-current-backend 'epdfinfo)
+                                            'vimura
+                                          'epdfinfo)))
+  (when (eq pdf-info-current-backend 'vimura)
+    (require 'pdf-script)))
 
 ;; * ================================================================== *
 ;; * Process handling
@@ -354,17 +356,17 @@ error."
     (let* (
            ;; (process-connection-type)    ;Avoid 4096 Byte bug #12440.
            (default-directory "~")
+           (cmd-and-args (pcase pdf-info-current-backend
+                           ('epdfinfo (nconc (list pdf-info-epdfinfo-program)
+                                             (when pdf-info-epdfinfo-error-filename
+                                               (list pdf-info-epdfinfo-error-filename))))
+                           ('vimura '("python" "-q"))))
            (proc (apply #'start-process
-                        "epdfinfo" " *epdfinfo*" pdf-info-epdfinfo-program
-                        "-q"
-                        (when pdf-info-epdfinfo-error-filename
-                          (list pdf-info-epdfinfo-error-filename)))))
-      (process-send-string proc (with-temp-buffer
-                                  ;; (insert-file-contents-literally "~/git/pdf-tools/pymupdf-tq-server/vimura.py")
-                                  (insert-file-contents-literally "/home/dalanicolai/git/private/pdf-tools/pymupdf-tq-server/vimura.py")
-                                  (buffer-string)))
-      (set-process-filter proc
-			                    (lambda (_process string) string))
+                        "epdfinfo" " *epdfinfo*" cmd-and-args)))
+      (when (eq pdf-info-current-backend 'vimura)
+        (process-send-string proc (with-temp-buffer
+                                    (insert-file-contents-literally pdf-info-vimura-program)
+                                    (buffer-string))))
       (with-current-buffer " *epdfinfo*"
         (erase-buffer))
       (set-process-query-on-exit-flag proc nil)
@@ -435,8 +437,11 @@ error."
                       (lambda (s r)
                         (setq status s response r done t)))))
     (pdf-info-query--log query t)
-    (tq-enqueue
-     pdf-info--queue (concat "tq_query('" (substring query 0 -1) "')\n") "^\\.\n" closure callback)
+    (tq-enqueue pdf-info--queue
+                (if (eq pdf-info-current-backend 'vimura)
+                    (concat "tq_query('" (substring query 0 -1) "')\n")
+                  query)
+                "^\\.\n" closure callback)
     (unless pdf-info-asynchronous
       (while (and (not done)
                   (eq (process-status (pdf-info-process))
