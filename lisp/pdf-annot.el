@@ -1367,6 +1367,13 @@ by a header."
                                 "pdf-annot-print-annotation-latex%s%s%s"
                                 page header contents)))
                  (data (pdf-cache-lookup-image page 0 nil hash))
+                 ;; pdf-tools can only work with png files, so this
+                 ;; binding ensures that pdf-tools can print the
+                 ;; latex-preview regardless of the user
+                 ;; configuration.
+                 (org-preview-latex-default-process 'dvipng)
+                 ;; For backward compatibility with emacs-version < 26.1
+                 (org-latex-create-formula-image-program 'dvipng)
                  (org-format-latex-header
                   pdf-annot-latex-header)
                  (temporary-file-directory
