@@ -417,6 +417,13 @@ Once you have read through the features provided by ~pdf-tools~, you probably wa
 :END:
 ~pdf-tools~ does not work well together with ~linum-mode~ and activating it in a ~pdf-view-mode~, e.g. via ~global-linum-mode~, might make Emacs choke.
 
+** display-line-numbers-mode
+:PROPERTIES:
+:CREATED:  [2022-01-03 Mon 08:31]
+:ID:       f178ba41-0f5a-4d22-b4a8-889af1af566e
+:END:
+This mode is an alternative to ~linum-mode~ and is available since Emacs 26. ~pdf-tools~ does not work well with it. For example, it makes horizontal navigation (such as ~C-f~, ~C-b~, ~C-x <~ or ~C-x >~ ) in a document impossible.
+
 ** auto-revert
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
