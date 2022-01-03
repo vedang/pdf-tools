@@ -64,7 +64,7 @@ Added the ability to search multiple documents in one occur buffer.
 ~M-s w~ now does a word search, which will also find hyphenated words (as determined by ~pdf-isearch-hyphenation-character~), though not at page boundaries.
 ** View
 *** Navigate by pagelabels
-~M-g l~ may be used to jump to a page by label, i.e. it's displayed number.
+~M-g l~ may be used to jump to a page by label, i.e. its displayed number.
 *** Rendering
 Added the ability to display the page as it would be printed (e.g. w/o annotations) via ~pdf-view-printer-minor-mode~ and to apply a color filter via ~pdf-view-midnight-minor-mode~.
 ** Outline
@@ -85,7 +85,7 @@ PDF Tools should now compile on OSX, though it is unsupported.
 ** MELPA
 Try to handle an update via MELPA by ~package.el~ by shutting down the server, recompiling and restarting it. This may be deactivated by setting ~pdf-tools-handle-upgrades~ to nil.
 ** Auto slicing
-A new minor mode which will automatically slice the page according to it's bounding box.
+A new minor mode which will automatically slice the page according to its bounding box.
 * Version 0.40
 I basically reimplemented the whole thing. (Not really, but a lot has changed.)
 ** Displaying PDF Files.
