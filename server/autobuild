@@ -318,15 +318,21 @@ os_msys2() {
     case $MSYSTEM in
         MINGW64)
             PACKAGES="base-devel
+                      autoconf
                       mingw-w64-x86_64-libpng
                       mingw-w64-x86_64-poppler
+                      mingw-w64-x86_64-imagemagick
                       mingw-w64-x86_64-toolchain
+                      mingw-w64-x86_64-openssl
                       mingw-w64-x86_64-zlib" ;;
         MINGW32)
             PACKAGES="base-devel
+                      autoconf
                       mingw-w64-i686-libpng
                       mingw-w64-i686-poppler
+                      mingw-w64-i686-imagemagick
                       mingw-w64-i686-toolchain
+                      mingw-w64-i686-openssl
                       mingw-w64-i686-zlib" ;;
         MSYS)
             case $(uname -m) in

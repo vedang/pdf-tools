@@ -14,7 +14,7 @@ IF %COMPILER%==msys2 (
   SET "PATH=C:\%MSYS2_DIR%\%MSYSTEM%\bin;C:\%MSYS2_DIR%\usr\bin;C:\%MSYS2_DIR%\home\appveyor\.cask\bin;%PATH%"
 
   REM dependencies
-  bash -lc "pacman -S --needed --noconfirm git mingw-w64-x86_64-zlib mingw-w64-x86_64-libpng mingw-w64-x86_64-poppler mingw-w64-x86_64-imagemagick openssl mingw-w64-x86_64-openssl mingw-w64-x86_64-python2 mingw-w64-x86_64-emacs"
+  bash -lc "pacman -S --needed --noconfirm git base-devel autoconf mingw-w64-x86_64-zlib mingw-w64-x86_64-libpng mingw-w64-x86_64-poppler mingw-w64-x86_64-imagemagick openssl mingw-w64-x86_64-openssl mingw-w64-x86_64-python2 mingw-w64-x86_64-emacs"
 
   REM Set up Cask
   bash -lc "git clone https://github.com/cask/cask ~/.cask"
