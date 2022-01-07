@@ -28,6 +28,8 @@
 
 
 
+;;; Code:
+
 (defvar pdf-misc-minor-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "I") 'pdf-misc-display-metadata)
@@ -277,6 +279,10 @@ use when printing the PDF. Optionally, save the choice"
             (setq pdf-misc-print-program-executable program))))))
 
 (defun pdf-misc-print-document (filename &optional interactive-p)
+  "Print the PDF doc FILENAME.
+
+`pdf-misc-print-program' handles the print program, which see for
+definition of INTERACTIVE-P."
   (interactive
    (list (pdf-view-buffer-file-name) t))
   (cl-check-type filename (and string (satisfies file-readable-p)))
