@@ -187,7 +187,7 @@
   :group 'pdf-misc
   (pdf-util-assert-pdf-buffer))
 
-(defun pdf-misc-popup-context-menu ()
+(defun pdf-misc-popup-context-menu (_event)
   "Popup a context menu at position."
   (interactive "@e")
   (popup-menu
