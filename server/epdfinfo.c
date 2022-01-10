@@ -370,16 +370,117 @@ mktempfile()
   return filename;
 }
 
+/* Holds RGB, HSL, HSV, Lab, or Lch... but note that the order in memory for HSL
+ * and HSV are actually VSH and LSH. */
+struct color
+{
+  union
+  {
+    double r, v, l;
+  };
+  union
+  {
+    double g, s, a;
+  };
+  union
+  {
+    double b, h;
+  };
+};
+
+#define struct_color(x) (*((struct color *) x))
+#define vec_color(x) ((double *) &x)
+
+// Using values reported at https://bottosson.github.io/posts/oklab/#converting-from-linear-srgb-to-oklab
+// instead of going through xyz. This ensures any whitepoint is ignored
+static struct color
+rgb2oklab(struct color rgb)
+{
+  struct color srgb;
+
+  for (int i = 0; i < 3; i++)
+    {
+      double val = vec_color(rgb)[i];
+      vec_color(srgb)[i] = ((val > 0.04045)
+                            ? pow((val + 0.055) / 1.055, 2.4)
+                            : (val / 12.92));
+    }
+
+  double l = 0.4121656120 * srgb.r + 0.5362752080 * srgb.g + 0.0514575653 * srgb.b;
+  double m = 0.2118591070 * srgb.r + 0.6807189584 * srgb.g + 0.1074065790 * srgb.b;
+  double s = 0.0883097947 * srgb.r + 0.2818474174 * srgb.g + 0.6302613616 * srgb.b;
+
+  l = cbrt(l);
+  m = cbrt(m);
+  s = cbrt(s);
+
+  return (struct color) {
+    .l = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+    .a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+    .b = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+  };
+}
+
+static double clamp(double x, double low, double high)
+{
+  return ((x < low)
+          ? low
+          : ((x > high) ? high : x));
+}
+
+static struct color
+oklab2rgb(struct color lab)
+{
+  double l = lab.l + 0.3963377774 * lab.a + 0.2158037573 * lab.b;
+  double m = lab.l - 0.1055613458 * lab.a - 0.0638541728 * lab.b;
+  double s = lab.l - 0.0894841775 * lab.a - 1.2914855480 * lab.b;
+
+  l = l * l * l;
+  m = m * m * m;
+  s = s * s * s;
+
+  struct color srgb = {
+    .r =  4.0767245293 * l - 3.3072168827 * m + 0.2307590544 * s,
+    .g = -1.2681437731 * l + 2.6093323231 * m - 0.3411344290 * s,
+    .b = -0.0041119885 * l - 0.7034763098 * m + 1.7068625689 * s
+  };
+
+  struct color rgb;
+  for (int i = 0; i < 3; i++)
+    {
+      double val = vec_color(srgb)[i];
+      val = ((val > 0.0031308)
+             ? (1.055 * pow(val, 1 / 2.4) - 0.055)
+             : (12.92 * val));
+
+      vec_color(rgb)[i] = clamp(val, 0.0, 1.0);
+    }
+
+  return rgb;
+}
+
+#undef struct_color
+#undef vec_color
+
+static inline gboolean color_equal(struct color a, struct color b)
+{
+  return (a.r == b.r && a.g == b.g && a.b == b.b);
+}
+
 static void
 image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
-	       const PopplerColor * bg)
+               const PopplerColor * bg, int usecolors)
 {
-  /* uses a representation of a rgb color as follows:
-     - a lightness scalar (between 0,1), which is a weighted average of r, g, b,
-     - a hue vector, which indicates a radian direction from the grey axis,
-     inside the equal lightness plane.
-     - a saturation scalar between 0,1. It is 0 when grey, 1 when the color is
-     in the boundary of the rgb cube.
+  /* Performs one of two kinds of image recoloring depending on the value of usecolors:
+
+     1 -> uses a representation of a rgb color as follows:
+          - a lightness scalar (between 0,1), which is a weighted average of r, g, b,
+          - a hue vector, which indicates a radian direction from the grey axis,
+            inside the equal lightness plane.
+          - a saturation scalar between 0,1. It is 0 when grey, 1 when the color is
+            in the boundary of the rgb cube.
+
+     2 -> Invert the perceived lightness in the image while maintaining hue.
    */
 
   const unsigned int page_width = cairo_image_surface_get_width (surface);
@@ -391,18 +492,29 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
   static const double a[] = { 0.30, 0.59, 0.11 };
 
   const double f = 65535.;
-  const double rgb_fg[] = {
-    fg->red / f, fg->green / f, fg->blue / f
+  const struct color rgb_fg = {
+    .r = fg->red / f,
+    .g = fg->green / f,
+    .b = fg->blue / f
   };
-  const double rgb_bg[] = {
-    bg->red / f, bg->green / f, bg->blue / f
+  const struct color rgb_bg = {
+    .r = bg->red / f,
+    .g = bg->green / f,
+    .b = bg->blue / f
   };
 
-  const double rgb_diff[] = {
-    rgb_bg[0] - rgb_fg[0],
-    rgb_bg[1] - rgb_fg[1],
-    rgb_bg[2] - rgb_fg[2]
+  const struct color rgb_diff = {
+    .r = rgb_bg.r - rgb_fg.r,
+    .g = rgb_bg.g - rgb_fg.g,
+    .b = rgb_bg.b - rgb_fg.b
   };
+
+  /* The Oklab transform is expensive, precompute white->black and have a single
+     entry cache to speed up computation */
+  struct color white = {.r = 1.0, .g = 1.0, .b = 1.0};
+  struct color black = {.r = 0.0, .g = 0.0, .b = 0.0};
+  struct color precomputed_rgb = white;
+  struct color precomputed_inv_rgb = black;
 
   unsigned int y;
   for (y = 0; y < page_height * rowstride; y += rowstride)
@@ -411,26 +523,76 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
 
       unsigned int x;
       for (x = 0; x < page_width; x++, data += 4)
-	{
-	  /* Careful. data color components blue, green, red. */
-	  const double rgb[3] = {
-	    (double) data[2] / 256.,
-	    (double) data[1] / 256.,
-	    (double) data[0] / 256.
-	  };
+        {
+          /* Careful. data color components blue, green, red. */
+          struct color rgb = {
+            .r = (double) data[2] / 256.,
+            .g = (double) data[1] / 256.,
+            .b = (double) data[0] / 256.
+          };
 
-	  /* compute h, s, l data   */
-	  double l = a[0] * rgb[0] + a[1] * rgb[1] + a[2] * rgb[2];
+          switch (usecolors)
+            {
+            case 0:
+              /* No image recoloring requested.  Do nothing in this case.
+                 Should never be called as we should never call with unless
+                 usecolors != 0. */
+              break;
+            case 1:
+              {
+                /* Linear interpolation between bg and fg based on the
+                   perceptual lightness measure l */
+                /* compute h, s, l data   */
+                double l = a[0] * rgb.r + a[1] * rgb.g + a[2] * rgb.b;
 
-	  /* linear interpolation between dark and light with color ligtness as
-	   * a parameter */
-	  data[2] =
-	    (unsigned char) round (255. * (l * rgb_diff[0] + rgb_fg[0]));
-	  data[1] =
-	    (unsigned char) round (255. * (l * rgb_diff[1] + rgb_fg[1]));
-	  data[0] =
-	    (unsigned char) round (255. * (l * rgb_diff[2] + rgb_fg[2]));
-	}
+                /* linear interpolation between dark and light with color
+                   lightness as a parameter */
+                data[2] =
+                  (unsigned char) round (255. * (l * rgb_diff.r + rgb_fg.r));
+                data[1] =
+                  (unsigned char) round (255. * (l * rgb_diff.g + rgb_fg.g));
+                data[0] =
+                  (unsigned char) round (255. * (l * rgb_diff.b + rgb_fg.b));
+              }
+              break;
+            case 2:
+              {
+                /* Convert to Oklab coordinates, invert perceived lightness,
+                   convert back to RGB. */
+                if (color_equal(white, rgb))
+                  {
+                    rgb = black;
+                  }
+                else if (color_equal(precomputed_rgb, rgb))
+                  {
+                    rgb = precomputed_inv_rgb;
+                  }
+                else
+                  {
+                    struct color oklab = rgb2oklab(rgb);
+                    precomputed_rgb = rgb;
+
+                    /* Gamma correction.  Shouldn't be necessary, but colors
+                     * 'feel' too dark and fonts too thin otherwise. */
+                    oklab.l = pow(oklab.l, 1.8);
+
+                    /* Invert the perceived lightness */
+                    oklab.l = 1.0 - oklab.l;
+
+                    rgb = oklab2rgb(oklab);
+
+                    precomputed_inv_rgb = rgb;
+                  }
+
+                data[2] = (unsigned char) round(255. * rgb.r);
+                data[1] = (unsigned char) round(255. * rgb.g);
+                data[0] = (unsigned char) round(255. * rgb.b);
+              }
+              break;
+            default:
+              internal_error ("image_recolor switch fell through");
+            }
+        }
     }
 }
 
@@ -501,8 +663,8 @@ image_render_page(PopplerDocument *pdf, PopplerPage *page,
 
   cairo_paint (cr);
 
-  if (options && options->usecolors)
-    image_recolor (surface, &options->fg, &options->bg);
+  if (options && (options->usecolors))
+    image_recolor (surface, &options->fg, &options->bg, options->usecolors);
 
   cairo_destroy (cr);
 
@@ -3444,7 +3606,7 @@ cmd_charlayout(const epdfinfo_t *ctx, const command_arg_t *args)
 
 const document_option_t document_options [] =
   {
-    DEC_DOPT (":render/usecolors", ARG_BOOL, render.usecolors),
+    DEC_DOPT (":render/usecolors", ARG_NATNUM, render.usecolors),
     DEC_DOPT (":render/printed", ARG_BOOL, render.printed),
     DEC_DOPT (":render/foreground", ARG_COLOR, render.fg),
     DEC_DOPT (":render/background", ARG_COLOR, render.bg),

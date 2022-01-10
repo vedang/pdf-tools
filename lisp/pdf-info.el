@@ -570,8 +570,14 @@ interrupted."
          (let ((key (intern (car key-value)))
                (value (cadr key-value)))
            (cl-case key
-             ((:render/printed :render/usecolors)
-              (setq value (equal value "1"))))
+             ((:render/printed)
+              (setq value (equal value "1")))
+             ((:render/usecolors)
+              (setq value (ignore-errors
+                            (let ((int-val (cl-parse-integer value)))
+                              (if (> int-val 0)
+                                  int-val
+                                nil))))))
            (push value options)
            (push key options)))
        options))
@@ -1726,8 +1732,19 @@ Returns a list \(LEFT TOP RIGHT BOT\)."
             ((:render/foreground :render/background)
              (push (pdf-util-hexcolor value)
                    soptions))
-            ((:render/usecolors :render/printed)
+            ((:render/printed)
              (push (if value 1 0) soptions))
+            ((:render/usecolors)
+             ;; 0 -> original color
+             ;; 1 -> recolor document to grayscale mapping black to
+             ;;      :render/foreground and white to :render/background
+             ;; 2 -> recolor document by inverting the perceived lightness
+             ;;      preserving hue
+             (push (cond ((integerp value) value)
+                         ;; Map nil -> 0 and t -> 1
+                         (value 1)
+                         (t 0))
+                   soptions))
             (t (push value soptions)))
           (push key soptions)))
       soptions)))
