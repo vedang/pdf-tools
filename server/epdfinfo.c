@@ -760,6 +760,26 @@ xpoppler_annot_text_state_string (PopplerAnnotTextState state)
     }
 };
 
+/**
+ * Validate a PopplerSelectionStyle by replacing invalid styles
+ * with a default of POPPLER_SELECTION_GLYPH.
+ *
+ * @param selection_style The selection style.
+ *
+ * @return selection_style for valid styles, otherwise POPPLER_SELECTION_GLYPH.
+ */
+static PopplerSelectionStyle
+xpoppler_validate_selection_style (int selection_style)
+{
+  switch (selection_style) {
+    case POPPLER_SELECTION_GLYPH:
+    case POPPLER_SELECTION_WORD:
+    case POPPLER_SELECTION_LINE:
+      return selection_style;
+  }
+  return POPPLER_SELECTION_GLYPH;
+}
+
 static document_t*
 document_open (const epdfinfo_t *ctx, const char *filename,
                const char *passwd, GError **gerror)
@@ -2337,14 +2357,7 @@ cmd_gettext(const epdfinfo_t *ctx, const command_arg_t *args)
   double width, height;
   gchar *text = NULL;
 
-  switch (selection_style)
-    {
-    case POPPLER_SELECTION_GLYPH: break;
-    case POPPLER_SELECTION_LINE: break;
-    case POPPLER_SELECTION_WORD: break;
-    default: selection_style = POPPLER_SELECTION_GLYPH;
-    }
-
+  selection_style = xpoppler_validate_selection_style(selection_style);
   page = poppler_document_get_page (doc, pn - 1);
   perror_if_not (page, "No such page %d", pn);
   poppler_page_get_size (page, &width, &height);
@@ -2402,14 +2415,7 @@ cmd_getselection (const epdfinfo_t *ctx, const command_arg_t *args)
   PopplerPage *page = NULL;
   int i;
 
-  switch (selection_style)
-    {
-    case POPPLER_SELECTION_GLYPH: break;
-    case POPPLER_SELECTION_LINE: break;
-    case POPPLER_SELECTION_WORD: break;
-    default: selection_style = POPPLER_SELECTION_GLYPH;
-    }
-
+  selection_style = xpoppler_validate_selection_style(selection_style);
   page = poppler_document_get_page (doc, pn - 1);
   perror_if_not (page, "No such page %d", pn);
   poppler_page_get_size (page, &width, &height);
