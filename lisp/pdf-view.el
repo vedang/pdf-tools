@@ -188,6 +188,15 @@ Issue a warning, if one of them is active in a PDF buffer."
   :group 'pdf-view
   :type '(repeat symbol))
 
+(defcustom pdf-view-selection-style 'glyph
+  "The current default selection style.
+
+Must be one of `glyph', `word', or `line'."
+  :group 'pdf-view
+  :type '(choice (const glyph)
+                 (const word)
+                 (const line)))
+
 
 ;; * ================================================================== *
 ;; * Internal variables and macros
@@ -1305,12 +1314,15 @@ Deactivate the region if DEACTIVATE-P is non-nil."
     (pdf-view-redisplay t)))
 
 (defun pdf-view-mouse-set-region (event &optional allow-extend-p
-                                        rectangle-p)
+                                        rectangle-p selection-style)
   "Select a region of text using the mouse with mouse event EVENT.
 
 Allow for stacking of regions, if ALLOW-EXTEND-P is non-nil.
 
 Create a rectangular region, if RECTANGLE-P is non-nil.
+
+Overwrite `pdf-view-selection-style' with SELECTION-STYLE,
+which is one of `glyph', `word', or `line'.
 
 Stores the region in `pdf-view-active-region'."
   (interactive "@e")
@@ -1333,6 +1345,7 @@ Stores the region in `pdf-view-active-region'."
                   (setq begin-inside-image-p nil)
                   (posn-x-y pos)))
          (abs-begin (posn-x-y pos))
+         (selection-style (or selection-style pdf-view-selection-style))
          pdf-view-continuous
          region)
     (when (pdf-util-track-mouse-dragging (event 0.05)
@@ -1385,7 +1398,8 @@ Stores the region in `pdf-view-active-region'."
                         (pdf-util-scale-pixel-to-relative iregion))
                   (pdf-view-display-region
                    (cons region pdf-view-active-region)
-                   rectangle-p)
+                   rectangle-p
+                   selection-style)
                   (pdf-util-scroll-to-edges iregion)))))
       (setq pdf-view-active-region
             (append pdf-view-active-region
@@ -1408,7 +1422,7 @@ This is more useful for commands like
   (interactive "@e")
   (pdf-view-mouse-set-region event nil t))
 
-(defun pdf-view-display-region (&optional region rectangle-p)
+(defun pdf-view-display-region (&optional region rectangle-p selection-style)
   ;; TODO: write documentation!
   (unless region
     (pdf-view-assert-active-region)
@@ -1425,7 +1439,7 @@ This is more useful for commands like
               page width nil
               `(,(car colors) ,(cdr colors) 0.35 ,@region))
            (pdf-info-renderpage-text-regions
-            page width nil nil
+            page width nil selection-style nil
             `(,(car colors) ,(cdr colors) ,@region)))
        :width width))))
 
@@ -1450,7 +1464,11 @@ This is more useful for commands like
   "Return the text of the active region as a list of strings."
   (pdf-view-assert-active-region)
   (mapcar
-   (apply-partially 'pdf-info-gettext (pdf-view-current-page))
+   (lambda (edges)
+     (pdf-info-gettext
+      (pdf-view-current-page)
+      edges
+      pdf-view-selection-style))
    pdf-view-active-region))
 
 (defun pdf-view-extract-region-image (regions &optional page size

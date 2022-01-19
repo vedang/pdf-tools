@@ -1413,7 +1413,7 @@ function."
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    id))
 
-(defun pdf-info-addannot (page edges type &optional file-or-buffer &rest markup-edges)
+(defun pdf-info-addannot (page edges type &optional selection-style file-or-buffer &rest markup-edges)
   "Add a new annotation to PAGE with EDGES of TYPE.
 
 FIXME: TYPE may be one of `text', `markup-highlight', ... .
@@ -1430,6 +1430,11 @@ returns."
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
    type
+   (cl-case selection-style
+     (glyph 0)
+     (word 1)
+     (line 2)
+     (t 0))
    (mapconcat 'number-to-string edges " ")
    (mapcar (lambda (me)
              (mapconcat 'number-to-string me " "))
@@ -1604,6 +1609,12 @@ Return the data of the corresponding PNG image."
                    (pdf-util-hexcolor value))
                   (:alpha
                    (number-to-string value))
+                  (:selection-style
+                   (number-to-string (cl-case value
+                                       (glyph 0)
+                                       (word 1)
+                                       (line 2)
+                                       (t 0))))
                   (otherwise value)))
           (push kw transformed)
           (push value transformed)))
@@ -1612,14 +1623,15 @@ Return the data of the corresponding PNG image."
       (nreverse transformed))))
 
 (defun pdf-info-renderpage-text-regions (page width single-line-p
-                                              &optional file-or-buffer
+                                              &optional selection-style
+                                              file-or-buffer
                                               &rest regions)
   "Highlight text on PAGE with width WIDTH using REGIONS.
 
 REGIONS is a list determining foreground and background color and
 the regions to render. So each element should look like \(FG BG
 \(LEFT TOP RIGHT BOT\) \(LEFT TOP RIGHT BOT\) ... \) . The
-rendering is text-aware.
+rendering is text-aware and is controlled by SELECTION-STYLE.
 
 If SINGLE-LINE-P is non-nil, the edges in REGIONS are each
 supposed to be limited to a single line in the document.  Setting
@@ -1636,6 +1648,7 @@ Return the data of the corresponding PNG image."
   (apply #'pdf-info-renderpage
     page width file-or-buffer
     (apply #'append
+      `(:selection-style ,selection-style)
       (mapcar (lambda (elt)
                 `(:foreground ,(pop elt)
                   :background ,(pop elt)

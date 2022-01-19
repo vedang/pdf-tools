@@ -164,10 +164,11 @@
             annots)
       (when (memq 'markup-annotations
                   (pdf-info-features))
-        (push (pdf-info-addannot 1 '(0 0 1 1) 'squiggly '(0 0 1 1)) annots)
-        (push (pdf-info-addannot 1 '(0 0 1 1) 'highlight '(0 0 1 1)) annots)
-        (push (pdf-info-addannot 1 '(0 0 1 1) 'underline '(0 0 1 1)) annots)
-        (push (pdf-info-addannot 1 '(0 0 1 1) 'strike-out '(0 0 1 1)) annots))
+
+         (push (pdf-info-addannot 1 '(0 0 1 1) 'squiggly nil nil '(0 0 1 1)) annots)
+         (push (pdf-info-addannot 1 '(0 0 1 1) 'highlight 'word nil '(0 0 1 1)) annots)
+         (push (pdf-info-addannot 1 '(0 0 1 1) 'underline 'line nil '(0 0 1 1)) annots)
+        (push (pdf-info-addannot 1 '(0 0 1 1) 'strike-out 'glyph nil '(0 0 1 1)) annots))
       (dolist (a annots)
         (pdf-info-delannot (cdr (assq 'id a))))
       (should (= nannots (length (pdf-info-getannots)))))))
