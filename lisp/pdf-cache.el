@@ -332,13 +332,13 @@ See also `pdf-info-renderpage-text-regions' and
 `pdf-cache-renderpage'."
   (if pdf-cache-image-inihibit
       (apply #'pdf-info-renderpage-text-regions
-             page width single-line-p nil selection)
+             page width single-line-p nil nil selection)
     (let ((hash (sxhash
                  (format "%S" (cons 'renderpage-text-regions
                                     (cons single-line-p selection))))))
       (or (pdf-cache-get-image page width width hash)
           (let ((data (apply #'pdf-info-renderpage-text-regions
-                             page width single-line-p nil selection)))
+                             page width single-line-p nil nil selection)))
             (pdf-cache-put-image page width data hash)
             data)))))
 

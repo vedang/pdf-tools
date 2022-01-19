@@ -1367,12 +1367,15 @@ annotation_markup_get_text_regions (PopplerPage *page, PopplerAnnotTextMarkup *a
  *
  * @param page The page of the annotation.  This is used to get the
  *             text regions and pagesize.
+ * @param selection_style The selection style.
  * @param region The region to add.
  * @param garray[in,out] An array of PopplerQuadrilateral, where the
  *              new quadrilaterals will be appended.
  */
 static void
-annotation_markup_append_text_region (PopplerPage *page, PopplerRectangle *region,
+annotation_markup_append_text_region (PopplerPage *page,
+				      PopplerSelectionStyle selection_style,
+				      PopplerRectangle *region,
                                       GArray *garray)
 {
   gdouble height;
@@ -1380,7 +1383,7 @@ annotation_markup_append_text_region (PopplerPage *page, PopplerRectangle *regio
      replacement.  (poppler_page_get_selected_region returns a union
      of rectangles.) */
   GList *regions =
-    poppler_page_get_selection_region (page, 1.0, POPPLER_SELECTION_GLYPH, region);
+    poppler_page_get_selection_region (page, 1.0, selection_style, region);
   GList *item;
 
   poppler_page_get_size (page, NULL, &height);
@@ -1409,6 +1412,7 @@ annotation_markup_append_text_region (PopplerPage *page, PopplerRectangle *regio
  *
  * @param doc The document for which to create it.
  * @param type The type of the annotation.
+ * @param selection_style The selection style.
  * @param r The rectangle where annotation will end up on the page.
  *
  * @return The new annotation, or NULL, if the annotation type is
@@ -1416,8 +1420,9 @@ annotation_markup_append_text_region (PopplerPage *page, PopplerRectangle *regio
  */
 static PopplerAnnot*
 annotation_new (const epdfinfo_t *ctx, document_t *doc, PopplerPage *page,
-                const char *type, PopplerRectangle *r,
-                const command_arg_t *rest, char **error_msg)
+                const char *type, PopplerSelectionStyle selection_style,
+                PopplerRectangle *r, const command_arg_t *rest,
+                char **error_msg)
 {
 
   PopplerAnnot *a = NULL;
@@ -1448,7 +1453,7 @@ annotation_new (const epdfinfo_t *ctx, document_t *doc, PopplerPage *page,
                                            ARG_EDGES, error_msg));
       rr->x1 *= width; rr->x2 *= width;
       rr->y1 *= height; rr->y2 *= height;
-      annotation_markup_append_text_region (page, rr, garray);
+      annotation_markup_append_text_region (page, selection_style, rr, garray);
     }
   cerror_if_not (garray->len > 0, error_msg, "%s",
                  "Unable to create empty markup annotation");
@@ -2339,7 +2344,7 @@ cmd_gettext(const epdfinfo_t *ctx, const command_arg_t *args)
   double width, height;
   gchar *text = NULL;
 
-  selection_style = xpoppler_validate_selection_style(selection_style);
+  selection_style = xpoppler_validate_selection_style (selection_style);
   page = poppler_document_get_page (doc, pn - 1);
   perror_if_not (page, "No such page %d", pn);
   poppler_page_get_size (page, &width, &height);
@@ -2381,7 +2386,7 @@ const command_arg_type_t cmd_getselection_spec[] =
   {
     ARG_DOC,
     ARG_NATNUM,                 /* page number */
-    ARG_EDGES,       /* selection */
+    ARG_EDGES,                  /* selection */
     ARG_NATNUM                  /* selection-style */
   };
 
@@ -2397,7 +2402,7 @@ cmd_getselection (const epdfinfo_t *ctx, const command_arg_t *args)
   PopplerPage *page = NULL;
   int i;
 
-  selection_style = xpoppler_validate_selection_style(selection_style);
+  selection_style = xpoppler_validate_selection_style (selection_style);
   page = poppler_document_get_page (doc, pn - 1);
   perror_if_not (page, "No such page %d", pn);
   poppler_page_get_size (page, &width, &height);
@@ -2650,6 +2655,7 @@ const command_arg_type_t cmd_addannot_spec[] =
     ARG_DOC,
     ARG_NATNUM,                 /* page number */
     ARG_STRING,                 /* type */
+    ARG_NATNUM,                 /* selection-style */
     ARG_EDGES_OR_POSITION,      /* edges or position (uses default size) */
     ARG_REST,                  /* markup regions */
   };
@@ -2661,7 +2667,8 @@ cmd_addannot (const epdfinfo_t *ctx, const command_arg_t *args)
   document_t *doc = args->value.doc;
   gint pn = args[1].value.natnum;
   const char *type_string = args[2].value.string;
-  PopplerRectangle r = args[3].value.rectangle;
+  int selection_style = args[3].value.natnum;
+  PopplerRectangle r = args[4].value.rectangle;
   int i;
   PopplerPage *page = NULL;
   double width, height;
@@ -2673,6 +2680,7 @@ cmd_addannot (const epdfinfo_t *ctx, const command_arg_t *args)
   gdouble y2;
   char *error_msg = NULL;
 
+  selection_style = xpoppler_validate_selection_style (selection_style);
   page = poppler_document_get_page (doc->pdf, pn - 1);
   perror_if_not (page, "Unable to get page %d", pn);
   poppler_page_get_size (page, &width, &height);
@@ -2686,7 +2694,8 @@ cmd_addannot (const epdfinfo_t *ctx, const command_arg_t *args)
   r.y2 = height - r.y1;
   r.y1 = height - y2;
 
-  pa = annotation_new (ctx, doc, page, type_string, &r, &args[4], &error_msg);
+  pa = annotation_new (ctx, doc, page, type_string, selection_style, &r, &args[5],
+                       &error_msg);
   perror_if_not (pa, "Creating annotation failed: %s",
                  error_msg ? error_msg : "Reason unknown");
   amap = poppler_annot_mapping_new ();
@@ -3080,6 +3089,7 @@ cmd_renderpage (const epdfinfo_t *ctx, const command_arg_t *args)
   PopplerColor bg = { 65535, 0, 0 };
   double alpha = 1.0;
   double line_width = 1.5;
+  PopplerSelectionStyle selection_style = POPPLER_SELECTION_GLYPH;
   PopplerRectangle cb = {0.0, 0.0, 1.0, 1.0};
   int i = 0;
 
@@ -3208,9 +3218,17 @@ cmd_renderpage (const epdfinfo_t *ctx, const command_arg_t *args)
                     }
 
                   poppler_page_render_selection (page, cr, r, NULL,
-                                                 POPPLER_SELECTION_GLYPH, &fg, &bg);
+                                                 selection_style, &fg, &bg);
                 }
             }
+        }
+      else if (! strcmp (keyword, ":selection-style"))
+        {
+          perror_if_not (command_arg_parse_arg (ctx, rest_args[i], &rest_arg,
+                                                ARG_NATNUM, &error_msg),
+                         "%s", error_msg);
+          ++i;
+	  selection_style = xpoppler_validate_selection_style (rest_arg.value.natnum);
         }
       else
         perror_if_not (0, "Unknown render command: %s", keyword);

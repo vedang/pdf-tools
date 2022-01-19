@@ -745,7 +745,7 @@ MATCH-BG LAZY-FG LAZY-BG\)."
                     (pdf-view-display-image
                      (pdf-view-create-image data :width width))))))))
       (pdf-info-renderpage-text-regions
-       page width t nil
+       page width t nil nil
        `(,fg1 ,bg1 ,@(pdf-util-scale-pixel-to-relative
                       current))
        `(,fg2 ,bg2 ,@(pdf-util-scale-pixel-to-relative

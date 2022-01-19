@@ -1247,6 +1247,17 @@ of this element in the tree."
    'outline
    (pdf-info--normalize-file-or-buffer file-or-buffer)))
 
+(defun pdf-info--selection-style (selection-style)
+  "SELECTION-STYLE is the smallest unit of the selected region.
+
+It must be one of glyph, word or line. If it is none of these, we
+fallback to glyph."
+  (cl-case selection-style
+    (glyph 0)
+    (word 1)
+    (line 2)
+    (t 0)))
+
 (defun pdf-info-gettext (page edges &optional selection-style
                               file-or-buffer)
   "Get text on PAGE according to EDGES.
@@ -1263,30 +1274,21 @@ Return the text contained in the selection."
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
    (mapconcat #'number-to-string edges " ")
-   (cl-case selection-style
-     (glyph 0)
-     (word 1)
-     (line 2)
-     (t 0))))
+   (pdf-info--selection-style selection-style)))
 
-(defun pdf-info-getselection (page edges &optional selection-style
-                                   file-or-buffer)
+(defun pdf-info-getselection (page edges
+                                   &optional selection-style file-or-buffer)
   "Return the edges of the selection EDGES on PAGE.
 
 Arguments are the same as for `pdf-info-gettext'.  Return a list
 of edges corresponding to the text that would be returned by the
 aforementioned function, when called with the same arguments."
-
   (pdf-info-query
    'getselection
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
    (mapconcat #'number-to-string edges " ")
-   (cl-case selection-style
-     (glyph 0)
-     (word 1)
-     (line 2)
-     (t 0))))
+   (pdf-info--selection-style selection-style)))
 
 (defun pdf-info-textregions (page &optional file-or-buffer)
   "Return a list of edges describing PAGE's text-layout."
@@ -1419,7 +1421,9 @@ function."
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    id))
 
-(defun pdf-info-addannot (page edges type &optional file-or-buffer &rest markup-edges)
+(defun pdf-info-addannot (page edges type
+                               &optional selection-style file-or-buffer
+                               &rest markup-edges)
   "Add a new annotation to PAGE with EDGES of TYPE.
 
 FIXME: TYPE may be one of `text', `markup-highlight', ... .
@@ -1436,6 +1440,7 @@ returns."
    (pdf-info--normalize-file-or-buffer file-or-buffer)
    page
    type
+   (pdf-info--selection-style selection-style)
    (mapconcat 'number-to-string edges " ")
    (mapcar (lambda (me)
              (mapconcat 'number-to-string me " "))
@@ -1610,6 +1615,8 @@ Return the data of the corresponding PNG image."
                    (pdf-util-hexcolor value))
                   (:alpha
                    (number-to-string value))
+                  (:selection-style
+                   (number-to-string (pdf-info--selection-style value)))
                   (otherwise value)))
           (push kw transformed)
           (push value transformed)))
@@ -1618,14 +1625,14 @@ Return the data of the corresponding PNG image."
       (nreverse transformed))))
 
 (defun pdf-info-renderpage-text-regions (page width single-line-p
-                                              &optional file-or-buffer
+                                              &optional selection-style file-or-buffer
                                               &rest regions)
   "Highlight text on PAGE with width WIDTH using REGIONS.
 
 REGIONS is a list determining foreground and background color and
 the regions to render. So each element should look like \(FG BG
 \(LEFT TOP RIGHT BOT\) \(LEFT TOP RIGHT BOT\) ... \) . The
-rendering is text-aware.
+rendering is text-aware and is controlled by SELECTION-STYLE.
 
 If SINGLE-LINE-P is non-nil, the edges in REGIONS are each
 supposed to be limited to a single line in the document.  Setting
@@ -1642,6 +1649,7 @@ Return the data of the corresponding PNG image."
   (apply #'pdf-info-renderpage
     page width file-or-buffer
     (apply #'append
+      `(:selection-style ,selection-style)
       (mapcar (lambda (elt)
                 `(:foreground ,(pop elt)
                   :background ,(pop elt)
