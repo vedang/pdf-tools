@@ -61,6 +61,33 @@
   "Extract infos from pdf-files via a helper process."
   :group 'pdf-tools)
 
+(defcustom pdf-info-default-backend 'epdfinfo
+  "The default backend for pdf-tools.
+When this value is `epdfinfo' then use the original epdfinfo
+server which uses the poppler library rendering/editing the
+pdf's. When this value is `vimura' then use the newer, less
+tested, vimura server that uses the mupdf library for
+rendering/editing pdf's.
+
+The two servers provide different features, see the pdf-tools
+README for more information.")
+
+(defcustom pdf-tools-server 'epdfinfo
+  "Backend for accessing pdf files.
+
+The ‘epdfinfo' server is the original and fastest server, written
+in C, implementing, a reasonable set but limited set of options
+provides by the freedesktop.org its Poppler PDF library.
+
+The ‘vimura' server is newer and because it is written in python
+and using the excellent, fast and very elaborate pymupdf library,
+it is much more hackable than the ‘epdfinfo' server. Ultimately,
+this backend should provide many additional features that are not
+provided by the ‘epdfinfo' server. "
+  :group 'pdf-tools
+  :type 'symbol
+  :options '(epdfinfo vimura))
+
 (defcustom pdf-info-epdfinfo-program
   (let ((executable (if (eq system-type 'windows-nt)
                         "epdfinfo.exe" "epdfinfo"))
@@ -85,6 +112,49 @@
           ;; Fall back to epdfinfo in the directory of this file.
           (expand-file-name executable))))
   "Filename of the epdfinfo executable."
+  :type 'file)
+
+(defcustom pdf-info-vimura-program
+  (let ((executable "vimura.py")
+        (default-directory
+          (or (and load-file-name
+                   (file-name-directory load-file-name))
+              default-directory)))
+    (cl-labels ((try-directory (directory)
+                               (and (file-directory-p directory)
+                                    (file-executable-p (expand-file-name executable directory))
+                                    (expand-file-name executable directory))))
+      (or (try-directory (expand-file-name "../vimura-server"))
+          ;; Fall back to epdfinfo in the directory of this file.
+          (expand-file-name executable))))
+  "Filename of the epdfinfo executable."
+  :group 'pdf-info
+  :type 'file)
+
+(defcustom pdf-info-vimura-program
+  (let ((executable "vimura.py")
+        (default-directory
+          (or (and load-file-name
+                   (file-name-directory load-file-name))
+              default-directory)))
+    (cl-labels ((try-directory (directory)
+                  (and (file-directory-p directory)
+                       (file-executable-p (expand-file-name executable directory))
+                       (expand-file-name executable directory))))
+      (or (executable-find executable)
+          ;; This works if epdfinfo is in the same place as emacs and
+          ;; the editor was started with an absolute path, i.e. it is
+          ;; meant for Windows/Msys2.
+          (and (stringp (car-safe command-line-args))
+               (file-name-directory (car command-line-args))
+               (try-directory
+                (file-name-directory (car command-line-args))))
+          ;; If we are running directly from the git repo.
+          (try-directory (expand-file-name "../pymupdf/tq/server"))
+          ;; Fall back to epdfinfo in the directory of this file.
+          (expand-file-name executable))))
+  "Filename of the epdfinfo executable."
+  :group 'pdf-info
   :type 'file)
 
 (defcustom pdf-info-epdfinfo-error-filename nil
@@ -135,6 +205,8 @@ in a `with-temp-buffer' form."
 ;; * ================================================================== *
 ;; * Variables
 ;; * ================================================================== *
+
+(defvar pdf-info-current-backend pdf-info-default-backend)
 
 (defvar pdf-info-asynchronous nil
   "If non-nil process queries asynchronously.
@@ -192,6 +264,20 @@ This variable is initially t, telling the code starting the
 server, that it never ran.")
 
 
+;; * ================================================================== *
+;; * Backend
+;; * ================================================================== *
+
+(defun pdf-tools-toggle-server ()
+  (interactive)
+  (when (and pdf-info--queue (listp pdf-info--queue))
+    (tq-close pdf-info--queue))
+  (setq pdf-info-current-backend (print (if (eq pdf-info-current-backend 'epdfinfo)
+                                            'vimura
+                                          'epdfinfo)))
+  (when (eq pdf-info-current-backend 'vimura)
+    (require 'pdf-script)))
+
 ;; * ================================================================== *
 ;; * Process handling
 ;; * ================================================================== *
@@ -291,13 +377,22 @@ error."
       (when (eq pdf-info-restart-process-p 'ask)
         (setq pdf-info-restart-process-p nil))
       (error "The epdfinfo server quit"))
-    (pdf-info-check-epdfinfo)
-    (let* ((process-connection-type)    ;Avoid 4096 Byte bug #12440.
+    ;; (pdf-info-check-epdfinfo)
+    (setenv "PYTHONSTARTUP" "/home/dalanicolai/test/python-tq-startup.el")
+    (let* (
+           ;; (process-connection-type)    ;Avoid 4096 Byte bug #12440.
            (default-directory "~")
+           (cmd-and-args (pcase pdf-info-current-backend
+                           ('epdfinfo (nconc (list pdf-info-epdfinfo-program)
+                                             (when pdf-info-epdfinfo-error-filename
+                                               (list pdf-info-epdfinfo-error-filename))))
+                           ('vimura '("python" "-q"))))
            (proc (apply #'start-process
-                        "epdfinfo" " *epdfinfo*" pdf-info-epdfinfo-program
-                        (when pdf-info-epdfinfo-error-filename
-                          (list pdf-info-epdfinfo-error-filename)))))
+                        "epdfinfo" " *epdfinfo*" cmd-and-args)))
+      (when (eq pdf-info-current-backend 'vimura)
+        (process-send-string proc (with-temp-buffer
+                                    (insert-file-contents-literally pdf-info-vimura-program)
+                                    (buffer-string))))
       (with-current-buffer " *epdfinfo*"
         (erase-buffer))
       (set-process-query-on-exit-flag proc nil)
@@ -305,44 +400,41 @@ error."
       (setq pdf-info--queue (tq-create proc))))
   pdf-info--queue)
 
-(advice-add 'tq-process-buffer :around #'pdf-info--tq-workaround)
-(defun pdf-info--tq-workaround (orig-fun tq &rest args)
-  "Fix a bug in trunk where the wrong callback gets called.
-
-ORIG-FUN is the callback that should be called. TQ and ARGS are
-the transmission-queue and arguments to the callback."
-  ;; FIXME: Make me iterative.
-  (if (not (equal (car (process-command (tq-process tq)))
-                  pdf-info-epdfinfo-program))
-      (apply orig-fun tq args)
-    (let ((buffer (tq-buffer tq))
-          done)
-      (when (buffer-live-p buffer)
-        (set-buffer buffer)
-        (while (and (not done)
-                    (> (buffer-size) 0))
-          (setq done t)
-          (if (tq-queue-empty tq)
-              (let ((buf (generate-new-buffer "*spurious*")))
-                (copy-to-buffer buf (point-min) (point-max))
-                (delete-region (point-min) (point))
-                (pop-to-buffer buf nil)
-                (error "Spurious communication from process %s, see buffer %s"
-                       (process-name (tq-process tq))
-                       (buffer-name buf)))
-            (goto-char (point-min))
-            (when (re-search-forward (tq-queue-head-regexp tq) nil t)
-              (setq done nil)
-              (let ((answer (buffer-substring (point-min) (point)))
-                    (fn (tq-queue-head-fn tq))
-                    (closure (tq-queue-head-closure tq)))
-                (delete-region (point-min) (point))
-                (tq-queue-pop tq)
-                (condition-case-unless-debug err
-                    (funcall fn closure answer)
-                  (error
-                   (message "Error while processing tq callback: %s"
-                            (error-message-string err))))))))))))
+;; (defadvice tq-process-buffer (around bugfix activate)
+;;   "Fix a bug in trunk where the wrong callback gets called."
+;;   ;; FIXME: Make me iterative.
+;;   (let ((tq (ad-get-arg 0)))
+;;     (if (not (equal (car (process-command (tq-process tq)))
+;;                     pdf-info-epdfinfo-program))
+;;         ad-do-it
+;;       (let ((buffer (tq-buffer tq))
+;;             done)
+;;         (when (buffer-live-p buffer)
+;;           (set-buffer buffer)
+;;           (while (and (not done)
+;;                       (> (buffer-size) 0))
+;;             (setq done t)
+;;             (if (tq-queue-empty tq)
+;;                 (let ((buf (generate-new-buffer "*spurious*")))
+;;                   (copy-to-buffer buf (point-min) (point-max))
+;;                   (delete-region (point-min) (point))
+;;                   (pop-to-buffer buf nil)
+;;                   (error "Spurious communication from process %s, see buffer %s"
+;;                          (process-name (tq-process tq))
+;;                          (buffer-name buf)))
+;;               (goto-char (point-min))
+;;               (when (re-search-forward (tq-queue-head-regexp tq) nil t)
+;;                 (setq done nil)
+;;                 (let ((answer (buffer-substring (point-min) (point)))
+;;                       (fn (tq-queue-head-fn tq))
+;;                       (closure (tq-queue-head-closure tq)))
+;;                   (delete-region (point-min) (point))
+;;                   (tq-queue-pop tq)
+;;                   (condition-case-unless-debug err
+;;                       (funcall fn closure answer)
+;;                     (error
+;;                      (message "Error while processing tq callback: %s"
+;;                               (error-message-string err)))))))))))))
 
 
 ;; * ================================================================== *
@@ -371,8 +463,11 @@ the transmission-queue and arguments to the callback."
                       (lambda (s r)
                         (setq status s response r done t)))))
     (pdf-info-query--log query t)
-    (tq-enqueue
-     pdf-info--queue query "^\\.\n" closure callback)
+    (tq-enqueue pdf-info--queue
+                (if (eq pdf-info-current-backend 'vimura)
+                    (concat "tq_query('" (substring query 0 -1) "')\n")
+                  query)
+                "^\\.\n" closure callback)
     (unless pdf-info-asynchronous
       (while (and (not done)
                   (eq (process-status (pdf-info-process))
@@ -1009,7 +1104,7 @@ A No-op, if BUFFER has not running server instance."
     (cond
      ((not (memq 'writable-annotations features)) nil)
      ((memq 'markup-annotations features)
-      (list 'text 'squiggly 'underline 'strike-out 'highlight))
+      (list 'text 'squiggly 'underline 'strike-out 'highlight 'line))
      (t (list 'text)))))
 
 (defun pdf-info-open (&optional file-or-buffer password)
@@ -1219,10 +1314,11 @@ URI.
 In the first two cases, PAGE may be 0 and TOP nil, which means
 these data is unspecified."
   (cl-check-type page natnum)
-  (pdf-info-query
-   'pagelinks
-   (pdf-info--normalize-file-or-buffer file-or-buffer)
-   page))
+  (when (string= (file-name-extension buffer-file-name) "pdf")
+    (pdf-info-query
+     'pagelinks
+     (pdf-info--normalize-file-or-buffer file-or-buffer)
+     page)))
 
 (defun pdf-info-number-of-pages (&optional file-or-buffer)
   "Return the number of pages in document FILE-OR-BUFFER."
@@ -1598,8 +1694,8 @@ Return the data of the corresponding PNG image."
               (value (pop commands)))
           (setq value
                 (cl-case kw
-                  ((:crop-to :highlight-line :highlight-region :highlight-text)
-                   (mapconcat #'number-to-string value " "))
+                  ((:crop-to :highlight-region :highlight-text :draw-line)
+                   (mapconcat 'number-to-string value " "))
                   ((:foreground :background)
                    (pdf-util-hexcolor value))
                   (:alpha
@@ -1674,6 +1770,66 @@ Return the data of the corresponding PNG image."
                   :alpha ,(pop elt)
                   ,@(cl-mapcan (lambda (edges)
                                  `(:highlight-region ,edges))
+                               elt)))
+              regions))))
+
+(defun pdf-info-renderpage-line (page width
+                                           &optional file-or-buffer
+                                           &rest regions)
+  "Highlight regions on PAGE with width WIDTH using REGIONS.
+
+REGIONS is a list determining the background color, a alpha value
+and the regions to render. So each element should look like \(FILL-COLOR
+STROKE-COLOR ALPHA \(LEFT TOP RIGHT BOT\) \(LEFT TOP RIGHT BOT\) ... \)
+.
+
+For the other args see `pdf-info-renderpage'.
+
+Return the data of the corresponding PNG image."
+
+  (when (consp file-or-buffer)
+    (push file-or-buffer regions)
+    (setq file-or-buffer nil))
+
+  (apply 'pdf-info-renderpage
+    page width file-or-buffer
+    (apply 'append
+      (mapcar (lambda (elt)
+                `(:background ,(pop elt)
+                  :foreground ,(pop elt)
+                  :alpha ,(pop elt)
+                  ,@(cl-mapcan (lambda (edges)
+                                 `(:draw-line ,edges))
+                               elt)))
+              regions))))
+
+(defun pdf-info-renderpage-line (page width
+                                           &optional file-or-buffer
+                                           &rest regions)
+  "Highlight regions on PAGE with width WIDTH using REGIONS.
+
+REGIONS is a list determining the background color, a alpha value
+and the regions to render. So each element should look like \(FILL-COLOR
+STROKE-COLOR ALPHA \(LEFT TOP RIGHT BOT\) \(LEFT TOP RIGHT BOT\) ... \)
+.
+
+For the other args see `pdf-info-renderpage'.
+
+Return the data of the corresponding PNG image."
+
+  (when (consp file-or-buffer)
+    (push file-or-buffer regions)
+    (setq file-or-buffer nil))
+
+  (apply 'pdf-info-renderpage
+    page width file-or-buffer
+    (apply 'append
+      (mapcar (lambda (elt)
+                `(:background ,(pop elt)
+                  :foreground ,(pop elt)
+                  :alpha ,(pop elt)
+                  ,@(cl-mapcan (lambda (edges)
+                                 `(:draw-line ,edges))
                                elt)))
               regions))))
 

@@ -80,7 +80,8 @@ Implement and describe basic org example."
     (highlight (color . "yellow"))
     (squiggly (color . "orange"))
     (strike-out(color . "red"))
-    (underline (color . "blue")))
+    (underline (color . "blue"))
+    (line (color . "black")))
   "An alist of initial properties for new annotations.
 
 The alist contains a sub-alist for each of the currently available
@@ -134,6 +135,12 @@ to \"Joe\"."
             (cons :tag "Underline Annotations" (const underline) ,markup-properties)
             (cons :tag "Squiggly Annotations" (const squiggly) ,markup-properties)
             (cons :tag "Strike-out Annotations" (const strike-out) ,markup-properties))))
+
+(defcustom pdf-annot-keyboard-annot-default-type "highlight"
+  "Default annotation type for keyboard annotation"
+  :type '(string)
+  :options '("highlight" "squiggly" "strike-out" "underline")
+  :group 'pdf-annot)
 
 (defcustom pdf-annot-print-annotation-functions
   '(pdf-annot-print-annotation-latex-maybe)
@@ -440,17 +447,18 @@ PAGES defaults to all pages, TYPES to all types and BUFFER to the
 current buffer."
 
   (pdf-util-assert-pdf-buffer buffer)
-  (unless buffer
-    (setq buffer (current-buffer)))
-  (unless (listp types)
-    (setq types (list types)))
-  (with-current-buffer buffer
-    (let (result)
-      (dolist (a (pdf-info-getannots pages))
-        (when (or (null types)
-                  (memq (pdf-annot-get a 'type) types))
-          (push (pdf-annot-create a) result)))
-      result)))
+  (when (string= (file-name-extension buffer-file-name) "pdf")
+    (unless buffer
+      (setq buffer (current-buffer)))
+    (unless (listp types)
+      (setq types (list types)))
+    (with-current-buffer buffer
+      (let (result)
+        (dolist (a (pdf-info-getannots pages))
+          (when (or (null types)
+                    (memq (pdf-annot-get a 'type) types))
+            (push (pdf-annot-create a) result)))
+        result))))
 
 (defun pdf-annot-getannot (id &optional buffer)
   "Return the annotation object for annotation ID.
@@ -1055,14 +1063,14 @@ Return the new annotation."
     (error "Edges argument should be a single edge-list for text annotations"))
   (let* ((a (apply #'pdf-info-addannot
                    page
-                   (if (eq type 'text)
-                       (car edges)
-                     (apply #'pdf-util-edges-union
-                            (apply #'append
-                                   (mapcar
-                                    (lambda (e)
-                                      (pdf-info-getselection page e))
-                                    edges))))
+                   (pcase type
+                     ((or 'text 'line) (car edges))
+                     (_ (apply #'pdf-util-edges-union
+                             (apply #'append
+                                    (mapcar
+                                     (lambda (e)
+                                       (pdf-info-getselection page e))
+                                     edges)))))
                    type
                    nil
                    (if (not (eq type 'text)) edges)))
@@ -1228,6 +1236,75 @@ annotation color and PROPERTY-ALIST defines additional annotation
 properties. See also `pdf-annot-add-markup-annotation'."
   (interactive (list (pdf-view-active-region t)))
   (pdf-annot-add-markup-annotation list-of-edges 'highlight color property-alist))
+
+(defun pdf-annot-add-line-markup-annotation (list-of-edges
+                                                  &optional color property-alist)
+  "Add a new highlight annotation in the selected window.
+
+See also `pdf-annot-add-markup-annotation'."
+  (interactive (list (pdf-view-active-region t)))
+  (pdf-annot-add-markup-annotation list-of-edges 'line color property-alist))
+
+(defun pdf-annot-keyboard-annot-format-collection (search-results)
+  "Transform SEARCH-RESULTS into useful collection.
+The collection is given to completing-read in the
+`pdf-annot-keyboard-annotate' function."
+  (mapcar (lambda (x)
+            (let ((y (cdr x)))
+              (cons (cdar y)
+                    (cdr y))))
+          search-results))
+
+(defun pdf-annot-keyboard-annotate (&optional arg)
+  "Create markup annotation using the keyboard.
+
+Prompts for start pattern, can be only beginning part of a word
+or can be multiple words, and end pattern, can be only ending
+part of a word or multiple words, for the text region to
+annotate. Creates type of `pdf-annot-keyboard-annot-default-type'
+by default. When prefixed with universal argument
+\[universal-argument], the command additionally prompts for
+selecting an annotation type.
+
+Unfortunately, in some documents the edges (i.e. size of the
+region) are not translated correctly"
+  (interactive "P")
+  (pdf-tools-assert-pdf-buffer)
+  (let* ((from (pdf-annot-keyboard-annot-format-collection
+                (pdf-info-search-string (read-string "From: ")
+                                        (pdf-view-current-page))))
+         (to (let ((patt (read-string "To: ")))
+               (unless (string= patt "")
+                 (pdf-annot-keyboard-annot-format-collection
+                  (pdf-info-search-string patt
+                                          (pdf-view-current-page))))))
+         (start-coords (if (= (length from) 1)
+                           (cadr (cadar from))
+                         (cadar (alist-get
+                                 (completing-read "Select correct START context: " from)
+                                 from nil nil 'equal))))
+         (end-coords (when to
+                       (if (= (length to) 1)
+                          (cadr (cadar to))
+                        (cadar (alist-get
+                                (completing-read "Select correct END context: " to)
+                                to nil nil 'equal)))))
+         (edges (if to
+                    (append (cl-subseq start-coords 0 2) (cl-subseq end-coords 2 4))
+                  start-coords)))
+    (pcase (if arg
+               (read-answer "Create annotation of markup type? "
+                '(("highlight"  ?h "perform the action")
+                  ("squiggly"   ?s "skip to the next")
+                  ("strike-out" ?o "accept all remaining without more questions")
+                  ("underline"  ?u "accept all remaining without more questions")
+                  ("help" ?h "show help")
+                  ("quit" ?q "exit")))
+             pdf-annot-keyboard-annot-default-type)
+      ("highlight"  (pdf-annot-add-highlight-markup-annotation edges))
+      ("squiggly"   (pdf-annot-add-squiggly-markup-annotation edges))
+      ("strike-out" (pdf-annot-add-strikeout-markup-annotation edges))
+      ("underline"  (pdf-annot-add-underline-markup-annotation edges)))))
 
 (defun pdf-annot-read-color (&optional prompt)
   "Read and return a color using PROMPT.
