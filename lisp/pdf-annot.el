@@ -1642,7 +1642,8 @@ pretty-printed output."
            (lambda (str)
              (replace-regexp-in-string "\n" " " str t t))))
       (cl-ecase entry-type
-        (date (pdf-annot-print-property a 'modified))
+        (date (propertize (pdf-annot-print-property a 'modified)
+                          'date (pdf-annot-get a 'modified)))
         (page (pdf-annot-print-property a 'page))
         (label (funcall prune-newlines
                         (pdf-annot-print-property a 'label)))
@@ -1673,15 +1674,19 @@ pretty-printed output."
           (lambda (a b)
             (< (string-to-number (aref (cadr a) 0))
                (string-to-number (aref (cadr b) 0)))))
+         (date-sorter
+          (lambda (a b)
+            (time-less-p (get-text-property 0 'date (aref (cadr a) 3))
+                         (get-text-property 0 'date (aref (cadr b) 3)))))
          (format-generator
           (lambda (format)
             (let ((field (car format))
                   (width (cdr format)))
               (cl-case field
-                (page `("Pg." 3 ,page-sorter :read-only t :right-alight t))
+                (page `("Pg." 3 ,page-sorter :read-only t :right-align t))
                 (t (list
                     (capitalize (symbol-name field))
-                    width t :read-only t)))))))
+                    width (if (eq field 'date) date-sorter t) :read-only t)))))))
     (setq tabulated-list-entries 'pdf-annot-list-entries
           tabulated-list-format (vconcat
                                  (mapcar
