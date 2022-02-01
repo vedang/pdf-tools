@@ -137,7 +137,8 @@ If you choose not to install from MELPA, you must substitute ~gmake~ for ~make~ 
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       005243cb-1557-4f94-a73d-e647e0d4b53d
 :END:
-~pdf-tools~ can be built and used on Windows using the MSYS2 compiler. This will work with native (not cygwin) Windows builds of Emacs. This includes the standard binaries provided by the GNU project, those available as MSYS2 packages and numerous third-party binaries. It has been tested with Emacs 25.1. Instructions are provided under [[id:d14e01ff-9bd5-47ee-86fc-859b4499d5d7][Compilation and installation on Window]] below. ~pdf-tools~ will successfully compile using Cygwin, but it will not be able to open PDFs properly due to the way binaries compiled with Cygwin handle file paths.
+~pdf-tools~ can be built and used on Windows using the MSYS2 compiler, or
+pre-built binaries can be installed in MSYS2. This will work with native (not cygwin) Windows builds of Emacs. This includes the standard binaries provided by the GNU project, those available as MSYS2 packages and numerous third-party binaries. It has been tested with Emacs 25.1. Instructions are provided under [[id:d14e01ff-9bd5-47ee-86fc-859b4499d5d7][Compilation and installation on Window]] below. ~pdf-tools~ will successfully compile using Cygwin, but it will not be able to open PDFs properly due to the way binaries compiled with Cygwin handle file paths.
 
 ** Compiling and Installing the ~epdfinfo~ server
 :PROPERTIES:
@@ -155,9 +156,22 @@ This should compile the source code and create a Emacs Lisp Package in the root 
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       d14e01ff-9bd5-47ee-86fc-859b4499d5d7
 :END:
+**** Using the pre-built MINGW packages from MSYS2
+Users installing Emacs from the MSYS2 distribution can install pre-build
+binaries of the ~epdfinfo~ server.
+
+1. [[https://www.msys2.org/][Install MSYS2]] and update the package database and core packages using the instructions provided.
+2. Install packages: ~pacman -Ss mingw-w64-x86_64-{emacs,emacs-pdf-tools-server,imagemagick}~ (ImageMagick is optional, see above.)
+3. Make sure Emacs can find ~epdfinfo.exe~. Either add the MINGW install
+   location (e.g. ~C:/msys2/mingw64/bin~) to the system path with ~setx PATH
+   "C:\msys2\mingw64\bin;%PATH%"~, or set Emacs's path with ~(setenv "PATH"
+   (concat "C:\\msys64\\mingw64\\bin;" (getenv "PATH")))~. Note that libraries from other GNU utilities, such as Git for Windows, may interfere with those needed by ~pdf-tools~. ~pdf-info-check-epdinfo~ will succeed, but errors occur when trying to view a PDF file. This can be fixed by ensuring that the MSYS libraries are always preferred.
+4. Add ~(pdf-tools-install)~ to your Emacs config.
+
+**** Compiling the server
 If using the GNU binaries for Windows, support for PNG and ~zlib~ must first be installed by copying the appropriate dlls into emacs' ~bin/~ directory. Most third-party binaries come with this already done.
 
-First, install [[http://www.msys2.org/][install MSYS2]] and update the package database and core packages using the instructions provided. Then, to compile ~pdf-tools~ itself:
+First, [[https://www.msys2.org/][install MSYS2]] and update the package database and core packages using the instructions provided. Then, to compile ~pdf-tools~ itself:
 
 1. Open msys2 shell
 2. Update and install dependencies, skipping any you already have
@@ -190,11 +204,8 @@ M-x pdf-tools-install RET
 M-x pdf-info-check-epdfinfo RET
 #+END_SRC
 
-If this is successful, ~(pdf-tools-install)~ can be added to Emacs' config. Note that libraries from other GNU utilities, such as Git for Windows, may interfere with those needed by ~pdf-tools~. ~pdf-info-check-epdinfo~ will succeed, but errors occur when trying to view a PDF file. This can be fixed by ensuring that the MSYS libraries are always preferred in Emacs:
-
-#+BEGIN_SRC emacs-lisp
-  (setenv "PATH" (concat "C:\\msys64\\mingw64\\bin;" (getenv "PATH")))
-#+END_SRC
+If this is successful, ~(pdf-tools-install)~ can be added to Emacs' config. See
+the note on how to set up PATH in the previous section.
 
 ** Installing ~pdf-tools~ elisp prerequisites
 :PROPERTIES:
