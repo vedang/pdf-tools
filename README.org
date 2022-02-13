@@ -32,10 +32,10 @@ Actually, displaying PDF files is just one part of ~pdf-tools~. Since ~poppler~ 
 Installing this package via NonGNU ELPA or MELPA or any of the other package managers is straightforward and should just work.
 ~pdf-tools~ requires a server ~epdfinfo~ to run against, which it will try to compile and build when it is activated for the first time.
 
-You should not require any manual changes. The documentation below is if you are installing from source, or for troubleshooting / debugging purposes.
+You should not require any manual changes. The documentation below is *only* if you are installing from source, or for troubleshooting / debugging purposes.
 
 - [[brain-child:8ce3cf4e-d186-4de1-a40e-f41063068ab0][Installing ~epdfinfo~ server prerequisites]]
-- [[brain-child:e305cd0a-e798-4c2b-af27-21bcd936c1c9][Compiling and Installing the ~epdfinfo~ server]]
+- [[brain-child:e305cd0a-e798-4c2b-af27-21bcd936c1c9][Installing the ~epdfinfo~ server]]
 - [[brain-child:3d4e6b6b-f015-475d-8ea2-84988efd6c22][Installing ~pdf-tools~ elisp prerequisites]]
 - [[brain-child:32c4fc3b-b4ea-43bd-b92c-bdf2d3831fcf][Installing ~pdf-tools~ elisp code]]
 
@@ -44,11 +44,17 @@ You should not require any manual changes. The documentation below is if you are
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       8ce3cf4e-d186-4de1-a40e-f41063068ab0
 :END:
-You'll need GNU Emacs \ge 24.3 and some form of a GNU/Linux OS. Other operating systems are not officially supported, but ~pdf-tools~ is known to work on many of them. See links below for more details. The following instructions assume a Debian-based system.
+You'll need GNU Emacs \ge 26.1 and some form of a GNU/Linux OS. Other operating systems are not officially supported, but ~pdf-tools~ is known to work on many of them. Similarly, package-managers are not officially supported, but ~pdf-tools~ is known to be available on some of them. See the links below, and in the [[id:fb5cef15-fed4-4dec-a443-52f7c00c7831][Installing the ~epdfinfo~ server from package managers]] section for more details.
 
+*** Installing ~epdfinfo~ Server Prerequisites on a Debian-based system
+:PROPERTIES:
+:CREATED:  [2022-02-13 Sun 23:17]
+:ID:       abaae1be-3bbb-4d99-90e7-5429c56083e1
+:END:
 First make sure a suitable build-system is installed. We need at least a C/C++ compiler (both ~gcc~ and ~g++~), ~make~, ~automake~ and ~autoconf~.
 
 Next we need to install a few libraries ~pdf-tools~ depends on, some of which are probably already on your system.
+
 #+begin_src sh
   $ sudo apt install libpng-dev zlib1g-dev libpoppler-glib-dev libpoppler-private-dev
 #+end_src
@@ -70,7 +76,7 @@ Finally there is one feature (following links of a PDF document by plain keystro
 #+begin_src sh
   $ sudo apt install imagemagick
 #+end_src
-*** Installing Server Prerequisites On macOS
+*** Installing ~epdfinfo~ Server Prerequisites On macOS
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       f10e9d94-bdec-44dc-8d3c-1816d62ef1c4
@@ -87,7 +93,7 @@ You will also have to help ~pkg-config~ find some libraries by setting ~PKG_CONF
 or likewise within Emacs using ~setenv~.
 
 After that, compilation should proceed as normal.
-*** Installing Server Prerequisites On FreeBSD
+*** Installing ~epdfinfo~ Server Prerequisites On FreeBSD
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       00faf3e3-6d09-4cf7-9373-838f3d231504
@@ -105,7 +111,7 @@ To build ~pdf-tools~ from either MELPA or directly from the source repository, i
 #+END_SRC
 
 If you choose not to install from MELPA, you must substitute ~gmake~ for ~make~ in the instructions below.
-*** Installing Server Prerequisites On CentOS
+*** Installing ~epdfinfo~ Server Prerequisites On CentOS
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       e39946d0-3a28-405d-bb23-337120412dac
@@ -114,7 +120,7 @@ If you choose not to install from MELPA, you must substitute ~gmake~ for ~make~ 
   $ yum install poppler-devel poppler-glib-devel
 #+END_SRC
 
-*** Installing Server Prerequisites On Fedora
+*** Installing ~epdfinfo~ Server Prerequisites On Fedora
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       d0013822-f4d0-4354-b3db-c54ffe41ce58
@@ -123,7 +129,7 @@ If you choose not to install from MELPA, you must substitute ~gmake~ for ~make~ 
   $ sudo dnf install make automake autoconf gcc gcc-c++ ImageMagick libpng-devel zlib-devel poppler-glib-devel
 #+END_SRC
 
-*** Installing Server Prerequisites On Alpine Linux
+*** Installing ~epdfinfo~ Server Prerequisites On Alpine Linux
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       443d9b18-096e-4770-b59c-4e472a5d4b0e
@@ -132,50 +138,41 @@ If you choose not to install from MELPA, you must substitute ~gmake~ for ~make~ 
   $ apk add build-base g++ gcc automake autoconf libpng-dev glib-dev poppler-dev
 #+END_SRC
 
-*** Installing Server Prerequisites On Windows
+*** Installing ~epdfinfo~ Server Prerequisites On Windows
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       005243cb-1557-4f94-a73d-e647e0d4b53d
 :END:
 ~pdf-tools~ can be built and used on Windows using the MSYS2 compiler, or pre-built binaries can be installed in MSYS2.
 
-The Pre-built binaries will work with native (not cygwin) Windows builds of Emacs. They include the standard binaries provided by the GNU project, those available as MSYS2 packages and numerous third-party binaries. Instructions are provided under [[id:d14e01ff-9bd5-47ee-86fc-859b4499d5d7][Compilation and installation on Window]] below.
+The pre-built binaries will work with native (not Cygwin) Windows builds of Emacs. They include the standard binaries provided by the GNU project, those available as MSYS2 packages and numerous third-party binaries. Refer to the appropriate section under [[id:e305cd0a-e798-4c2b-af27-21bcd936c1c9][Installing the ~epdfinfo~ server]] for more details.
 
 ~pdf-tools~ will successfully compile using Cygwin, but it will not be able to open PDFs properly due to the way binaries compiled with Cygwin handle file paths.
 
-** Compiling and Installing the ~epdfinfo~ server
+** Installing the ~epdfinfo~ server
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       e305cd0a-e798-4c2b-af27-21bcd936c1c9
 :END:
+*** Compiling and Installing the ~epdfinfo~ server from source on Linux
+:PROPERTIES:
+:CREATED:  [2022-02-13 Sun 23:11]
+:ID:       bd7fd084-8fdf-4698-b40a-da75920d17ed
+:END:
+Note that this is the only officially supported method for installing the ~epdfinfo~ binary. Instructions:
+
 #+begin_src sh
     $ cd /path/to/pdf-tools
     $ make -s
 #+end_src
 
 This should compile the source code and create a Emacs Lisp Package in the root directory of the project. The configure script also tells you at the very end, which features, depending on the ~libpoppler~ version, will be available. These commands should give no error, otherwise you are in trouble.
-*** Installing the ~epdinfo~ server On Windows
+*** Compiling and Installing the ~epdfinfo~ server from source on Windows
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       d14e01ff-9bd5-47ee-86fc-859b4499d5d7
 :END:
-**** Using the pre-built MINGW packages from MSYS2
-:PROPERTIES:
-:CREATED:  [2022-02-13 Sun 22:55]
-:ID:       1fc6e25b-ae09-45d7-8288-c57c7065326c
-:END:
-Users installing Emacs from the MSYS2 distribution can install pre-build binaries of the ~epdfinfo~ server.
 
-1. [[https://www.msys2.org/][Install MSYS2]] and update the package database and core packages using the instructions provided.
-2. Install packages: ~pacman -Ss mingw-w64-x86_64-{emacs,emacs-pdf-tools-server,imagemagick}~ (ImageMagick is optional, see above.)
-3. Make sure Emacs can find ~epdfinfo.exe~. Either add the MINGW install location (e.g. ~C:/msys2/mingw64/bin~) to the system path with ~setx PATH "C:\msys2\mingw64\bin;%PATH%"~ or set Emacs's path with ~(setenv "PATH" (concat "C:\\msys64\\mingw64\\bin;" (getenv "PATH")))~. Note that libraries from other GNU utilities, such as Git for Windows, may interfere with those needed by ~pdf-tools~. ~pdf-info-check-epdinfo~ will succeed, but errors occur when trying to view a PDF file. This can be fixed by ensuring that the MSYS libraries are always preferred.
-4. Add ~(pdf-tools-install)~ to your Emacs config.
-
-**** Compiling the ~epdfinfo~ server On Windows
-:PROPERTIES:
-:CREATED:  [2022-02-13 Sun 22:58]
-:ID:       d0aa0c5f-fc64-49a4-8593-ab09522289ff
-:END:
 If using the GNU binaries for Windows, support for PNG and ~zlib~ must first be installed by copying the appropriate dlls into emacs' ~bin/~ directory. Most third-party binaries come with this already done.
 
 First, [[https://www.msys2.org/][install MSYS2]] and update the package database and core packages using the instructions provided. Then, to compile ~pdf-tools~ itself:
@@ -213,6 +210,38 @@ First, [[https://www.msys2.org/][install MSYS2]] and update the package database
 
 If this is successful, ~(pdf-tools-install)~ can be added to Emacs' config. See the note on how to set up PATH in the previous section.
 
+*** Installing the ~epdfinfo~ server from package managers
+:PROPERTIES:
+:CREATED:  [2022-02-13 Sun 23:10]
+:ID:       fb5cef15-fed4-4dec-a443-52f7c00c7831
+:END:
+Note that the packages available on these package managers are not maintained by the author and might be outdated.
+**** Using the pre-built MINGW packages from MSYS2 on Windows
+:PROPERTIES:
+:CREATED:  [2022-02-13 Sun 22:55]
+:ID:       1fc6e25b-ae09-45d7-8288-c57c7065326c
+:END:
+Package maintained at: https://packages.msys2.org/package/mingw-w64-x86_64-emacs-pdf-tools-server?repo=mingw64
+
+Users installing Emacs from the MSYS2 distribution can install pre-built binaries of the ~epdfinfo~ server.
+
+1. [[https://www.msys2.org/][Install MSYS2]] and update the package database and core packages using the instructions provided.
+2. Install packages: ~pacman -Ss mingw-w64-x86_64-{emacs,emacs-pdf-tools-server,imagemagick}~ (ImageMagick is optional, see above.)
+3. Make sure Emacs can find ~epdfinfo.exe~. Either add the MINGW install location (e.g. ~C:/msys2/mingw64/bin~) to the system path with ~setx PATH "C:\msys2\mingw64\bin;%PATH%"~ or set Emacs's path with ~(setenv "PATH" (concat "C:\\msys64\\mingw64\\bin;" (getenv "PATH")))~. Note that libraries from other GNU utilities, such as Git for Windows, may interfere with those needed by ~pdf-tools~. ~pdf-info-check-epdinfo~ will succeed, but errors occur when trying to view a PDF file. This can be fixed by ensuring that the MSYS libraries are always preferred.
+4. Add ~(pdf-tools-install)~ to your Emacs config.
+
+**** Using the pre-built packages from Debian
+:PROPERTIES:
+:CREATED:  [2022-02-13 Sun 23:30]
+:ID:       416af9e8-b437-4f6e-ac21-15b79822780e
+:END:
+Package maintained at: https://packages.debian.org/buster/elpa-pdf-tools-server
+**** Using the pre-built packages from Ubuntu
+:PROPERTIES:
+:CREATED:  [2022-02-13 Sun 23:31]
+:ID:       b2c49338-845f-421a-93f3-a3da5efcc4ac
+:END:
+Package maintained at: https://packages.ubuntu.com/impish/elpa-pdf-tools-server
 ** Installing ~pdf-tools~ elisp prerequisites
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
