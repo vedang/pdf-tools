@@ -44,7 +44,11 @@ You should not require any manual changes. The documentation below is *only* if 
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       8ce3cf4e-d186-4de1-a40e-f41063068ab0
 :END:
-You'll need GNU Emacs \ge 26.1 and some form of a GNU/Linux OS. Other operating systems are not officially supported, but ~pdf-tools~ is known to work on many of them. Similarly, package-managers are not officially supported, but ~pdf-tools~ is known to be available on some of them. See the links below, and in the [[id:fb5cef15-fed4-4dec-a443-52f7c00c7831][Installing the ~epdfinfo~ server from package managers]] section for more details.
+If you install ~pdf-tools~ via NonGNU ELPA or MELPA, you don't need to worry about this separate server installation at all. However, if you have a non-standard installation, please refer to the links below for installing ~epdfinfo~ server prerequisites.
+
+Note: You'll need GNU Emacs \ge 26.1 and some form of a GNU/Linux OS. Other operating systems are not officially supported, but ~pdf-tools~ is known to work on many of them.
+
+Similarly, package-managers are not officially supported, but ~pdf-tools~ is known to be available on some of them. See the section on [[id:fb5cef15-fed4-4dec-a443-52f7c00c7831][Installing the ~epdfinfo~ server from package managers]] to avoid manual installation of server / server prerequisites
 
 *** Installing ~epdfinfo~ Server Prerequisites on a Debian-based system
 :PROPERTIES:
@@ -154,6 +158,7 @@ The pre-built binaries will work with native (not Cygwin) Windows builds of Emac
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       e305cd0a-e798-4c2b-af27-21bcd936c1c9
 :END:
+If you install ~pdf-tools~ via NonGNU ELPA or MELPA, you don't need to worry about this separate server installation at all. However, if you have a non-standard installation, please refer to the links below for installing ~epdfinfo~.
 *** Compiling and Installing the ~epdfinfo~ server from source on Linux
 :PROPERTIES:
 :CREATED:  [2022-02-13 Sun 23:11]
