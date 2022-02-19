@@ -1191,7 +1191,16 @@ The colors are determined by the variable
                   (pdf-info-setoptions
                    :render/foreground (or (car pdf-view-midnight-colors) "black")
                    :render/background (or (cdr pdf-view-midnight-colors) "white")
-                   :render/usecolors (if pdf-view-midnight-invert 2 1)))))
+                   :render/usecolors
+                   (if pdf-view-midnight-invert
+                       ;; If midnight invert is enabled, pass "2" indicating
+                       ;; that :render/foreground and :render/background should
+                       ;; be ignored and to instead invert the PDF (preserving
+                       ;; hue)
+                       2
+                     ;; If invert is not enabled, pass "1" indictating that
+                     ;; :render/foreground and :render/background should be used
+                     1)))))
     (cond
      (pdf-view-midnight-minor-mode
       (add-hook 'after-save-hook enable nil t)
@@ -1200,7 +1209,9 @@ The colors are determined by the variable
      (t
       (remove-hook 'after-save-hook enable t)
       (remove-hook 'after-revert-hook enable t)
-      (pdf-info-setoptions :render/usecolors 0))))
+      (pdf-info-setoptions
+       ;; Value "0" indicates that colors should remain unchanged
+       :render/usecolors 0))))
   (pdf-cache-clear-images)
   (pdf-view-redisplay t))
 
