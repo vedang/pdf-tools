@@ -239,6 +239,7 @@ Returns a appropriate directory or nil.  See also
            (list default-directory
                  (expand-file-name "build/server" pdf-tools-directory)
                  (expand-file-name "server")
+                 (expand-file-name "server" pdf-tools-directory)
                  (expand-file-name "../server" pdf-tools-directory))))
 
 (defun pdf-tools-msys2-directory (&optional noninteractive-p)
