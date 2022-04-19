@@ -133,6 +133,22 @@ If you choose not to install from MELPA, you must substitute ~gmake~ for ~make~ 
   $ sudo dnf install make automake autoconf gcc gcc-c++ ImageMagick libpng-devel zlib-devel poppler-glib-devel
 #+END_SRC
 
+*** Installing ~epdfinfo~ Server Prerequisites On openSUSE
+:PROPERTIES:
+:ID:       07033620-fee5-4b52-a99d-e62e4b758ccc
+:CREATED:  [2022-04-25 Mon 21:09]
+:END:
+For openSUSE Tumbleweed and Leap:
+#+BEGIN_SRC sh
+  $ sudo zypper install make automake autoconf gcc gcc-c++ libpng16-devel libpng16-compat-devel zlib-devel libpoppler-devel libpoppler-glib-devel glib2-devel
+#+END_SRC
+
+For openSUSE MicroOS Desktop:
+#+BEGIN_SRC sh
+  $ pkcon install make automake autoconf gcc gcc-c++ libpng16-devel libpng16-compat-devel zlib-devel libpoppler-devel libpoppler-glib-devel glib2-devel
+#+END_SRC
+
+There is one feature (following links of a PDF document by plain keystrokes) which requires imagemagick's convert utility. This requirement is optional and you may install the imagemagick package via the package manager of your choice.
 *** Installing ~epdfinfo~ Server Prerequisites On Alpine Linux
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
