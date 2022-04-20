@@ -433,11 +433,15 @@ See `pdf-view-mode' and `pdf-tools-enabled-modes'."
     (pdf-virtual-global-minor-mode 1))
   (add-hook 'pdf-view-mode-hook #'pdf-tools-enable-minor-modes)
   (dolist (buf (buffer-list))
-    (with-current-buffer buf
-      (when (and (not (derived-mode-p 'pdf-view-mode))
-                 (pdf-tools-pdf-buffer-p)
-                 (buffer-file-name))
-        (pdf-view-mode)))))
+    ;; This when check should not be necessary, but somehow dead
+    ;; buffers are showing up here. See
+    ;; https://github.com/vedang/pdf-tools/pull/93
+    (when (buffer-live-p buf)
+      (with-current-buffer buf
+        (when (and (not (derived-mode-p 'pdf-view-mode))
+                   (pdf-tools-pdf-buffer-p)
+                   (buffer-file-name))
+          (pdf-view-mode))))))
 
 (defun pdf-tools-uninstall ()
   "Uninstall PDF-Tools in all current and future PDF buffers."
