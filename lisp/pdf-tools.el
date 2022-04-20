@@ -433,11 +433,12 @@ See `pdf-view-mode' and `pdf-tools-enabled-modes'."
     (pdf-virtual-global-minor-mode 1))
   (add-hook 'pdf-view-mode-hook #'pdf-tools-enable-minor-modes)
   (dolist (buf (buffer-list))
-    (with-current-buffer buf
-      (when (and (not (derived-mode-p 'pdf-view-mode))
-                 (pdf-tools-pdf-buffer-p)
-                 (buffer-file-name))
-        (pdf-view-mode)))))
+    (when (buffer-live-p buf)
+      (with-current-buffer buf
+        (when (and (not (derived-mode-p 'pdf-view-mode))
+                   (pdf-tools-pdf-buffer-p)
+                   (buffer-file-name))
+          (pdf-view-mode))))))
 
 (defun pdf-tools-uninstall ()
   "Uninstall PDF-Tools in all current and future PDF buffers."
