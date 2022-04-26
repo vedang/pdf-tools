@@ -567,4 +567,4 @@ to scale the images correctly when rendering them.
 :CREATED:  [2022-01-02 Sun 10:12]
 :ID:       f44c66e6-402d-4154-b806-6bb4180a0a5b
 :END:
-~pdf-tools~ supports the 3 latest versions of Emacs major releases. At the moment of this writing, this means that the minimum supported Emacs version is ~25.1~.
+~pdf-tools~ supports the 3 latest versions of Emacs major releases. At the moment of this writing, this means that the minimum supported Emacs version is ~26.1~.

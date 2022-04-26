@@ -2,8 +2,8 @@
 
 * Version 1.0.0 (Under Development)
 From this version onward, we will follow Semantic Versioning for new ~pdf-tools~ releases.
-** Raise the minimum supported version of Emacs to 25.1
-Drop support for Emacs 24. This allows for some code cleanup.
+** Raise the minimum supported version of Emacs to 26.1
+Drop support for Emacs 24 and 25. This allows for some code cleanup.
 * Version 0.91
 ** Change the keybindings for traversing history
 This is a minor but *breaking change*. ~l~ (backward) and ~r~ (forward) are the conventional bindings for history navigation in Emacs, but ~pdf-tools~ uses ~B~ and ~N~. The previous keybindings are kept as-is for people who were used to it, while introducing ~l~ and ~r~ keybindings as well.
