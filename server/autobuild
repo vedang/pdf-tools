@@ -319,6 +319,7 @@ os_msys2() {
         MINGW64)
             PACKAGES="base-devel
                       autoconf
+                      automake
                       mingw-w64-x86_64-libpng
                       mingw-w64-x86_64-poppler
                       mingw-w64-x86_64-imagemagick
@@ -328,6 +329,7 @@ os_msys2() {
         MINGW32)
             PACKAGES="base-devel
                       autoconf
+                      automake
                       mingw-w64-i686-libpng
                       mingw-w64-i686-poppler
                       mingw-w64-i686-imagemagick
