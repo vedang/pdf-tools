@@ -443,6 +443,32 @@ os_void() {
     return 0
 }
 
+# openSUSE (TODO: add support for micro versions)
+os_opensuse() {
+    if [ -f "/etc/os-release" ]; then
+        . /etc/os-release
+        if [ "$ID" != "opensuse-leap" ] && [ "$ID" != "opensuse-tumbleweed" ]; then
+          return 1
+        fi
+    else
+      return 1
+    fi
+    PACKAGES="make
+              automake
+              autoconf
+              gcc
+              gcc-c++
+              libpng16-devel
+              libpng16-compat-devel
+              zlib-devel
+              libpoppler-devel
+              libpoppler-glib-devel
+              glib2-devel"
+    PKGCMD=zypper
+    PKGARGS="install"
+    return 0
+}
+
 # By Parameter --os
 os_argument() {
     [ -z "$OS" ] && return 1
@@ -458,6 +484,7 @@ os_argument() {
         msys2)   os_msys2   "$@";;
         nixos)   os_nixos   "$@";;
         void)    os_void    "$@";;
+        opensuse) os_opensuse "$@";;
         *)       echo "Invalid --os argument: $OS"
                  exit 1
     esac || {
@@ -484,6 +511,7 @@ os_gentoo   "$@" || \
 os_msys2    "$@" || \
 os_nixos    "$@" || \
 os_void     "$@" || \
+os_opensuse "$@" || \
 {
     OS_IS_HANDLED=
     if [ -z "$DRY_RUN" ]; then
