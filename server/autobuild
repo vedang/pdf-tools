@@ -463,7 +463,8 @@ os_opensuse() {
               zlib-devel
               libpoppler-devel
               libpoppler-glib-devel
-              glib2-devel"
+              glib2-devel
+              pkgconf"
     PKGCMD=zypper
     PKGARGS="install"
     return 0
