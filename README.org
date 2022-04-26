@@ -32,7 +32,7 @@ Actually, displaying PDF files is just one part of ~pdf-tools~. Since ~poppler~ 
 Installing this package via NonGNU ELPA or MELPA or any of the other package managers is straightforward and should just work.
 ~pdf-tools~ requires a server ~epdfinfo~ to run against, which it will try to compile and build when it is activated for the first time.
 
-You should not require any manual changes. The documentation below is *only* if you are installing from source, or for troubleshooting / debugging purposes.
+You should not require any manual changes. The documentation below is *only if you are installing from source*, or for troubleshooting / debugging purposes.
 
 - [[brain-child:8ce3cf4e-d186-4de1-a40e-f41063068ab0][Installing ~epdfinfo~ server prerequisites]]
 - [[brain-child:e305cd0a-e798-4c2b-af27-21bcd936c1c9][Installing the ~epdfinfo~ server]]
@@ -44,11 +44,13 @@ You should not require any manual changes. The documentation below is *only* if 
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       8ce3cf4e-d186-4de1-a40e-f41063068ab0
 :END:
-If you install ~pdf-tools~ via NonGNU ELPA or MELPA, you don't need to worry about this separate server installation at all. However, if you have a non-standard installation, please refer to the links below for installing ~epdfinfo~ server prerequisites.
+If you install ~pdf-tools~ via NonGNU ELPA or MELPA, *you don't need to worry about this separate server installation at all*.  However, if you have a non-standard installation, please refer to the links below for installing ~epdfinfo~ server prerequisites.
 
 Note: You'll need GNU Emacs \ge 26.1 and some form of a GNU/Linux OS. Other operating systems are not officially supported, but ~pdf-tools~ is known to work on many of them.
 
-Similarly, package-managers are not officially supported, but ~pdf-tools~ is known to be available on some of them. See the section on [[id:fb5cef15-fed4-4dec-a443-52f7c00c7831][Installing the ~epdfinfo~ server from package managers]] to avoid manual installation of server / server prerequisites
+Similarly, package-managers are not officially supported, but ~pdf-tools~ is known to be available on some of them. See the section on [[id:fb5cef15-fed4-4dec-a443-52f7c00c7831][Installing the ~epdfinfo~ server from package managers]] to avoid manual installation of server / server prerequisites.
+
+See the section on [[id:A34704B9-1B51-4614-8806-C4059F7B42D5][I want to add support for ~pdf-tools~ on =My Fav OS=. How do I do that?]] to add your favorite Operating System to this list.
 
 *** Installing ~epdfinfo~ Server Prerequisites on a Debian-based system
 :PROPERTIES:
@@ -568,3 +570,19 @@ to scale the images correctly when rendering them.
 :ID:       f44c66e6-402d-4154-b806-6bb4180a0a5b
 :END:
 ~pdf-tools~ supports the 3 latest versions of Emacs major releases. At the moment of this writing, this means that the minimum supported Emacs version is ~26.1~.
+** I want to add support for ~pdf-tools~ on =My Fav OS=. How do I do that?
+:PROPERTIES:
+:CREATED:  [2022-04-25 Mon 21:50]
+:ID:       A34704B9-1B51-4614-8806-C4059F7B42D5
+:END:
+I'm working on automating ~pdf-tools~ installation as much as possible, in order to improve the installation experience. If you want to add support for a new / currently unsupported Operating System, please modify the ~server/autobuild~ script. Say you want to support a new Operating System called MyFavOS. You need to do the following work:
+
+1. Add a call to ~os_myfavos~ under ~handle-options~ at the end of the existing call chain. Here we try and pick up the correct Operating System and install the relevant dependencies.
+2. Add handling for the ~--os~ argument in ~os_argument~ for ~myfavos~, so that the appropriate function can be called to install pre-requisites. ~--os~ is the argument that we pass to the script from the command-line to indicate which OS we are on.
+3. Create a ~os_myfavos~ function. This function checks if we are running on MyFavOS. If we are running on MyFavOS, it sets up ~PKGCMD~, ~PKGARGS~ and ~PACKAGES~ variables so that the appropriate package manager can install the dependencies as part of the rest of the ~autobuild~ script.
+
+The idea here is to make the ~server/autobuild~ file the single place from which installation can happen on any Operating System. This makes building ~pdf-tools~ dead simple via the ~Makefile~.
+
+This seems like a lot of work, but it is not. If you need a reference, search for ~os_gentoo~ or ~os_debian~ in the ~server/autobuild~ file and see how these are setup and used. The functions are used to install dependencies on Gentoo and Debian respectively, and are simple to copy / change.
+
+When you make your changes, be sure to test them!
