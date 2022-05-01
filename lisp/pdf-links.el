@@ -209,16 +209,20 @@ scroll the current page."
            (when (derived-mode-p 'pdf-view-mode)
              (when (> .page 0)
                (pdf-view-goto-page .page))
-             (when .top
+             ;; TODO fix pdf-util-tooltip-arrow function for image-roll
+             ;; compatibility
+
+             ;;(when .top
                ;; Showing the tooltip delays displaying the page for
                ;; some reason (sit-for/redisplay don't help), do it
                ;; later.
-               (run-with-idle-timer 0.001 nil
-                 (lambda ()
-                   (when (window-live-p window)
-                     (with-selected-window window
-                       (when (derived-mode-p 'pdf-view-mode)
-                         (pdf-util-tooltip-arrow .top)))))))))))
+               ;;(run-with-idle-timer 0.001 nil
+                 ;;(lambda ()
+                   ;;(when (window-live-p window)
+                     ;;(with-selected-window window
+                       ;;(when (derived-mode-p 'pdf-view-mode)
+                         ;;(pdf-util-tooltip-arrow .top)))))))
+             ))))
       (uri
        (funcall pdf-links-browse-uri-function .uri))
       (t
@@ -266,7 +270,8 @@ See `pdf-links-action-perform' for the interface."
              (pdf-view-current-page)
              (car size) image-data 'pdf-links-read-link-action))
           (pdf-view-display-image
-           (create-image image-data (pdf-view-image-type) t))
+           (create-image image-data (pdf-view-image-type) t)
+           (when pdf-view-roll-minor-mode (pdf-view-current-page)))
           (pdf-links-read-link-action--read-chars prompt alist))
       (pdf-view-redisplay))))
 

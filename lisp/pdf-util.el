@@ -347,7 +347,8 @@ needed."
   (unless context-pixel
     (setq context-pixel 0))
   (let* ((win (window-inside-pixel-edges))
-         (image-width (car (pdf-view-image-size t)))
+         (image-width (car (pdf-view-image-size (unless pdf-view-roll-minor-mode
+                                                  t))))
          (image-left (* (frame-char-width)
                         (window-hscroll)))
          (edges (pdf-util-translate
@@ -387,7 +388,9 @@ Note: For versions of emacs before 27 this will return lines instead of
 pixels. This is because of a change that occurred to `image-mode' in 27."
   (pdf-util-assert-pdf-window)
   (let* ((win (window-inside-pixel-edges))
-         (image-height (cdr (pdf-view-image-size t)))
+         (image-height (cdr (pdf-view-image-size
+                             (unless pdf-view-roll-minor-mode
+                               t))))
          (image-top (window-vscroll nil t))
          (edges (pdf-util-translate
                  edges

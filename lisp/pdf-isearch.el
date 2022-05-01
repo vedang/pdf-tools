@@ -743,7 +743,8 @@ MATCH-BG LAZY-FG LAZY-BG\)."
                                  occur-hack-p)
                              (eq page (pdf-view-current-page)))
                     (pdf-view-display-image
-                     (pdf-view-create-image data :width width))))))))
+                     (pdf-view-create-image data :width width)
+                     (when pdf-view-roll-minor-mode page))))))))
       (pdf-info-renderpage-text-regions
        page width t nil nil
        `(,fg1 ,bg1 ,@(pdf-util-scale-pixel-to-relative

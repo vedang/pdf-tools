@@ -645,6 +645,7 @@ Needs to have `pdf-sync-backward-debug-minor-mode' enabled."
 ;; * Forward search (TeX -> PDF)
 ;; * ================================================================== *
 
+;; TODO adapt for `pdf-view-roll-minor-mode' (see pdf-scroll.el)
 (defun pdf-sync-forward-search (&optional line column)
   "Display the PDF location corresponding to LINE, COLUMN."
   (interactive)
