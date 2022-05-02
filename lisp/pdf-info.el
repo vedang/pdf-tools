@@ -114,49 +114,6 @@ provided by the ‘epdfinfo' server. "
   "Filename of the epdfinfo executable."
   :type 'file)
 
-(defcustom pdf-info-vimura-program
-  (let ((executable "vimura.py")
-        (default-directory
-          (or (and load-file-name
-                   (file-name-directory load-file-name))
-              default-directory)))
-    (cl-labels ((try-directory (directory)
-                               (and (file-directory-p directory)
-                                    (file-executable-p (expand-file-name executable directory))
-                                    (expand-file-name executable directory))))
-      (or (try-directory (expand-file-name "../vimura-server"))
-          ;; Fall back to epdfinfo in the directory of this file.
-          (expand-file-name executable))))
-  "Filename of the epdfinfo executable."
-  :group 'pdf-info
-  :type 'file)
-
-(defcustom pdf-info-vimura-program
-  (let ((executable "vimura.py")
-        (default-directory
-          (or (and load-file-name
-                   (file-name-directory load-file-name))
-              default-directory)))
-    (cl-labels ((try-directory (directory)
-                  (and (file-directory-p directory)
-                       (file-executable-p (expand-file-name executable directory))
-                       (expand-file-name executable directory))))
-      (or (executable-find executable)
-          ;; This works if epdfinfo is in the same place as emacs and
-          ;; the editor was started with an absolute path, i.e. it is
-          ;; meant for Windows/Msys2.
-          (and (stringp (car-safe command-line-args))
-               (file-name-directory (car command-line-args))
-               (try-directory
-                (file-name-directory (car command-line-args))))
-          ;; If we are running directly from the git repo.
-          (try-directory (expand-file-name "../pymupdf/tq/server"))
-          ;; Fall back to epdfinfo in the directory of this file.
-          (expand-file-name executable))))
-  "Filename of the epdfinfo executable."
-  :group 'pdf-info
-  :type 'file)
-
 (defcustom pdf-info-epdfinfo-error-filename nil
   "Filename for error output of the epdfinfo executable.
 
@@ -378,26 +335,34 @@ error."
         (setq pdf-info-restart-process-p nil))
       (error "The epdfinfo server quit"))
     ;; (pdf-info-check-epdfinfo)
-    (setenv "PYTHONSTARTUP" "/home/dalanicolai/test/python-tq-startup.el")
-    (let* (
-           ;; (process-connection-type)    ;Avoid 4096 Byte bug #12440.
-           (default-directory "~")
-           (cmd-and-args (pcase pdf-info-current-backend
-                           ('epdfinfo (nconc (list pdf-info-epdfinfo-program)
-                                             (when pdf-info-epdfinfo-error-filename
-                                               (list pdf-info-epdfinfo-error-filename))))
-                           ('vimura '("python" "-q"))))
-           (proc (apply #'start-process
-                        "epdfinfo" " *epdfinfo*" cmd-and-args)))
-      (when (eq pdf-info-current-backend 'vimura)
-        (process-send-string proc (with-temp-buffer
-                                    (insert-file-contents-literally pdf-info-vimura-program)
-                                    (buffer-string))))
-      (with-current-buffer " *epdfinfo*"
-        (erase-buffer))
-      (set-process-query-on-exit-flag proc nil)
-      (set-process-coding-system proc 'utf-8-unix 'utf-8-unix)
-      (setq pdf-info--queue (tq-create proc))))
+    (let ((vimura-dir (concat
+                       (file-name-as-directory
+                        (substring
+                         (shell-command-to-string "python -m site --user-site")
+                         0 -1))
+                       "vimura_server/")))
+      (setenv "PYTHONSTARTUP" (concat vimura-dir "pythonstartup.py"))
+      (let* (
+             ;; (process-connection-type)    ;Avoid 4096 Byte bug #12440.
+             (default-directory "~")
+             (cmd-and-args (pcase pdf-info-current-backend
+                             ('epdfinfo (nconc (list pdf-info-epdfinfo-program)
+                                               (when pdf-info-epdfinfo-error-filename
+                                                 (list pdf-info-epdfinfo-error-filename))))
+                             ('vimura '("python" "-q"))))
+             (proc (apply #'start-process
+                          "epdfinfo" " *epdfinfo*" cmd-and-args)))
+        (when (eq pdf-info-current-backend 'vimura)
+          (process-send-string proc
+                               (with-temp-buffer
+                                 (insert-file-contents-literally
+                                  (concat vimura-dir "vimura.py"))
+                                 (buffer-string))))
+        (with-current-buffer " *epdfinfo*"
+          (erase-buffer))
+        (set-process-query-on-exit-flag proc nil)
+        (set-process-coding-system proc 'utf-8-unix 'utf-8-unix)
+        (setq pdf-info--queue (tq-create proc)))))
   pdf-info--queue)
 
 ;; (defadvice tq-process-buffer (around bugfix activate)

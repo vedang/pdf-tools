@@ -46,10 +46,10 @@
     his generous support.
 
 *** Requirements
-    - Python *version 3.10*
-    - [[https://pypi.org/project/PyMuPDF/][PyMuPDF]]
-    - [[https://pypi.org/project/Pillow/][Pillow]]
-    - [[https://pypi.org/project/pytz/][pytz]]
+    - Python *version 3.6
+    - [[https://pypi.org/project/vimura-server/][vimura-server 1.3]] (the vimura server can be installed using =pip install
+      --user vimura-server=. Including =--user= is important as this branch assumes
+      the server is installed as user site-package.)
     
 *** Usage
     Install this branch using a Quelpa recipe. In Spacemacs I am using the
@@ -62,7 +62,6 @@
                             :branch "pymupdf-tq"
                             :files ("lisp/*.el"
                                     "README"
-                                    "vimura-server/*.py"
                                     ("build" "Makefile")
                                     ("build" "server")
                                     (:exclude "lisp/tablist.el" "lisp/tablist-filter.el"))))
