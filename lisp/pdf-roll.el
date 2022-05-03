@@ -27,12 +27,12 @@
   (require 'pdf-view))
 
 
-(defun pdf-scroll-page-sizes ()
+(defun pdf-roll-page-sizes ()
   (let (s)
     (dotimes (i (pdf-info-number-of-pages) (nreverse s))
       (push (pdf-view-desired-image-size (1+ i)) s))))
 
-(defun pdf-scroll-set-redisplay-flag-function ()
+(defun pdf-roll-set-redisplay-flag-function ()
   (setf (pdf-view-window-needs-redisplay) t))
 
 (define-minor-mode pdf-view-roll-minor-mode
@@ -46,25 +46,25 @@ continuous scrolling."
   (cond (pdf-view-roll-minor-mode
          (setq-local image-roll-last-page (pdf-cache-number-of-pages)
                      image-roll-display-page-function 'pdf-view-display-page
-                     image-roll-page-sizes-function 'pdf-scroll-page-sizes
-                     image-roll-set-redisplay-flag-function 'pdf-scroll-set-redisplay-flag-function
+                     image-roll-page-sizes-function 'pdf-roll-page-sizes
+                     image-roll-set-redisplay-flag-function 'pdf-roll-set-redisplay-flag-function
 
                      image-roll-center t)
 
-         (add-hook 'window-configuration-change-hook 'image-roll--redisplay nil t)
+         (add-hook 'window-configuration-change-hook 'image-roll-redisplay nil t)
 
          (remove-hook 'image-mode-new-window-functions
 	                    #'pdf-view-new-window-function t)
-         (add-hook 'image-mode-new-window-functions 'image-roll--new-window-function nil t)
+         (add-hook 'image-mode-new-window-functions 'image-roll-new-window-function nil t)
 
          (let ((inhibit-read-only t))
            (erase-buffer)
-           (image-roll--new-window-function (list (selected-window))))
+           (image-roll-new-window-function (list (selected-window))))
          (pdf-view-redisplay))
         (t
-         (remove-hook 'window-configuration-change-hook 'image-roll--redisplay t)
+         (remove-hook 'window-configuration-change-hook 'image-roll-redisplay t)
 
-         (remove-hook 'image-mode-new-window-functions 'image-roll--new-window-function t)
+         (remove-hook 'image-mode-new-window-functions 'image-roll-new-window-function t)
          (add-hook 'image-mode-new-window-functions
 	                    #'pdf-view-new-window-function nil t)
          (let ((inhibit-read-only t))

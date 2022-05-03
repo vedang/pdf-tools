@@ -1235,7 +1235,7 @@ If WINDOW is t, redisplay pages in all windows."
 
 (defun pdf-view-redisplay (&optional window)
   (if pdf-view-roll-minor-mode
-      (image-roll--redisplay window)
+      (image-roll-redisplay window)
     (pdf-view--redisplay window)))
 
 (defun pdf-view-redisplay-pages (&rest pages)
