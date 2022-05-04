@@ -749,8 +749,10 @@ windows."
 
 Optional parameter N moves N pages forward."
   (interactive "p")
-  (pdf-view-goto-page (+ (pdf-view-current-page)
-                         (or n 1))))
+  (if pdf-view-roll-minor-mode
+      (image-roll-next-page n)
+    (pdf-view-goto-page (+ (pdf-view-current-page)
+                           (or n 1)))))
 
 (defun pdf-view-previous-page (&optional n)
   "View the previous page in the PDF.
