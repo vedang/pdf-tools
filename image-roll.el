@@ -407,7 +407,7 @@ is a substitute for the `pdf-view-redisplay' function)."
 
 (defun image-roll-next-page (&optional n)
   (interactive "p")
-  ;; (set-window-start nil (+ (point) 2))
+  (set-window-start nil (+ (point) 2) t)
   (image-roll-goto-page (+ (image-roll-current-page) n)))
 
 (defun image-roll-previous-page (&optional n)
