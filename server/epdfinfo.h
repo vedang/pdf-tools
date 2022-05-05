@@ -245,8 +245,8 @@ typedef struct
 } command_t;
 
 /* Defined in poppler-hack.cc */
-#ifdef HAVE_POPPLER_ANNOT_WRITE
-extern void xpoppler_annot_set_rectangle (PopplerAnnot*, PopplerRectangle*);
-#endif
-extern gchar *xpoppler_annot_markup_get_created (PopplerAnnotMarkup*);
+/* #ifdef HAVE_POPPLER_ANNOT_WRITE */
+/* extern void xpoppler_annot_set_rectangle (PopplerAnnot*, PopplerRectangle*); */
+/* #endif */
+/* extern gchar *xpoppler_annot_markup_get_created (PopplerAnnotMarkup*); */
 #endif  /* _EPDF_H_ */
