@@ -886,7 +886,7 @@ at the bottom edge of the page moves to the next page."
 (defun pdf-view-next-line-or-next-page (&optional arg)
   (interactive "p")
   (if pdf-view-roll-minor-mode
-      (image-roll-scroll-forward)
+      (dotimes (_ (or arg 1)) (image-roll-scroll-forward))
     (pdf-view--next-line-or-next-page arg)))
 
 (defun pdf-view--previous-line-or-previous-page (&optional arg)
@@ -910,7 +910,7 @@ at the top edge of the page moves to the previous page."
 (defun pdf-view-previous-line-or-previous-page (&optional arg)
   (interactive "p")
   (if pdf-view-roll-minor-mode
-      (image-roll-scroll-backward)
+      (dotimes (_ (or arg 1)) (image-roll-scroll-backward))
     (pdf-view--previous-line-or-previous-page arg)))
 
 (defun pdf-view-goto-label (label)
