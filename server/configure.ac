@@ -10,7 +10,6 @@ AC_CONFIG_HEADERS([config.h])
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
-AC_PROG_CXX
 AC_PROG_RANLIB
 AM_PROG_AR
 
@@ -42,22 +41,6 @@ if test "$have_w32" = true; then
     CFLAGS="-D__USE_MINGW_ANSI_STDIO=1 $CFLAGS"
   fi
 fi
-
-SAVED_CPPFLAGS=$CPPFLAGS
-CPPFLAGS=$poppler_CFLAGS
-AC_LANG_PUSH([C++])
-# Check if we can use the -std=c++11 option.
-m4_include([m4/ax_check_compile_flag.m4])
-AX_CHECK_COMPILE_FLAG([-std=c++11], [HAVE_STD_CXX11=yes])
-
-if test "$HAVE_STD_CXX11" = yes; then
-  CXXFLAGS="-std=c++11 $CXXFLAGS"
-fi
-# Check for private poppler header.
-AC_CHECK_HEADERS([Annot.h PDFDocEncoding.h], [],
-    AC_MSG_ERROR([cannot find necessary  poppler-private header (see README.org)]))
-AC_LANG_POP([C++])
-CPPFLAGS=$SAVED_CPPFLAGS
 
 # Setup compile time features.
 if test "$HAVE_POPPLER_FIND_OPTS" = yes; then

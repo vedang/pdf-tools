@@ -4,7 +4,7 @@ version: 2.1
 default: &default-steps
   steps:
     - checkout
-    - run: apt-get update && apt-get install -y gcc g++ make automake autoconf libpng-dev libz-dev libpoppler-glib-dev libpoppler-private-dev
+    - run: apt-get update && apt-get install -y gcc make automake autoconf libpng-dev libz-dev libpoppler-glib-dev
     - run: cask upgrade-cask || true
     - run: emacs --version
     - run: cask --version

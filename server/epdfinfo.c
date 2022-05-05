@@ -1567,6 +1567,7 @@ annotation_print (const annotation_t *annot, /* const */ PopplerPage *page)
   gchar *text;
   gdouble opacity;
   cairo_region_t *region = NULL;
+  GDate *date;
 
   if (! annot || ! page)
     return;
@@ -1668,11 +1669,13 @@ annotation_print (const annotation_t *annot, /* const */ PopplerPage *page)
     printf ("::");
 
   /* Creation Date */
-  text = xpoppler_annot_markup_get_created (ma);
-  if (text)
+  date = poppler_annot_markup_get_date (ma);
+  if (date != NULL && g_date_valid(date))
     {
-      print_response_string (text, NONE);
-      g_free (text);
+      gchar datebuf[128];
+      g_date_strftime (datebuf, 127, "%x", date);
+      print_response_string (datebuf, NONE);
+      g_date_free (date);
     }
 
   /* <<< Markup Annotation <<< */
@@ -2848,7 +2851,7 @@ cmd_editannot (const epdfinfo_t *ctx, const command_arg_t *args)
           area->x1 = r.x1 * width;
           area->y2 = height - (r.y1 * height);
 
-          xpoppler_annot_set_rectangle (pa, area);
+          poppler_annot_set_rectangle (pa, area);
         }
       else if (! strcmp (key, "label"))
         {

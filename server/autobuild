@@ -157,8 +157,6 @@ have_packages_installed()
         done
         which make || return 1
         which gcc || which cc || return 1
-        which g++ || which c++ || return 1
-        c++ $(pkg-config --cflags poppler) -o /dev/null -E install_test.cpp 2>/dev/null
         [ $? -eq 0 ] || return 1
         return 0
     } >/dev/null 2>&1
@@ -221,7 +219,6 @@ os_centos() {
     PACKAGES="autoconf
               automake
               gcc
-              gcc-c++
               libpng-devel
               make
               pkgconfig
@@ -252,15 +249,6 @@ os_openbsd() {
     PACKAGES="autoconf%2.69 automake%1.15 poppler poppler-utils png"
     export AUTOCONF_VERSION=2.69
     export AUTOMAKE_VERSION=1.15
-    if whereis clang++ ;then
-        export CXX=clang++
-    elif whereis eg++ ;then
-        export CXX=eg++
-    else
-        export CXX=eg++
-        PACKAGES="${PACKAGES} g++"
-    fi
-    export CXXFLAGS="-std=c++11 -I/usr/local/include/poppler -I/usr/local/include"
     return 0
 }
 
@@ -274,7 +262,6 @@ os_fedora() {
     PACKAGES="autoconf
               automake
               gcc
-              gcc-c++
               libpng-devel
               make
               poppler-devel
@@ -296,12 +283,10 @@ os_debian() {
     fi
     PACKAGES="autoconf
               automake
-              g++
               gcc
               libpng-dev
               libpoppler-dev
               libpoppler-glib-dev
-              libpoppler-private-dev
               libz-dev
               make
               pkg-config"
@@ -457,7 +442,6 @@ os_opensuse() {
               automake
               autoconf
               gcc
-              gcc-c++
               libpng16-devel
               libpng16-compat-devel
               zlib-devel
@@ -570,8 +554,8 @@ if [ -n "$INSTALL_DIR" ]; then
     prefix=--bindir=$INSTALL_DIR
 fi
 
-echo "./configure CXXFLAGS='-std=c++17' -q $prefix && make clean && make -s"
-eval "./configure CXXFLAGS='-std=c++17' -q $(quote "$prefix") && make clean && make -s || exit_fail"
+echo "./configure -q $prefix && make clean && make -s"
+eval "./configure -q $(quote "$prefix") && make clean && make -s || exit_fail"
 echo
 if [ -n "$INSTALL_DIR" ]; then
     echo "---------------------------"
