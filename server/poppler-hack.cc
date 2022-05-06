@@ -18,7 +18,7 @@
 //#include <Annot.h>
 #include <glib.h>
 #include <glib-object.h>
-#include <poppler-features.h>
+//#include <poppler-features.h>
 
 extern "C"
 {

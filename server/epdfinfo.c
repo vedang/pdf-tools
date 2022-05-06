@@ -1663,7 +1663,7 @@ annotation_print (const annotation_t *annot, /* const */ PopplerPage *page)
 
   /* Creation Date */
   date = poppler_annot_markup_get_date (ma);
-  if (g_date_valid(date))
+  if (date != NULL && g_date_valid(date))
     {
       g_date_strftime (text, 70, (const gchar*)"%x", (const GDate*)date);
       g_date_free (date);
