@@ -570,8 +570,8 @@ if [ -n "$INSTALL_DIR" ]; then
     prefix=--bindir=$INSTALL_DIR
 fi
 
-echo "./configure -q $prefix && make clean && make -s"
-eval "./configure -q $(quote "$prefix") && make clean && make -s || exit_fail"
+echo "./configure CXXFLAGS='-std=c++17' -q $prefix && make clean && make -s"
+eval "./configure CXXFLAGS='-std=c++17' -q $(quote "$prefix") && make clean && make -s || exit_fail"
 echo
 if [ -n "$INSTALL_DIR" ]; then
     echo "---------------------------"
