@@ -278,7 +278,8 @@ This is a Isearch interface function."
         ;; Don't get off track.
         (when (or (and (bobp) (not isearch-forward))
                   (and (eobp) isearch-forward))
-          (goto-char (1+ (/ (buffer-size) 2))))
+          (unless pdf-view-roll-minor-mode
+            (goto-char (1+ (/ (buffer-size) 2)))))
         ;; Signal success to isearch.
         (if isearch-forward
             (re-search-forward ".")
@@ -347,7 +348,8 @@ This is a Isearch interface function."
         pdf-isearch-current-match nil
         pdf-isearch-current-matches nil
         pdf-isearch-current-parameter nil)
-  (goto-char (1+ (/ (buffer-size) 2))))
+  (unless pdf-view-roll-minor-mode
+    (goto-char (1+ (/ (buffer-size) 2)))))
 
 (defun pdf-isearch-same-search-p (&optional ignore-search-string-p)
   "Return non-nil, if search parameter have not changed.
@@ -742,6 +744,8 @@ MATCH-BG LAZY-FG LAZY-BG\)."
                              (or isearch-mode
                                  occur-hack-p)
                              (eq page (pdf-view-current-page)))
+                    (when pdf-view-roll-minor-mode
+                      (pdf-view-goto-page page))
                     (pdf-view-display-image
                      (pdf-view-create-image data :width width)
                      (when pdf-view-roll-minor-mode page))))))))
