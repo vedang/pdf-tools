@@ -549,6 +549,8 @@ This function is used for the image-roll-demo."
       (let ((map (make-sparse-keymap)))
         (define-key map (kbd "<down>") 'image-roll-scroll-forward)
         (define-key map (kbd "<up>") 'image-roll-scroll-backward)
+        (define-key map (kbd "<mouse-5>") 'image-roll-scroll-forward)
+        (define-key map (kbd "<mouse-4>") 'image-roll-scroll-backward)
         (define-key map (kbd "<next>") 'image-roll-next-page)
         (define-key map (kbd "<prior>") 'image-roll-previous-page)
         (define-key map (kbd "S-<next>") 'image-roll-scroll-screen-forward)
