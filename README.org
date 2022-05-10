@@ -542,9 +542,14 @@ L/R scrolling breaks while zoomed into a pdf, with usage of sublimity smooth scr
 #+end_src
 Toggling debug mode prints information about various operations in the ~*Messages*~ buffer, and this is useful to see what is happening behind the scenes
 
-# Local Variables:
-# mode: org
-# End:
+** Run basic tests locally
+:PROPERTIES:
+:CREATED:  [2022-05-09 Mon 21:27]
+:ID:       1CBE7325-A5A1-479B-9A98-BEEFBAC9D8FF
+:END:
+You can go to the ~pdf-tools~ folder and run ~make test~ to run the ERT tests and check if the changes you have made to the code break any of the tests.
+
+The tests are written in ERT, which is the built-in testing system in Emacs. However, they are run using ~Cask~ which you will have to install first, if you don't have it already. You can install ~Cask~ by following the instructions on their site at https://github.com/cask/cask
 
 * FAQs
 :PROPERTIES:
@@ -627,3 +632,10 @@ You can see this by opening the =Activity Monitor=, selecting =Emacs=, clicking 
 #+end_example
 
 If your Emacs is compiled for x86, the =Code Type= will be =x86_64=.
+
+** I am a developer, making changes to the ~pdf-tools~ source code
+:PROPERTIES:
+:CREATED:  [2022-05-09 Mon 21:31]
+:ID:       2D173424-C211-4474-B0D0-83F4381CAFFA
+:END:
+Thank you for taking the time to contribute back to the code. You may find some useful notes in the [[id:fd64c10c-4ea5-4ece-8d95-b723098dd4f6][Tips and Tricks for Developers]] section. Please be sure to check it out!
