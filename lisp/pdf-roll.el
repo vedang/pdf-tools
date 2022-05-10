@@ -60,7 +60,10 @@ continuous scrolling."
          (let ((inhibit-read-only t))
            (erase-buffer)
            (image-roll-new-window-function (list (selected-window))))
-         (pdf-view-redisplay))
+         (pdf-view-redisplay)
+
+         (define-key pdf-view-mode-map (kbd "<mouse-5>") 'pdf-view-next-line-or-next-page)
+         (define-key pdf-view-mode-map (kbd "<mouse-4>") 'pdf-view-previous-line-or-previous-page))
         (t
          (remove-hook 'window-configuration-change-hook 'image-roll-redisplay t)
 
@@ -71,7 +74,9 @@ continuous scrolling."
            (erase-buffer)
            (insert-file-contents-literally (buffer-file-name))
            (pdf-view-new-window-function (list (selected-window)))
-           (set-buffer-modified-p nil)))))
+           (set-buffer-modified-p nil))
+         (define-key pdf-view-mode-map (kbd "<mouse-5>") 'mwheel-scroll)
+         (define-key pdf-view-mode-map (kbd "<mouse-4>") 'mwheel-scroll))))
 
 (provide 'pdf-roll)
 
