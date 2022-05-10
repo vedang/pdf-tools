@@ -35,7 +35,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
 #include <png.h>
 #include <math.h>
@@ -347,18 +346,26 @@ strchomp (char *str)
 static char*
 mktempfile()
 {
-  char template[] = "/tmp/epdfinfoXXXXXX";
-  char *filename = malloc(sizeof(template));
-  memcpy(filename, template, sizeof(template));
-  int fd = mkstemp(filename);
-  if (fd == -1)
+  char *filename = NULL;
+  int tries = 3;
+  while (! filename && tries-- > 0)
     {
-      fprintf (stderr, "Unable to create tempfile");
-      free(filename);
-      filename = NULL;
+
+      filename =  tempnam(NULL, "epdfinfo");
+      if (filename)
+        {
+          int fd = open(filename, O_CREAT | O_EXCL | O_RDONLY, S_IRWXU);
+          if (fd > 0)
+            close (fd);
+          else
+            {
+              free (filename);
+              filename = NULL;
+            }
+        }
     }
-  else
-    close(fd);
+  if (! filename)
+    fprintf (stderr, "Unable to create tempfile");
 
   return filename;
 }
