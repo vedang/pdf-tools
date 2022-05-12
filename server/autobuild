@@ -249,14 +249,6 @@ os_openbsd() {
     PACKAGES="autoconf%2.69 automake%1.15 poppler poppler-utils png"
     export AUTOCONF_VERSION=2.69
     export AUTOMAKE_VERSION=1.15
-    if whereis clang++ ;then
-        export CXX=clang++
-    elif whereis eg++ ;then
-        export CXX=eg++
-    else
-        export CXX=eg++
-        PACKAGES="${PACKAGES} g++"
-    fi
     return 0
 }
 
@@ -291,7 +283,6 @@ os_debian() {
     fi
     PACKAGES="autoconf
               automake
-              g++
               gcc
               libpng-dev
               libpoppler-dev
