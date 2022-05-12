@@ -1665,10 +1665,10 @@ annotation_print (const annotation_t *annot, /* const */ PopplerPage *page)
   date = poppler_annot_markup_get_date (ma);
   if (date != NULL && g_date_valid(date))
     {
-      g_date_strftime (text, 70, (const gchar*)"%x", (const GDate*)date);
+      gchar datebuf[128];
+      g_date_strftime (datebuf, 127, "%x", date);
+      print_response_string (datebuf, NONE);
       g_date_free (date);
-      print_response_string (text, NONE);
-      g_free (text);
     }
 
   /* <<< Markup Annotation <<< */

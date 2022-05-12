@@ -301,7 +301,6 @@ os_debian() {
               libpng-dev
               libpoppler-dev
               libpoppler-glib-dev
-              libpoppler-private-dev
               libz-dev
               make
               pkg-config"
