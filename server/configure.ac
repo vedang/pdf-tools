@@ -43,22 +43,6 @@ if test "$have_w32" = true; then
   fi
 fi
 
-dnl SAVED_CPPFLAGS=$CPPFLAGS
-dnl CPPFLAGS=$poppler_CFLAGS
-dnl AC_LANG_PUSH([C++])
-dnl # Check if we can use the -std=c++11 option.
-dnl m4_include([m4/ax_check_compile_flag.m4])
-dnl AX_CHECK_COMPILE_FLAG([-std=c++11], [HAVE_STD_CXX11=yes])
-dnl
-dnl if test "$HAVE_STD_CXX11" = yes; then
-dnl   CXXFLAGS="-std=c++11 $CXXFLAGS"
-dnl fi
-dnl # Check for private poppler header.
-dnl AC_CHECK_HEADERS([Annot.h PDFDocEncoding.h], [],
-dnl     AC_MSG_ERROR([cannot find necessary  poppler-private header (see README.org)]))
-dnl AC_LANG_POP([C++])
-dnl CPPFLAGS=$SAVED_CPPFLAGS
-
 # Setup compile time features.
 if test "$HAVE_POPPLER_FIND_OPTS" = yes; then
   AC_DEFINE([HAVE_POPPLER_FIND_OPTS],1,
