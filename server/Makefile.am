@@ -1,7 +1,6 @@
 bin_PROGRAMS = epdfinfo
 epdfinfo_CFLAGS = -Wall $(glib_CFLAGS) $(poppler_glib_CFLAGS) $(poppler_CFLAGS) \
 			$(png_CFLAGS)
-epdfinfo_CXXFLAGS = -Wall $(epdfinfo_CFLAGS)
 # Need -lm to link libm.so.6
 epdfinfo_LDADD =  $(glib_LIBS) $(poppler_glib_LIBS) $(poppler_LIBS) \
 			$(png_LIBS) libsynctex.a $(zlib_LIBS) -lm

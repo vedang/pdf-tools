@@ -57,7 +57,7 @@ See the section on [[id:A34704B9-1B51-4614-8806-C4059F7B42D5][I want to add supp
 :CREATED:  [2022-02-13 Sun 23:17]
 :ID:       abaae1be-3bbb-4d99-90e7-5429c56083e1
 :END:
-First make sure a suitable build-system is installed. We need at least a C/C++ compiler (both ~gcc~ and ~g++~), ~make~, ~automake~ and ~autoconf~.
+First make sure a suitable build-system is installed. We need at least a C compiler (~gcc~), ~make~, ~automake~ and ~autoconf~.
 
 Next we need to install a few libraries ~pdf-tools~ depends on, some of which are probably already on your system.
 
@@ -132,7 +132,7 @@ If you choose not to install from MELPA, you must substitute ~gmake~ for ~make~ 
 :ID:       d0013822-f4d0-4354-b3db-c54ffe41ce58
 :END:
 #+BEGIN_SRC sh
-  $ sudo dnf install make automake autoconf gcc gcc-c++ libpng-devel zlib-devel poppler-glib-devel
+  $ sudo dnf install make automake autoconf gcc libpng-devel zlib-devel poppler-glib-devel
 #+END_SRC
 
 There is one feature (following links of a PDF document by plain keystrokes) which requires imagemagick's convert utility. This requirement is optional and you may install it like so:
@@ -146,12 +146,12 @@ There is one feature (following links of a PDF document by plain keystrokes) whi
 :END:
 For openSUSE Tumbleweed and Leap:
 #+BEGIN_SRC sh
-  $ sudo zypper install make automake autoconf gcc gcc-c++ libpng16-devel libpng16-compat-devel zlib-devel libpoppler-devel libpoppler-glib-devel glib2-devel
+  $ sudo zypper install make automake autoconf gcc libpng16-devel libpng16-compat-devel zlib-devel libpoppler-devel libpoppler-glib-devel glib2-devel
 #+END_SRC
 
 For openSUSE MicroOS Desktop:
 #+BEGIN_SRC sh
-  $ pkcon install make automake autoconf gcc gcc-c++ libpng16-devel libpng16-compat-devel zlib-devel libpoppler-devel libpoppler-glib-devel glib2-devel
+  $ pkcon install make automake autoconf gcc libpng16-devel libpng16-compat-devel zlib-devel libpoppler-devel libpoppler-glib-devel glib2-devel
 #+END_SRC
 
 There is one feature (following links of a PDF document by plain keystrokes) which requires imagemagick's convert utility. This requirement is optional and you may install the imagemagick package via the package manager of your choice.
@@ -161,7 +161,7 @@ There is one feature (following links of a PDF document by plain keystrokes) whi
 :ID:       443d9b18-096e-4770-b59c-4e472a5d4b0e
 :END:
 #+BEGIN_SRC sh
-  $ apk add build-base g++ gcc automake autoconf libpng-dev glib-dev poppler-dev
+  $ apk add build-base gcc automake autoconf libpng-dev glib-dev poppler-dev
 #+END_SRC
 
 *** Installing ~epdfinfo~ Server Prerequisites On Windows
