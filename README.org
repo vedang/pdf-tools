@@ -542,9 +542,14 @@ L/R scrolling breaks while zoomed into a pdf, with usage of sublimity smooth scr
 #+end_src
 Toggling debug mode prints information about various operations in the ~*Messages*~ buffer, and this is useful to see what is happening behind the scenes
 
-# Local Variables:
-# mode: org
-# End:
+** Run basic tests locally
+:PROPERTIES:
+:CREATED:  [2022-05-09 Mon 21:27]
+:ID:       1CBE7325-A5A1-479B-9A98-BEEFBAC9D8FF
+:END:
+You can go to the ~pdf-tools~ folder and run ~make test~ to run the ERT tests and check if the changes you have made to the code break any of the tests.
+
+The tests are written in ERT, which is the built-in testing system in Emacs. However, they are run using ~Cask~ which you will have to install first, if you don't have it already. You can install ~Cask~ by following the instructions on their site at https://github.com/cask/cask
 
 * FAQs
 :PROPERTIES:
@@ -586,3 +591,51 @@ The idea here is to make the ~server/autobuild~ file the single place from which
 This seems like a lot of work, but it is not. If you need a reference, search for ~os_gentoo~ or ~os_debian~ in the ~server/autobuild~ file and see how these are setup and used. The functions are used to install dependencies on Gentoo and Debian respectively, and are simple to copy / change.
 
 When you make your changes, be sure to test them!
+
+** I am on a Macbook M1 and ~pdf-tools~ installation fails with a stack-trace
+:PROPERTIES:
+:CREATED:  [2022-05-09 Mon 20:29]
+:ID:       96D389D8-DD23-4FB0-996C-2D6F70A76BB2
+:END:
+There have been a number of issues around ~pdf-tools~ installation problems on M1. ~M-x pdf-tools-install~ throws the following stack trace:
+#+begin_example
+  1 warning generated.
+  ld: warning: ignoring file /opt/homebrew/opt/gettext/lib/libintl.dylib, building for macOS-x86_64 but attempting to link with file built for macOS-arm64
+  ld: warning: ignoring file /opt/homebrew/Cellar/glib/2.72.1/lib/libglib-2.0.dylib, building for macOS-x86_64 but attempting to link with file built for macOS-arm64
+  ld: warning: ignoring file /opt/homebrew/Cellar/poppler/22.02.0/lib/libpoppler-glib.dylib, building for macOS-x86_64 but attempting to link with file built for macOS-arm64
+  ld: warning: ignoring file /opt/homebrew/Cellar/glib/2.72.1/lib/libgobject-2.0.dylib, building for macOS-x86_64 but attempting to link with file built for macOS-arm64
+  ld: warning: ignoring file /opt/homebrew/Cellar/poppler/22.02.0/lib/libpoppler.dylib, building for macOS-x86_64 but attempting to link with file built for macOS-arm64
+  ld: warning: ignoring file /opt/homebrew/Cellar/cairo/1.16.0_5/lib/libcairo.dylib, building for macOS-x86_64 but attempting to link with file built for macOS-arm64
+  ld: warning: ignoring file /opt/homebrew/Cellar/libpng/1.6.37/lib/libpng16.dylib, building for macOS-x86_64 but attempting to link with file built for macOS-arm64
+  ld: warning: ignoring file /opt/homebrew/Cellar/zlib/1.2.11/lib/libz.dylib, building for macOS-x86_64 but attempting to link with file built for macOS-arm64
+  Undefined symbols for architecture x86_64:
+#+end_example
+
+This happens because M1 architecture is =ARM64=, whereas the Emacs App you are using has been compiled for the =x86_64= architecture. The way to solve this problem is to install a version of Emacs which has been compiled for the M1. As of today, [2022-05-09 Mon], the latest version of Emacs available on https://emacsformacosx.com/ is natively compiled and you will not face these issues on it. Please remove your current Emacs App and install it from https://emacsformacosx.com/.
+
+Thank you.
+
+PS: How do I know if the Emacs I'm running has been compiled correctly?
+
+You can see this by opening the =Activity Monitor=, selecting =Emacs=, clicking on the =Info= key, and then clicking on =Sample=. The =Code Type= field in the Sample output will show you how your Application has been compiled. Here is the output for EmacsForMacOSX (you can see that it's =ARM64=):
+#+begin_example
+  Sampling process 61824 for 3 seconds with 1 millisecond of run time between samples
+  Sampling completed, processing symbols...
+  Analysis of sampling Emacs-arm64-11 (pid 61824) every 1 millisecond
+  Process:         Emacs-arm64-11 [61824]
+  Path:            /Applications/Emacs.app/Contents/MacOS/Emacs-arm64-11
+  Load Address:    0x1007f0000
+  Identifier:      org.gnu.Emacs
+  Version:         Version 28.1 (9.0)
+  Code Type:       ARM64
+  Platform:        macOS
+#+end_example
+
+If your Emacs is compiled for x86, the =Code Type= will be =x86_64=.
+
+** I am a developer, making changes to the ~pdf-tools~ source code
+:PROPERTIES:
+:CREATED:  [2022-05-09 Mon 21:31]
+:ID:       2D173424-C211-4474-B0D0-83F4381CAFFA
+:END:
+Thank you for taking the time to contribute back to the code. You may find some useful notes in the [[id:fd64c10c-4ea5-4ece-8d95-b723098dd4f6][Tips and Tricks for Developers]] section. Please be sure to check it out!

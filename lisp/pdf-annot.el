@@ -1423,7 +1423,7 @@ by a header."
     (let ((mode (if (funcall pdf-annot-latex-string-predicate
                              (pdf-annot-get a 'contents))
                     'latex-mode
-                  'text-mode)))
+                  'org-mode)))
       (unless (derived-mode-p mode)
         (funcall mode))))
   "A function for setting up, e.g. the major-mode, of the edit buffer.
@@ -1433,7 +1433,7 @@ is about to be edited in this buffer.
 
 The default value turns on `latex-mode' if
 `pdf-annot-latex-string-predicate' returns non-nil on the
-annotation's contents and otherwise `text-mode'."
+annotation's contents and otherwise `org-mode'."
   :type 'function)
 
 (defcustom pdf-annot-edit-contents-display-buffer-action
