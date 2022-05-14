@@ -406,16 +406,21 @@ is a substitute for the `pdf-view-redisplay' function)."
   nil))))
 
 (defun image-roll-next-page (&optional n)
+  "Go to next page or next Nth page."
   (interactive "p")
   (set-window-start nil (+ (point) 2) t)
   (image-roll-goto-page (+ (image-roll-current-page) n)))
 
 (defun image-roll-previous-page (&optional n)
+  "Go to previous page or previous Nth page."
   (interactive "p")
   (image-roll-next-page (- n)))
 
 
 (defun image-roll-scroll-forward (&optional backward screen)
+  "Scroll image forward by `image-roll-step-size'.
+When BACKWARD is non-nil, scroll backward instead.
+When SCREEN is non-nil, scroll by window height."
   (interactive)
   (let* ((current-page (image-roll-current-page))
          (new-page current-page)
