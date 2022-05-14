@@ -142,6 +142,26 @@ argument (PAGE). The function should use `(image-roll-page-overlay
 PAGE)' to add the image of the page as the overlay's
 display-property.")
 
+(defcustom image-roll-change-page-hook nil
+  "Hook run after changing to another page, but before displaying it.
+
+See also `image-roll-before-change-page-hook' and
+`image-roll-after-change-page-hook'."
+  :type 'hook)
+
+(defcustom image-roll-before-change-page-hook nil
+  "Hook run before changing to another page.
+
+See also `image-roll-change-page-hook' and
+`image-roll-after-change-page-hook'."
+  :type 'hook)
+
+(defcustom image-roll-after-change-page-hook nil
+  "Hook run after changing to and displaying another page.
+
+See also `image-roll-change-page-hook' and
+`image-roll-before-change-page-hook'."
+  :type 'hook)
 
 (defmacro image-roll-debug (object)
   `(progn (print (format "%s = %s" ,object (eval ,object))
@@ -393,17 +413,19 @@ is a substitute for the `pdf-view-redisplay' function)."
     (let ((changing-p
            (not (eq page (image-roll-current-page window)))))
       (when changing-p
-        ;; (run-hooks 'pdf-view-before-change-page-hook)
+        (run-hooks 'image-roll-before-change-page-hook)
         (setf (image-roll-current-page window) page)
-        ;; (run-hooks 'pdf-view-change-page-hook))
-        (when (window-live-p window)
-          (goto-char (image-roll-page-to-pos page))
-          (image-roll-update-displayed-pages))
+        (run-hooks 'image-roll-change-page-hook))
+      (when (window-live-p window)
+        (goto-char (image-roll-page-to-pos page))
+        (image-roll-update-displayed-pages))
+      (when changing-p
+        (run-hooks 'image-roll-after-change-page-hook))
       ;; (when changing-p
       ;;   (pdf-view-deactivate-region)
       ;;   (force-mode-line-update)
       ;;   (run-hooks 'pdf-view-after-change-page-hook))))
-  nil))))
+      nil)))
 
 (defun image-roll-next-page (&optional n)
   "Go to next page or next Nth page."
@@ -467,30 +489,44 @@ When SCREEN is non-nil, scroll by window height."
 
 
     (if (cond ((< new-page current-page)
-               (goto-char (image-roll-page-to-pos new-page))
+               (when (>= new-page 1)
+		 (run-hooks 'image-roll-before-change-page-hook))
                (setf (image-roll-current-page) (max new-page 1))
-               (image-set-window-vscroll
-                (if (< new-page 1)
-                    (user-error "Beginning of document")
+               (when (>= new-page 1)
+		 (run-hooks 'image-roll-change-page-hook))
+               (goto-char (image-roll-page-to-pos new-page))
+               (prog1
+                   (image-set-window-vscroll
+		    (if (< new-page 1)
+                        (user-error "Beginning of document")
 
-                  (- (image-roll-overlay-height (image-roll-current-page))
-                     remaining-height))))
+                      (- (image-roll-overlay-height (image-roll-current-page))
+                         remaining-height)))
+                 (when (>= new-page 1)
+		   (run-hooks 'image-roll-after-change-page-hook))))
               ((> new-page current-page)
                ;; (print "hier")
-               (goto-char (image-roll-page-to-pos new-page))
+               (when (<= new-page image-roll-last-page)
+		 (run-hooks 'image-roll-before-change-page-hook))
                (setf (image-roll-current-page) (min new-page image-roll-last-page))
-               (if (> new-page image-roll-last-page)
-                   (user-error "End of document")
-                 (image-set-window-vscroll
-                  remaining-height)))
-               ((> new-vscroll
-                   visible-pages-vscroll-limit)
-                (image-set-window-vscroll (if (< new-page image-roll-last-page)
-                                              new-vscroll
-                                            (user-error "End of document")))))
-                                            ;; (- visible-pages-vscroll-limit
-                                            ;;    image-roll-vertical-margin)
-        (image-roll-update-displayed-pages)
+               (when (<= new-page image-roll-last-page)
+		 (run-hooks 'image-roll-change-page-hook))
+               (goto-char (image-roll-page-to-pos new-page))
+               (prog1
+                   (if (> new-page image-roll-last-page)
+                       (user-error "End of document")
+		     (image-set-window-vscroll
+                      remaining-height))
+                 (when (<= new-page image-roll-last-page)
+		   (run-hooks 'image-roll-after-change-page-hook))))
+              ((> new-vscroll
+                  visible-pages-vscroll-limit)
+               (image-set-window-vscroll (if (< new-page image-roll-last-page)
+                                             new-vscroll
+                                           (user-error "End of document")))))
+	;; (- visible-pages-vscroll-limit
+	;;    image-roll-vertical-margin)
+	(image-roll-update-displayed-pages)
       (image-set-window-vscroll new-vscroll))))
 
 (defun image-roll-scroll-backward ()
