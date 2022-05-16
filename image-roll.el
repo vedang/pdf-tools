@@ -348,13 +348,13 @@ is a substitute for the `pdf-view-redisplay' function)."
       (push p displayed))
     ;; store displayed images for determining which images to update when update
     ;; is triggered
-  (image-mode-window-put 'displayed-pages (reverse displayed))
-  ;; store the height of the visible pages for determining when to update
-  ;; images, namely when some part of the roll outside this range becomes
-  ;; visible
-  (image-mode-window-put 'visible-pages-vscroll-limit
-                         (- (apply #'+ (mapcar #'image-roll-overlay-height displayed))
-                            (window-text-height nil t))))
+    (image-mode-window-put 'displayed-pages (reverse displayed))
+    ;; store the height of the visible pages for determining when to update
+    ;; images, namely when some part of the roll outside this range becomes
+    ;; visible
+    (image-mode-window-put 'visible-pages-vscroll-limit
+                           (- (apply #'+ (mapcar #'image-roll-overlay-height displayed))
+                              (window-text-height nil t))))
   ;; we only need to jump to the right page, the vscroll is conserved and if
   ;; required can be set to 0 before the redisplay
   (when-let (p (image-roll-current-page))
@@ -403,9 +403,9 @@ is a substitute for the `pdf-view-redisplay' function)."
   (unless window
     (setq window
           ;; (if (pdf-util-pdf-window-p)
-              (selected-window)
-            ;; t)))
-              ))
+          (selected-window)
+          ;; t)))
+          ))
   (save-selected-window
     ;; Select the window for the hooks below.
     (when (window-live-p window)
@@ -475,7 +475,7 @@ When SCREEN is non-nil, scroll by window height."
            ;; (cl-decf available-height (- (image-roll-overlay-height current-page)
            ;;                              (window-vscroll nil t)))
            (cl-decf available-height (- (image-roll-overlay-height current-page)
-                                                         (window-vscroll nil t)))
+                                        (window-vscroll nil t)))
            (while (and (< new-page (1+ image-roll-last-page)) (> available-height 0))
              (setq remaining-height available-height)
              (setq new-page (1+ new-page)) ; allow new-page > last-page
@@ -490,43 +490,43 @@ When SCREEN is non-nil, scroll by window height."
 
     (if (cond ((< new-page current-page)
                (when (>= new-page 1)
-		 (run-hooks 'image-roll-before-change-page-hook))
+		             (run-hooks 'image-roll-before-change-page-hook))
                (setf (image-roll-current-page) (max new-page 1))
                (when (>= new-page 1)
-		 (run-hooks 'image-roll-change-page-hook))
+		             (run-hooks 'image-roll-change-page-hook))
                (goto-char (image-roll-page-to-pos new-page))
                (prog1
                    (image-set-window-vscroll
-		    (if (< new-page 1)
+		                (if (< new-page 1)
                         (user-error "Beginning of document")
 
                       (- (image-roll-overlay-height (image-roll-current-page))
                          remaining-height)))
                  (when (>= new-page 1)
-		   (run-hooks 'image-roll-after-change-page-hook))))
+		               (run-hooks 'image-roll-after-change-page-hook))))
               ((> new-page current-page)
                ;; (print "hier")
                (when (<= new-page image-roll-last-page)
-		 (run-hooks 'image-roll-before-change-page-hook))
+		             (run-hooks 'image-roll-before-change-page-hook))
                (setf (image-roll-current-page) (min new-page image-roll-last-page))
                (when (<= new-page image-roll-last-page)
-		 (run-hooks 'image-roll-change-page-hook))
+		             (run-hooks 'image-roll-change-page-hook))
                (goto-char (image-roll-page-to-pos new-page))
                (prog1
                    (if (> new-page image-roll-last-page)
                        (user-error "End of document")
-		     (image-set-window-vscroll
+		                 (image-set-window-vscroll
                       remaining-height))
                  (when (<= new-page image-roll-last-page)
-		   (run-hooks 'image-roll-after-change-page-hook))))
+		               (run-hooks 'image-roll-after-change-page-hook))))
               ((> new-vscroll
                   visible-pages-vscroll-limit)
                (image-set-window-vscroll (if (< new-page image-roll-last-page)
                                              new-vscroll
                                            (user-error "End of document")))))
-	;; (- visible-pages-vscroll-limit
-	;;    image-roll-vertical-margin)
-	(image-roll-update-displayed-pages)
+	      ;; (- visible-pages-vscroll-limit
+	      ;;    image-roll-vertical-margin)
+	      (image-roll-update-displayed-pages)
       (image-set-window-vscroll new-vscroll))))
 
 (defun image-roll-scroll-backward ()
@@ -602,8 +602,8 @@ This function is used for the image-roll-demo."
 (defun image-roll-demo (&optional page-size pages)
   (interactive)
   (let ((buf-name "*image-roll-demo*"))
-  ;;   (if (get-buffer buf-name)
-  ;;       (switch-to-buffer (current-buffer))
+    ;;   (if (get-buffer buf-name)
+    ;;       (switch-to-buffer (current-buffer))
     (with-current-buffer (get-buffer-create buf-name)
       (erase-buffer)
       (image-roll-mode)
