@@ -401,6 +401,7 @@ os_gentoo() {
               sys-devel/automake
               sys-devel/gcc
               sys-devel/make
+              sys-libs/glibc
               sys-libs/zlib"
     return 0
 }
