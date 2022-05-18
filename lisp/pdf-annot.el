@@ -1555,6 +1555,66 @@ At any given point of time, only one annotation can be in edit mode."
       (error "No annotation at this position"))
     (pdf-annot-edit-contents a)))
 
+(defun pdf-annot-edit (annot)
+  "Activate ANNOT, for editing.
+
+Interactively, annot is read via `pdf-annot-read-annot'.
+This function displays characters around the annots in the current
+page and starts reading characters (ignoring case).  After a
+sufficient number of characters have been read, the corresponding
+annot's annot is invoked.  Additionally, SPC may be used to
+scroll the current page."
+  (interactive
+   (list (or (pdf-annot-read-annot "Activate annot (SPC scrolls): ")
+             (error "No annot selected"))))
+  (pdf-annot-activate-annotation annot))
+
+;; TODO 'merge' this function with `pdf-links-read-link-action' into a single
+;; universal 'read-action' function (in `pdf-util'?)
+(defun pdf-annot-read-annot (prompt)
+  "Using PROMPT, interactively read an annot-action.
+
+See `pdf-annot-edit' for the interface."
+  (pdf-util-assert-pdf-window)
+  (let* ((annots (pdf-annot-getannots (pdf-view-current-page) nil nil))
+         (keys (pdf-links-read-link-action--create-keys
+                (length annots)))
+         (key-strings (mapcar (apply-partially 'apply 'string)
+                              keys))
+         (alist (cl-mapcar 'cons keys annots))
+         (size (pdf-view-image-size))
+         (colors (pdf-util-face-colors
+                  'pdf-links-read-link pdf-view-dark-minor-mode))
+         (args (list
+                :foreground (car colors)
+                :background (cdr colors)
+                :formats
+                `((?c . ,(lambda (_edges) (pop key-strings)))
+                  (?P . ,(number-to-string
+                          (max 1 (* (cdr size)
+                                    pdf-links-convert-pointsize-scale)))))
+                :commands pdf-links-read-link-convert-commands
+                :apply (pdf-util-scale-relative-to-pixel
+                        (mapcar (lambda (l) (cdr (assq 'edges l)))
+                                annots)))))
+    ;; (print (plist-get args :apply))
+    (unless annots
+      (error "No annots on this page"))
+    (unwind-protect
+        (let ((image-data
+               (pdf-cache-get-image
+                (pdf-view-current-page)
+                (car size) (car size) 'pdf-annot-read-annot)))
+          (unless image-data
+            (setq image-data (apply 'pdf-util-convert-page args ))
+            (pdf-cache-put-image
+             (pdf-view-current-page)
+             (car size) image-data 'pdf-annot-read-annot))
+          (pdf-view-display-image
+           (create-image image-data (pdf-view-image-type) t)
+           (when pdf-view-roll-minor-mode (pdf-view-current-page)))
+          (pdf-links-read-link-action--read-chars prompt alist))
+      (pdf-view-redisplay))))
 
 
 ;; * ================================================================== *
@@ -1597,6 +1657,7 @@ Currently supported properties are page, type, label, date and contents."
 
 (defvar pdf-annot-list-mode-map
   (let ((km (make-sparse-keymap)))
+    (define-key km (kbd "e") 'pdf-annot-edit)
     (define-key km (kbd "C-c C-f") #'pdf-annot-list-follow-minor-mode)
     (define-key km (kbd "SPC") #'pdf-annot-list-display-annotation-from-id)
     km))
