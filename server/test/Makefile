@@ -41,7 +41,13 @@ docker/test: docker/build $(patsubst %, docker/%, $(DOCKER_OS))
 # Build all Dockerfiles
 docker/build: $(patsubst %, docker/.%.build, $(DOCKER_OS))
 
-clean:
+docker/.%.clean:
+	@echo Cleaning target $*
+	podman container rm epdfinfo-$* || exit 0
+
+docker/clean: $(patsubst %, docker/.%.clean, $(DOCKER_OS))
+
+clean: docker/clean
 	rm -f -- docker/.[^.]*.build
 	rm -f -- docker/*.Dockerfile
 
