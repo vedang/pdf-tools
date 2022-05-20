@@ -33,7 +33,7 @@ docker/.%.build: docker/%.Dockerfile ../autobuild docker/lib
 # Run the Dockerfile
 docker/%: docker/.%.build
 	@echo Running tests on target $*
-	podman run epdfinfo/$*
+	podman run --name epdfinfo-$* epdfinfo/$*
 
 # Run all Dockerfiles
 docker/test: docker/build $(patsubst %, docker/%, $(DOCKER_OS))
