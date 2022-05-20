@@ -57,6 +57,8 @@ continuous scrolling."
 	                    #'pdf-view-new-window-function t)
          (add-hook 'image-mode-new-window-functions 'image-roll-new-window-function nil t)
 
+         (add-hook 'image-roll-after-change-page-hook 'pdf-history-before-change-page-hook nil t)
+
          (let ((inhibit-read-only t))
            (erase-buffer)
            (image-roll-new-window-function (list (selected-window))))
@@ -70,6 +72,10 @@ continuous scrolling."
          (remove-hook 'image-mode-new-window-functions 'image-roll-new-window-function t)
          (add-hook 'image-mode-new-window-functions
 	                    #'pdf-view-new-window-function nil t)
+
+         (remove-hook 'pdf-view-after-change-page-hook
+                      #'pdf-history-before-change-page-hook t)
+
          (let ((inhibit-read-only t))
            (erase-buffer)
            (insert-file-contents-literally (buffer-file-name))
