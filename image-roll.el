@@ -175,11 +175,11 @@ See also `image-roll-change-page-hook' and
   "List of overlays that make up a scroll."
   `(image-mode-window-get 'overlays ,window))
 
-(defmacro image-roll-page-overlay (&optional page)
+(defmacro image-roll-page-overlay (&optional page window)
   "Return the overlay that hold page number PAGE.
 Implemented as macro to make it setf'able."
   `(nth (1- (or ,page (image-roll-current-page)))
-        (image-roll-overlays)))
+        (image-roll-overlays ,window)))
 
 (defmacro image-roll-page-overlay-get (page prop)
   "Get overlay-property PROP of overlay holding page number PAGE.
@@ -588,11 +588,15 @@ This function is used for the image-roll-demo."
 
 (setq image-roll-mode-map
       (let ((map (make-sparse-keymap)))
+        (define-key map (kbd "C-n") 'image-roll-scroll-forward)
         (define-key map (kbd "<down>") 'image-roll-scroll-forward)
+        (define-key map (kbd "C-p") 'image-roll-scroll-backward)
         (define-key map (kbd "<up>") 'image-roll-scroll-backward)
         (define-key map (kbd "<mouse-5>") 'image-roll-scroll-forward)
         (define-key map (kbd "<mouse-4>") 'image-roll-scroll-backward)
+        (define-key map "n" 'image-roll-next-page)
         (define-key map (kbd "<next>") 'image-roll-next-page)
+        (define-key map "p" 'image-roll-previous-page)
         (define-key map (kbd "<prior>") 'image-roll-previous-page)
         (define-key map (kbd "S-<next>") 'image-roll-scroll-screen-forward)
         (define-key map (kbd "S-<prior>") 'image-roll-scroll-screen-backward)
