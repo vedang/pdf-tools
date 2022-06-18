@@ -384,7 +384,7 @@ os_nixos() {
     command="$command;export AUTOBUILD_NIX_SHELL"
     command="$command;$(quote "$0" "$@")"
     exec nix-shell --pure --run "$command" \
-         -p gcc gnumake automake autoconf pkgconfig libpng zlib poppler
+         -p automake autoconf pkgconfig libpng zlib poppler
 }
 
 # Gentoo
