@@ -277,7 +277,6 @@ Package maintained at: https://packages.ubuntu.com/impish/elpa-pdf-tools-server
 This package depends on the following Elisp packages, which should be installed before installing the ~pdf-tools~ package.
 | Package   | Required version                 |
 |-----------+----------------------------------|
-| [[https://elpa.gnu.org/packages/let-alist.html][let-alist]] | >= 1.0.4 (comes with Emacs 25.2) |
 | [[http://melpa.org/#/tablist][tablist]]   | >= 0.70                          |
 |-----------+----------------------------------|
 
