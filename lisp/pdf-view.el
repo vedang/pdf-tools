@@ -334,6 +334,10 @@ PNG images in Emacs buffers."
       (setq-local mwheel-scroll-down-function
                   #'pdf-view-scroll-down-or-previous-page))
 
+  ;; Disable pixel-scroll-precision-mode locally if enabled
+  (if (bound-and-true-p pixel-scroll-precision-mode)
+      (set (make-local-variable 'pixel-scroll-precision-mode) nil))
+
   ;; Clearing overlays
   (add-hook 'change-major-mode-hook
             (lambda ()
