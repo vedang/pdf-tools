@@ -37,6 +37,8 @@
 ;; * Customizations
 ;; * ================================================================== *
 
+;;; Code:
+
 (defgroup pdf-annot nil
   "Annotation support for PDF documents."
   :group 'pdf-tools)
@@ -53,17 +55,14 @@ called.
 
 This hook is meant to allow for custom annotations.  FIXME:
 Implement and describe basic org example."
-  :group 'pdf-annot
   :type 'hook)
 
 (defcustom pdf-annot-default-text-annotation-properties nil
   "Alist of initial properties for new text annotations."
-  :group 'pdf-annot
   :type '(alist :key-type symbol :value-type sexp))
 
 (defcustom pdf-annot-default-markup-annotation-properties nil
   "Alist of initial properties for new markup annotations."
-  :group 'pdf-annot
   :type '(alist :key-type symbol :value-type sexp))
 
 (make-obsolete-variable 'pdf-annot-default-text-annotation-properties
@@ -107,7 +106,6 @@ would use a green color for highlight and a red one for other
 annotations.  Additionally the label for all annotations is set
 to \"Joe\"."
 
-  :group 'pdf-annot
   :type (let* ((label '(cons :tag "Label" (const label) string))
                (contents '(cons :tag "Contents" (const contents) string))
                (color '(cons :tag "Color" (const color) color))
@@ -147,7 +145,6 @@ will be used.
 
 If all of them return nil, the default function
 `pdf-annot-print-annotation-default' is used."
-  :group 'pdf-annot
   :type 'hook)
 
 (defcustom pdf-annot-latex-string-predicate
@@ -157,7 +154,6 @@ If all of them return nil, the default function
 
 It receives a string and should return non-nil, if string is a
 LaTeX fragment."
-  :group 'pdf-annot
   :type 'function)
 
 (defcustom pdf-annot-latex-header
@@ -166,7 +162,6 @@ LaTeX fragment."
   "Header used when latex compiling annotations.
 The default value is `org-format-latex-header' +
 \"\\n\\\\setlength{\\\\textwidth}{12cm}\"."
-  :group 'pdf-annot
   :type 'string)
 
 (defcustom pdf-annot-tweak-tooltips t
@@ -179,17 +174,14 @@ order to display text properties;
 
 `tooltip-hide-delay' is set to infinity, in order to not being
 annoyed while reading the annotations."
-  :group 'pdf-annot
   :type 'boolean)
 
 (defcustom pdf-annot-activate-created-annotations nil
   "Whether to activate (i.e. edit) created annotations."
-  :group 'pdf-annot
   :type 'boolean)
 
 (defcustom pdf-annot-attachment-display-buffer-action nil
   "The display action used when displaying attachments."
-  :group 'pdf-annot
   :type display-buffer--action-custom-type)
 
 (defconst pdf-annot-annotation-types
@@ -204,7 +196,6 @@ annoyed while reading the annotations."
       (list 'text 'file 'squiggly 'highlight 'underline 'strike-out)
     (list 'text 'file))
   "A list of annotation types displayed in the list buffer."
-  :group 'pdf-annot
   :type `(set ,@(mapcar (lambda (type)
                           (list 'const type))
                         pdf-annot-annotation-types)))
@@ -232,9 +223,9 @@ these arguments:
 
 `:changed' The list of recently changed annotations.
 
-`t' The union of recently added, deleted or changed annotations.
+t The union of recently added, deleted or changed annotations.
 
-`nil' Just returns nil.
+nil Just returns nil.
 
 Any other argument signals an error.")
 
@@ -257,8 +248,10 @@ no effect on the rendering.")
   "A list of standard icon properties for text annotations.")
 
 (defvar pdf-annot-inhibit-modification-hooks nil
-  "Non-nil, if running `pdf-annot-modified-functions' should be
-  inhibited after some annotation has changed.")
+  "Controls the behavior of `pdf-annot-modified-functions'.
+
+If non-nil, `pdf-annot-modified-functions' are not run on any
+annotation change.")
 
 (defvar-local pdf-annot-delayed-modified-annotations nil
   "A plist of not yet propagated modifications.
@@ -293,25 +286,24 @@ current buffer, because that won't run the hooks properly."
   "The prefix to use for `pdf-annot-minor-mode-map'.
 
 Setting this after the package was loaded has no effect."
-  :group 'pdf-annot
   :type 'key-sequence)
 
 (defvar pdf-annot-minor-mode-map
   (let ((kmap (make-sparse-keymap))
         (smap (make-sparse-keymap)))
     (define-key kmap pdf-annot-minor-mode-map-prefix smap)
-    (define-key smap "l" 'pdf-annot-list-annotations)
+    (define-key smap "l" #'pdf-annot-list-annotations)
     ;; (define-key smap "d" 'pdf-annot-toggle-display-annotations)
-    (define-key smap "a" 'pdf-annot-attachment-dired)
+    (define-key smap "a" #'pdf-annot-attachment-dired)
     (when (pdf-info-writable-annotations-p)
-      (define-key smap "D" 'pdf-annot-delete)
-      (define-key smap "t" 'pdf-annot-add-text-annotation)
+      (define-key smap "D" #'pdf-annot-delete)
+      (define-key smap "t" #'pdf-annot-add-text-annotation)
       (when (pdf-info-markup-annotations-p)
-        (define-key smap "m" 'pdf-annot-add-markup-annotation)
-        (define-key smap "s" 'pdf-annot-add-squiggly-markup-annotation)
-        (define-key smap "u" 'pdf-annot-add-underline-markup-annotation)
-        (define-key smap "o" 'pdf-annot-add-strikeout-markup-annotation)
-        (define-key smap "h" 'pdf-annot-add-highlight-markup-annotation)))
+        (define-key smap "m" #'pdf-annot-add-markup-annotation)
+        (define-key smap "s" #'pdf-annot-add-squiggly-markup-annotation)
+        (define-key smap "u" #'pdf-annot-add-underline-markup-annotation)
+        (define-key smap "o" #'pdf-annot-add-strikeout-markup-annotation)
+        (define-key smap "h" #'pdf-annot-add-highlight-markup-annotation)))
     kmap)
   "Keymap used for `pdf-annot-minor-mode'.")
 
@@ -331,14 +323,14 @@ Setting this after the package was loaded has no effect."
       (setq tooltip-hide-delay 3600))
     (pdf-view-add-hotspot-function 'pdf-annot-hotspot-function 9)
     (add-hook 'pdf-info-close-document-hook
-              'pdf-annot-attachment-delete-base-directory nil t)
+              #'pdf-annot-attachment-delete-base-directory nil t)
     (when (featurep 'savehist)
       (add-to-list 'savehist-minibuffer-history-variables
                    'pdf-annot-color-history)))
    (t
     (pdf-view-remove-hotspot-function 'pdf-annot-hotspot-function)
     (remove-hook 'pdf-info-close-document-hook
-                 'pdf-annot-attachment-delete-base-directory t)))
+                 #'pdf-annot-attachment-delete-base-directory t)))
   (pdf-view-redisplay t))
 
 (defun pdf-annot-create-context-menu (a)
@@ -385,41 +377,43 @@ Setting this after the package was loaded has no effect."
     menu))
 
 (defun pdf-annot-create-color-submenu (a)
+  "Show the user a color menu for their annotation A."
   (let ((menu (make-sparse-keymap)))
     (define-key menu [color-chooser]
-      `(menu-item "Choose ..."
-                  ,(lambda ()
-                     (interactive)
-                     (list-colors-display
-                      nil "*Choose annotation color*"
-                      ;; list-colors-print does not like closures.
-                      (let ((callback (make-symbol "xcallback")))
-                        (fset callback
-                              (lambda (color)
-                                (pdf-annot-put a 'color color)
-                                (setq pdf-annot-color-history
-                                      (cons color
-                                            (remove color pdf-annot-color-history)))
-                                (quit-window t)))
-                        (list 'function callback))))))
+                `(menu-item "Choose ..."
+                            ,(lambda ()
+                               (interactive)
+                               (list-colors-display
+                                nil "*Choose annotation color*"
+                                ;; list-colors-print does not like closures.
+                                (let ((callback (make-symbol "xcallback")))
+                                  (fset callback
+                                        (lambda (color)
+                                          (pdf-annot-put a 'color color)
+                                          (setq pdf-annot-color-history
+                                                (cons color
+                                                      (remove color pdf-annot-color-history)))
+                                          (quit-window t)))
+                                  (list 'function callback))))))
     (dolist (color (butlast (reverse pdf-annot-color-history)
                             (max 0 (- (length pdf-annot-color-history)
                                       12))))
       (define-key menu (vector (intern (format "color-%s" color)))
-        `(menu-item ,color
-                    ,(lambda nil
-                       (interactive)
-                       (pdf-annot-put a 'color color)))))
+                  `(menu-item ,color
+                              ,(lambda nil
+                                 (interactive)
+                                 (pdf-annot-put a 'color color)))))
     menu))
 
 (defun pdf-annot-create-icon-submenu (a)
+  "Show the user an icon menu for the annotation A."
   (let ((menu (make-sparse-keymap)))
     (dolist (icon (reverse pdf-annot-standard-text-icons))
       (define-key menu (vector (intern (format "icon-%s" icon)))
-        `(menu-item ,icon
-                    ,(lambda nil
-                       (interactive)
-                       (pdf-annot-put a 'icon icon)))))
+                  `(menu-item ,icon
+                              ,(lambda nil
+                                 (interactive)
+                                 (pdf-annot-put a 'icon icon)))))
     menu))
 
 ;; * ================================================================== *
@@ -459,6 +453,10 @@ current buffer."
       result)))
 
 (defun pdf-annot-getannot (id &optional buffer)
+  "Return the annotation object for annotation ID.
+
+Optionally take the BUFFER name of the PDF buffer. When none is
+provided, the `current-buffer' is picked up."
   (pdf-annot-create
    (pdf-info-getannot id buffer)
    buffer))
@@ -539,7 +537,7 @@ the variable is nil and this function is called again."
             (run-hook-with-args
              'pdf-annot-modified-functions closure)
           (setq pdf-annot-delayed-modified-annotations nil)
-          (apply 'pdf-view-redisplay-pages pages))))))
+          (apply #'pdf-view-redisplay-pages pages))))))
 
 (defun pdf-annot-equal (a1 a2)
   "Return non-nil, if annotations A1 and A2 are equal.
@@ -592,14 +590,19 @@ This function always returns nil."
   nil)
 
 (defun pdf-annot-text-annotation-p (a)
+  "Return non-nil if annotation A is of type text."
   (eq 'text (pdf-annot-get a 'type)))
 
 (defun pdf-annot-markup-annotation-p (a)
+  "Return non-nil if annotation A is a known markup type.
+
+Annotation types are defined in `pdf-annot-markup-annotation-types'."
   (not (null
         (memq (pdf-annot-get a 'type)
               pdf-annot-markup-annotation-types))))
 
 (defun pdf-annot-property-modifiable-p (a property)
+  "Return non-nil if PROPERTY for annotation A is editable."
   (or (memq property '(edges color flags contents))
       (and (pdf-annot-markup-annotation-p a)
            (memq property '(label opacity popup popup-is-open)))
@@ -607,12 +610,18 @@ This function always returns nil."
            (memq property '(icon is-open)))))
 
 (defun pdf-annot-activate-annotation (a)
+  "Run handler functions on A to activate the annotation.
+
+Activation functions are defined in `pdf-annot-activate-handler-functions'."
   (or (run-hook-with-args-until-success
        'pdf-annot-activate-handler-functions
        a)
       (pdf-annot-default-activate-handler a)))
 
 (defun pdf-annot-default-activate-handler (a)
+  "The default activation function to run on annotation A.
+
+Activation functions are defined in `pdf-annot-activate-handler-functions'."
   (cond
    ((pdf-annot-has-attachment-p a)
     (pdf-annot-pop-to-attachment a))
@@ -677,7 +686,7 @@ The DO-SAVE argument is given to
 
 
 (defun pdf-annot-attachment-save (attachment &optional regenerate-p)
-  "Save ATTACHMENT's data to a unique filename and return it's name.
+  "Save ATTACHMENT's data to a unique filename and return its name.
 
 If REGENERATE-P is non-nil, copy attachment's file even if the
 copy already exists.
@@ -711,13 +720,13 @@ Signals an error, if A has no data attached."
           (delete-file tmpfile))))))
 
 (defun pdf-annot-attachment-dired (&optional regenerate-p)
-  "List all attachments in a dired buffer.
+  "List all attachments in a Dired buffer.
 
 If REGENERATE-P is non-nil, create attachment's files even if
 they already exist.  Interactively REGENERATE-P is non-nil if a
 prefix argument was given.
 
-Return the dired buffer."
+Return the Dired buffer."
   (interactive (list current-prefix-arg))
   (let ((attachments (pdf-info-getattachments t)))
     (unwind-protect
@@ -905,14 +914,16 @@ i.e. a non mouse-movement event is read."
 
 (defun pdf-annot-hotspot-function (page size)
   "Create image hotspots for page PAGE of size SIZE."
-  (apply 'nconc (mapcar (lambda (a)
-                          (unless (eq (pdf-annot-get a 'type)
-                                      'link)
-                            (pdf-annot-create-hotspots a size)))
-                        (pdf-annot-getannots page))))
+  (apply #'nconc (mapcar (lambda (a)
+                           (unless (eq (pdf-annot-get a 'type)
+                                       'link)
+                             (pdf-annot-create-hotspots a size)))
+                         (pdf-annot-getannots page))))
 
 (defun pdf-annot-create-hotspots (a size)
-  "Return a list of image hotspots for annotation A."
+  "Return a list of image hotspots for annotation A.
+
+SIZE is a cons (SX . SY), by which edges are scaled."
   (let ((id (pdf-annot-get-id a))
         (edges (pdf-util-scale
                 (pdf-annot-get-display-edges a)
@@ -934,6 +945,11 @@ i.e. a non mouse-movement event is read."
 
 ;; FIXME: Define a keymap as a template for this. Much cleaner.
 (defun pdf-annot-create-hotspot-binding (id moveable-p annotation)
+  "Create a local keymap for interacting with ANNOTATION using the mouse.
+
+ID is the identifier for the ANNOTATION, as returned
+`pdf-annot-get-id'. MOVEABLE-P indicates whether the annotation
+is moveable."
   ;; Activating
   (local-set-key
    (vector id 'mouse-1)
@@ -998,7 +1014,7 @@ other annotations."
 ;; * ================================================================== *
 
 (defun pdf-annot-add-annotation (type edges &optional property-alist page)
-  "Creates and adds a new annotation of type TYPE to the document.
+  "Create and add a new annotation of type TYPE to the document.
 
 TYPE determines the kind of annotation to add and maybe one of
 `text', `squiggly', `underline', `strike-out' or `highlight'.
@@ -1037,7 +1053,7 @@ Return the new annotation."
   (when (and (eq type 'text)
              (> (length edges) 1))
     (error "Edges argument should be a single edge-list for text annotations"))
-  (let* ((a (apply 'pdf-info-addannot
+  (let* ((a (apply #'pdf-info-addannot
                    page
                    (if (eq type 'text)
                        (car edges)
@@ -1121,6 +1137,9 @@ Return the new annotation."
         `((color . ,(car pdf-annot-color-history))))))))
 
 (defun pdf-annot-mouse-add-text-annotation (ev)
+  "Add a text annotation using the mouse.
+
+EV describes the captured mouse event."
   (interactive "@e")
   (pdf-annot-add-text-annotation
    (if (eq (car-safe ev)
@@ -1174,7 +1193,9 @@ Return the new annotation."
                                                  &optional color property-alist)
   "Add a new squiggly annotation in the selected window.
 
-See also `pdf-annot-add-markup-annotation'."
+LIST-OF-EDGES defines the annotation boundary. COLOR defines the
+annotation color and PROPERTY-ALIST defines additional annotation
+properties. See also `pdf-annot-add-markup-annotation'."
   (interactive (list (pdf-view-active-region t)))
   (pdf-annot-add-markup-annotation list-of-edges 'squiggly color property-alist))
 
@@ -1182,7 +1203,9 @@ See also `pdf-annot-add-markup-annotation'."
                                                   &optional color property-alist)
   "Add a new underline annotation in the selected window.
 
-See also `pdf-annot-add-markup-annotation'."
+LIST-OF-EDGES defines the annotation boundary. COLOR defines the
+annotation color and PROPERTY-ALIST defines additional annotation
+properties. See also `pdf-annot-add-markup-annotation'."
   (interactive (list (pdf-view-active-region t)))
   (pdf-annot-add-markup-annotation list-of-edges 'underline color property-alist))
 
@@ -1190,7 +1213,9 @@ See also `pdf-annot-add-markup-annotation'."
                                                   &optional color property-alist)
   "Add a new strike-out annotation in the selected window.
 
-See also `pdf-annot-add-markup-annotation'."
+LIST-OF-EDGES defines the annotation boundary. COLOR defines the
+annotation color and PROPERTY-ALIST defines additional annotation
+properties. See also `pdf-annot-add-markup-annotation'."
   (interactive (list (pdf-view-active-region t)))
   (pdf-annot-add-markup-annotation list-of-edges 'strike-out color property-alist))
 
@@ -1198,7 +1223,9 @@ See also `pdf-annot-add-markup-annotation'."
                                                   &optional color property-alist)
   "Add a new highlight annotation in the selected window.
 
-See also `pdf-annot-add-markup-annotation'."
+LIST-OF-EDGES defines the annotation boundary. COLOR defines the
+annotation color and PROPERTY-ALIST defines additional annotation
+properties. See also `pdf-annot-add-markup-annotation'."
   (interactive (list (pdf-view-active-region t)))
   (pdf-annot-add-markup-annotation list-of-edges 'highlight color property-alist))
 
@@ -1236,7 +1263,7 @@ Suppresses successive duplicate entries of keys after the first
 occurrence in ALISTS."
 
   (let (merged)
-    (dolist (elt (apply 'append alists))
+    (dolist (elt (apply #'append alists))
       (unless (assq (car elt) merged)
         (push elt merged)))
     (nreverse merged)))
@@ -1300,7 +1327,7 @@ property."
           (t
            (format "%s"
                    (mapconcat
-                    'identity
+                    #'identity
                     (mapcar
                      (lambda (property)
                        (pdf-annot-print-property
@@ -1340,6 +1367,13 @@ by a header."
                                 "pdf-annot-print-annotation-latex%s%s%s"
                                 page header contents)))
                  (data (pdf-cache-lookup-image page 0 nil hash))
+                 ;; pdf-tools can only work with png files, so this
+                 ;; binding ensures that pdf-tools can print the
+                 ;; latex-preview regardless of the user
+                 ;; configuration.
+                 (org-preview-latex-default-process 'dvipng)
+                 ;; For backward compatibility with emacs-version < 26.1
+                 (org-latex-create-formula-image-program 'dvipng)
                  (org-format-latex-header
                   pdf-annot-latex-header)
                  (temporary-file-directory
@@ -1389,7 +1423,7 @@ by a header."
     (let ((mode (if (funcall pdf-annot-latex-string-predicate
                              (pdf-annot-get a 'contents))
                     'latex-mode
-                  'text-mode)))
+                  'org-mode)))
       (unless (derived-mode-p mode)
         (funcall mode))))
   "A function for setting up, e.g. the major-mode, of the edit buffer.
@@ -1399,8 +1433,7 @@ is about to be edited in this buffer.
 
 The default value turns on `latex-mode' if
 `pdf-annot-latex-string-predicate' returns non-nil on the
-annotation's contents and otherwise `text-mode'. "
-  :group 'pdf-annot
+annotation's contents and otherwise `org-mode'."
   :type 'function)
 
 (defcustom pdf-annot-edit-contents-display-buffer-action
@@ -1409,14 +1442,13 @@ annotation's contents and otherwise `text-mode'. "
     (inhibit-same-window . t)
     (window-height . 0.25))
   "Display action when showing the edit buffer."
-  :group 'pdf-annot
   :type display-buffer--action-custom-type)
 
 (defvar pdf-annot-edit-contents-minor-mode-map
   (let ((kmap (make-sparse-keymap)))
     (set-keymap-parent kmap text-mode-map)
-    (define-key kmap (kbd "C-c C-c") 'pdf-annot-edit-contents-commit)
-    (define-key kmap (kbd "C-c C-q") 'pdf-annot-edit-contents-abort)
+    (define-key kmap (kbd "C-c C-c") #'pdf-annot-edit-contents-commit)
+    (define-key kmap (kbd "C-c C-q") #'pdf-annot-edit-contents-abort)
     kmap))
 
 (define-minor-mode pdf-annot-edit-contents-minor-mode
@@ -1429,8 +1461,15 @@ annotation's contents and otherwise `text-mode'. "
 
 (put 'pdf-annot-edit-contents-minor-mode 'permanent-local t)
 
-;; FIXME: Document pdf-annot-edit-* functions below.
 (defun pdf-annot-edit-contents-finalize (do-save &optional do-kill)
+  "Finalize edit-operations on an Annotation.
+
+If DO-SAVE is t, save the changes to annotation content without
+asking. If DO-SAVE is 'ask, check if the user if contents should
+be saved.
+
+If DO-KILL is t, kill all windows displaying the annotation
+contents. Else just bury the buffers."
   (when (buffer-modified-p)
     (cond
      ((eq do-save 'ask)
@@ -1445,6 +1484,7 @@ annotation's contents and otherwise `text-mode'. "
     (quit-window do-kill win)))
 
 (defun pdf-annot-edit-contents-save-annotation ()
+  "Internal function to save the contents of the annotation under editing."
   (when pdf-annot-edit-contents--annotation
     (pdf-annot-put pdf-annot-edit-contents--annotation
         'contents
@@ -1452,14 +1492,19 @@ annotation's contents and otherwise `text-mode'. "
     (set-buffer-modified-p nil)))
 
 (defun pdf-annot-edit-contents-commit ()
+  "Save the change made to the current annotation."
   (interactive)
   (pdf-annot-edit-contents-finalize t))
 
 (defun pdf-annot-edit-contents-abort ()
+  "Abort the change made to the current annotation."
   (interactive)
   (pdf-annot-edit-contents-finalize nil t))
 
 (defun pdf-annot-edit-contents-noselect (a)
+  "Internal function to setup all prerequisites for editing annotation A.
+
+At any given point of time, only one annotation can be in edit mode."
   (with-current-buffer (pdf-annot-get-buffer a)
     (when (and (buffer-live-p pdf-annot-edit-contents--buffer)
                (not (eq a pdf-annot-edit-contents--annotation)))
@@ -1482,12 +1527,14 @@ annotation's contents and otherwise `text-mode'. "
       (current-buffer))))
 
 (defun pdf-annot-edit-contents (a)
+  "Edit the contents of annotation A."
   (select-window
    (display-buffer
     (pdf-annot-edit-contents-noselect a)
     pdf-annot-edit-contents-display-buffer-action)))
 
 (defun pdf-annot-edit-contents-mouse (ev)
+  "Edit the contents of the annotation described by mouse event EV."
   (interactive "@e")
   (let* ((pos (posn-object-x-y (event-start ev)))
          (a (and pos (pdf-annot-at-position pos))))
@@ -1506,7 +1553,6 @@ annotation's contents and otherwise `text-mode'. "
      display-buffer-pop-up-window)
     (inhibit-same-window . t))
   "Display action used when displaying the list buffer."
-  :group 'pdf-annot
   :type display-buffer--action-custom-type)
 
 (defcustom pdf-annot-list-format
@@ -1526,12 +1572,10 @@ Currently supported properties are page, type, label, date and contents."
              (type (integer :value 10 :tag "Column Width" ))
              (label (integer :value 24 :tag "Column Width"))
              (date (integer :value 24 :tag "Column Width"))
-             (contents (integer :value 56 :tag "Column Width")))
-  :group 'pdf-annot)
+             (contents (integer :value 56 :tag "Column Width"))))
 
 (defcustom pdf-annot-list-highlight-type nil
   "Whether to highlight \"Type\" column annotation list with annotation color."
-  :group 'pdf-annot
   :type 'boolean)
 
 (defvar-local pdf-annot-list-buffer nil)
@@ -1540,8 +1584,8 @@ Currently supported properties are page, type, label, date and contents."
 
 (defvar pdf-annot-list-mode-map
   (let ((km (make-sparse-keymap)))
-    (define-key km (kbd "C-c C-f") 'pdf-annot-list-follow-minor-mode)
-    (define-key km (kbd "SPC") 'pdf-annot-list-display-annotation-from-id)
+    (define-key km (kbd "C-c C-f") #'pdf-annot-list-follow-minor-mode)
+    (define-key km (kbd "SPC") #'pdf-annot-list-display-annotation-from-id)
     km))
 
 (defun pdf-annot-property-completions (property)
@@ -1573,14 +1617,19 @@ belong to the same page and A1 is displayed above/left of A2."
                           (<= e1-left e2-left)))))))))
 
 (defun pdf-annot-list-entries ()
+  "Return all the annotations of this PDF buffer as a `tabulated-list'."
   (unless (buffer-live-p pdf-annot-list-document-buffer)
     (error "No PDF document associated with this buffer"))
-  (mapcar 'pdf-annot-list-create-entry
+  (mapcar #'pdf-annot-list-create-entry
           (sort (pdf-annot-getannots nil pdf-annot-list-listed-types
                                      pdf-annot-list-document-buffer)
-                'pdf-annot-compare-annotations)))
+                #'pdf-annot-compare-annotations)))
 
 (defun pdf-annot--make-entry-formatter (a)
+  "Return a formatter function for annotation A.
+
+A formatter function takes a format cons-cell and returns
+pretty-printed output."
   (lambda (fmt)
     (let ((entry-type (car fmt))
           (entry-width (cdr fmt))
@@ -1609,7 +1658,7 @@ belong to the same page and A1 is displayed above/left of A2."
                (propertize
                 type 'face
                 `(:background ,color
-                  :foreground ,(funcall contrasty-color color)))
+                              :foreground ,(funcall contrasty-color color)))
              type)))))))
 
 (defun pdf-annot-list-create-entry (a)
@@ -1647,7 +1696,7 @@ belong to the same page and A1 is displayed above/left of A2."
   (tabulated-list-init-header))
 
 (defun pdf-annot-list-annotations ()
-  "List annotations in a dired like buffer.
+  "List annotations in a Dired like buffer.
 
 \\{pdf-annot-list-mode-map}"
   (interactive)
@@ -1664,7 +1713,7 @@ belong to the same page and A1 is displayed above/left of A2."
         (tabulated-list-print)
         (setq tablist-context-window-function
               (lambda (id) (pdf-annot-list-context-function id buffer))
-              tablist-operations-function 'pdf-annot-list-operation-function)
+              tablist-operations-function #'pdf-annot-list-operation-function)
         (let ((list-buffer (current-buffer)))
           (with-current-buffer buffer
             (setq pdf-annot-list-buffer list-buffer))))
@@ -1675,11 +1724,14 @@ belong to the same page and A1 is displayed above/left of A2."
       (tablist-move-to-major-column)
       (tablist-display-context-window))
     (add-hook 'pdf-info-close-document-hook
-              'pdf-annot-list-update nil t)
+              #'pdf-annot-list-update nil t)
     (add-hook 'pdf-annot-modified-functions
-              'pdf-annot-list-update nil t)))
+              #'pdf-annot-list-update nil t)))
 
 (defun pdf-annot-list-goto-annotation (a)
+  "List all the annotations in the current buffer.
+
+Goto the annotation A in the list."
   (with-current-buffer (pdf-annot-get-buffer a)
     (unless (and (buffer-live-p pdf-annot-list-buffer)
                  (get-buffer-window pdf-annot-list-buffer))
@@ -1698,6 +1750,9 @@ belong to the same page and A1 is displayed above/left of A2."
 
 
 (defun pdf-annot-list-update (&optional _fn)
+  "Update the list of annotations on any change.
+
+This is an internal function which runs as a hook in various situations."
   (when (buffer-live-p pdf-annot-list-buffer)
     (with-current-buffer pdf-annot-list-buffer
       (unless tablist-edit-column-minor-mode
@@ -1705,6 +1760,10 @@ belong to the same page and A1 is displayed above/left of A2."
       (tablist-context-window-update))))
 
 (defun pdf-annot-list-context-function (id buffer)
+  "Show the contents of an Annotation.
+
+For an annotation identified by ID, belonging to PDF in BUFFER,
+get the contents and display them on demand."
   (with-current-buffer (get-buffer-create "*Contents*")
     (set-window-buffer nil (current-buffer))
     (let ((inhibit-read-only t))
@@ -1717,6 +1776,12 @@ belong to the same page and A1 is displayed above/left of A2."
       (read-only-mode 1))))
 
 (defun pdf-annot-list-operation-function (op &rest args)
+  "Define bulk operations in Annotation list buffer.
+
+OP is the operation that the user wants to execute. Supported
+operations are `delete' and `find-entry'.
+
+ARGS contain the annotation-ids to operate on."
   (cl-ecase op
     (supported-operations '(delete find-entry))
     (delete
@@ -1725,7 +1790,7 @@ belong to the same page and A1 is displayed above/left of A2."
        (when (buffer-live-p pdf-annot-list-document-buffer)
          (with-current-buffer pdf-annot-list-document-buffer
            (pdf-annot-with-atomic-modifications
-             (dolist (a (mapcar 'pdf-annot-getannot ids))
+             (dolist (a (mapcar #'pdf-annot-getannot ids))
                (pdf-annot-delete a)))))))
     (find-entry
      (cl-destructuring-bind (id)
@@ -1752,6 +1817,10 @@ belong to the same page and A1 is displayed above/left of A2."
 (defvar pdf-annot-list-display-annotation--timer nil)
 
 (defun pdf-annot-list-display-annotation-from-id (id)
+  "Display the Annotation ID in the PDF file.
+
+This allows us to follow the tabulated-list of annotations and
+have the PDF buffer automatically move along with us."
   (interactive (list (tabulated-list-get-id)))
   (when id
     (unless (buffer-live-p pdf-annot-list-document-buffer)
@@ -1772,20 +1841,20 @@ belong to the same page and A1 is displayed above/left of A2."
             (pdf-annot-getannot id pdf-annot-list-document-buffer)))))
 
 (define-minor-mode pdf-annot-list-follow-minor-mode
-  ""
+  "Make the PDF follow the annotations in the list buffer."
   :group 'pdf-annot
   (unless (derived-mode-p 'pdf-annot-list-mode)
-    (error "No in pdf-annot-list-mode."))
+    (error "Not in pdf-annot-list-mode"))
   (cond
    (pdf-annot-list-follow-minor-mode
     (add-hook 'tablist-selection-changed-functions
-              'pdf-annot-list-display-annotation-from-id nil t)
+              #'pdf-annot-list-display-annotation-from-id nil t)
     (let ((id (tabulated-list-get-id)))
       (when id
         (pdf-annot-list-display-annotation-from-id id))))
    (t
     (remove-hook 'tablist-selection-changed-functions
-                 'pdf-annot-list-display-annotation-from-id t))))
+                 #'pdf-annot-list-display-annotation-from-id t))))
 
 (provide 'pdf-annot)
 ;;; pdf-annot.el ends here

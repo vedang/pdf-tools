@@ -1,4 +1,4 @@
-;;; pdf-misc.el --- Miscellaneous commands for PDF buffer.
+;;; pdf-misc.el --- Miscellaneous commands for PDF buffer.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013, 2014  Andreas Politz
 
@@ -27,6 +27,8 @@
 (require 'imenu)
 
 
+
+;;; Code:
 
 (defvar pdf-misc-minor-mode-map
   (let ((map (make-sparse-keymap)))
@@ -187,8 +189,8 @@
   :group 'pdf-misc
   (pdf-util-assert-pdf-buffer))
 
-(defun pdf-misc-popup-context-menu (event)
-  "Popup a context menu at position determined by EVENT."
+(defun pdf-misc-popup-context-menu (_event)
+  "Popup a context menu at position."
   (interactive "@e")
   (popup-menu
    (cons 'keymap
@@ -208,8 +210,7 @@
              (pad (apply' max (mapcar (lambda (d)
                                         (length (symbol-name (car d))))
                                       md)))
-             (fmt (format "%%%ds:%%s\n" pad))
-             window)
+             (fmt (format "%%%ds:%%s\n" pad)))
         (erase-buffer)
         (setq header-line-format (buffer-name buffer)
               buffer-read-only t)
@@ -278,9 +279,13 @@ use when printing the PDF. Optionally, save the choice"
             (setq pdf-misc-print-program-executable program))))))
 
 (defun pdf-misc-print-document (filename &optional interactive-p)
+  "Print the PDF doc FILENAME.
+
+`pdf-misc-print-program' handles the print program, which see for
+definition of INTERACTIVE-P."
   (interactive
    (list (pdf-view-buffer-file-name) t))
-  (cl-check-type filename (and string file-readable))
+  (cl-check-type filename (and string (satisfies file-readable-p)))
   (let ((program (pdf-misc-print-program interactive-p))
         (args (append pdf-misc-print-program-args (list filename))))
     (unless program

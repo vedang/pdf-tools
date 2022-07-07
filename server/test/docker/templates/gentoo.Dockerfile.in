@@ -1,5 +1,0 @@
-# -*- dockerfile -*-
-FROM gentoo/stage3-amd64
-RUN emerge --sync && emerge sys-devel/gcc app-text/poppler
-
-

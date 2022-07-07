@@ -1,3 +1,0 @@
-# -*- dockerfile -*-
-FROM ubuntu:hirsute
-RUN apt-get update -y && apt-get install -y gcc g++ libpoppler-glib-dev

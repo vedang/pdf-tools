@@ -41,6 +41,7 @@
 (require 'pdf-info)
 (require 'pdf-util)
 
+(declare-function pdf-view-mode "pdf-view.el")
 
 ;; * ================================================================== *
 ;; * Variables

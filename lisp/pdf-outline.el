@@ -41,80 +41,73 @@
 
 (defcustom pdf-outline-buffer-indent 2
   "The level of indent in the Outline buffer."
-  :type 'integer
-  :group 'pdf-outline)
+  :type 'integer)
 
 (defcustom pdf-outline-enable-imenu t
   "Whether `imenu' should be enabled in PDF documents."
-  :group 'pdf-outline
   :type '(choice (const :tag "Yes" t)
                  (const :tag "No" nil)))
 
 (defcustom pdf-outline-imenu-keep-order t
   "Whether `imenu' should be advised not to reorder the outline."
-  :group 'pdf-outline
   :type '(choice (const :tag "Yes" t)
                  (const :tag "No" nil)))
 
 (defcustom pdf-outline-imenu-use-flat-menus nil
   "Whether the constructed Imenu should be a list, rather than a tree."
-  :group 'pdf-outline
   :type '(choice (const :tag "Yes" t)
                  (const :tag "No" nil)))
 
 (defcustom pdf-outline-display-buffer-action '(nil . nil)
   "The display action used, when displaying the outline buffer."
-  :group 'pdf-outline
   :type display-buffer--action-custom-type)
 
 (defcustom pdf-outline-display-labels nil
   "Whether the outline should display labels instead of page numbers.
 
-Usually a page's label is it's displayed page number."
-  :group 'pdf-outline
+Usually a page's label is its displayed page number."
   :type 'boolean)
 
 (defcustom pdf-outline-fill-column fill-column
   "The value of `fill-column' in pdf outline buffers.
 
 Set to nil to disable line wrapping."
-  :group 'pdf-outline
   :type 'integer)
 
 (defvar pdf-outline-minor-mode-map
   (let ((km (make-sparse-keymap)))
-    (define-key km (kbd "o") 'pdf-outline)
+    (define-key km (kbd "o") #'pdf-outline)
     km)
   "Keymap used for `pdf-outline-minor-mode'.")
 
 (defvar pdf-outline-buffer-mode-map
   (let ((kmap (make-sparse-keymap)))
     (dotimes (i 10)
-      (define-key kmap (vector (+ i ?0)) 'digit-argument))
-    (define-key kmap "-" 'negative-argument)
-    (define-key kmap (kbd "p") 'previous-line)
-    (define-key kmap (kbd "n") 'next-line)
-    (define-key kmap (kbd "b") 'outline-backward-same-level)
-    (define-key kmap (kbd "d") 'hide-subtree)
-    (define-key kmap (kbd "a") 'show-all)
-    (define-key kmap (kbd "s") 'show-subtree)
-    (define-key kmap (kbd "f") 'outline-forward-same-level)
-    (define-key kmap (kbd "u") 'pdf-outline-up-heading)
-    (define-key kmap (kbd "Q") 'hide-sublevels)
-    (define-key kmap (kbd "<") 'beginning-of-buffer)
-    (define-key kmap (kbd ">") 'pdf-outline-end-of-buffer)
-    (define-key kmap (kbd "TAB") 'outline-toggle-children)
-    (define-key kmap (kbd "RET") 'pdf-outline-follow-link)
-    (define-key kmap (kbd "C-o") 'pdf-outline-display-link)
-    (define-key kmap (kbd "SPC") 'pdf-outline-display-link)
-    (define-key kmap [mouse-1] 'pdf-outline-mouse-display-link)
-    (define-key kmap (kbd "o") 'pdf-outline-select-pdf-window)
-    (define-key kmap (kbd ".") 'pdf-outline-move-to-current-page)
-    ;; (define-key kmap (kbd "Q") 'pdf-outline-quit)
-    (define-key kmap (kbd "C-c C-q") 'pdf-outline-quit-and-kill)
-    (define-key kmap (kbd "q") 'quit-window)
-    (define-key kmap (kbd "M-RET") 'pdf-outline-follow-link-and-quit)
-    (define-key kmap (kbd "C-c C-f") 'pdf-outline-follow-mode)
+      (define-key kmap (vector (+ i ?0)) #'digit-argument))
+    (define-key kmap "-" #'negative-argument)
+    (define-key kmap (kbd "p") #'previous-line)
+    (define-key kmap (kbd "n") #'next-line)
+    (define-key kmap (kbd "b") #'outline-backward-same-level)
+    (define-key kmap (kbd "d") #'hide-subtree)
+    (define-key kmap (kbd "a") #'show-all)
+    (define-key kmap (kbd "s") #'show-subtree)
+    (define-key kmap (kbd "f") #'outline-forward-same-level)
+    (define-key kmap (kbd "u") #'pdf-outline-up-heading)
+    (define-key kmap (kbd "Q") #'hide-sublevels)
+    (define-key kmap (kbd "<") #'beginning-of-buffer)
+    (define-key kmap (kbd ">") #'pdf-outline-end-of-buffer)
+    (define-key kmap (kbd "TAB") #'outline-toggle-children)
+    (define-key kmap (kbd "RET") #'pdf-outline-follow-link)
+    (define-key kmap (kbd "C-o") #'pdf-outline-display-link)
+    (define-key kmap (kbd "SPC") #'pdf-outline-display-link)
+    (define-key kmap [mouse-1] #'pdf-outline-mouse-display-link)
+    (define-key kmap (kbd "o") #'pdf-outline-select-pdf-window)
+    (define-key kmap (kbd ".") #'pdf-outline-move-to-current-page)
+    ;; (define-key kmap (kbd "Q") #'pdf-outline-quit)
+    (define-key kmap (kbd "C-c C-q") #'pdf-outline-quit-and-kill)
+    (define-key kmap (kbd "q") #'quit-window)
+    (define-key kmap (kbd "M-RET") #'pdf-outline-follow-link-and-quit)
+    (define-key kmap (kbd "C-c C-f") #'pdf-outline-follow-mode)
     kmap)
   "Keymap used in `pdf-outline-buffer-mode'.")
 
@@ -162,7 +155,7 @@ buffer.
   "View and traverse the outline of a PDF file.
 
 Press \\[pdf-outline-display-link] to display the PDF document,
-\\[pdf-outline-select-pdf-window] to select it's window,
+\\[pdf-outline-select-pdf-window] to select its window,
 \\[pdf-outline-move-to-current-page] to move to the outline item
 of the current page, \\[pdf-outline-follow-link] to goto the
 corresponding page or \\[pdf-outline-follow-link-and-quit] to
@@ -197,9 +190,9 @@ rebound to their respective last character.
   (setq pdf-outline-follow-mode-last-link nil)
   (cond
    (pdf-outline-follow-mode
-    (add-hook 'post-command-hook 'pdf-outline-follow-mode-pch nil t))
+    (add-hook 'post-command-hook #'pdf-outline-follow-mode-pch nil t))
    (t
-    (remove-hook 'post-command-hook 'pdf-outline-follow-mode-pch t))))
+    (remove-hook 'post-command-hook #'pdf-outline-follow-mode-pch t))))
 
 (defun pdf-outline-follow-mode-pch ()
   (let ((link (pdf-outline-link-at-pos (point))))
@@ -321,7 +314,7 @@ Open nodes as necessary."
     (pdf-outline-move-to-page page)))
 
 (defun pdf-outline-quit-and-kill ()
-  "Quit browsing the outline and kill it's buffer."
+  "Quit browsing the outline and kill its buffer."
   (interactive)
   (pdf-outline-quit t))
 

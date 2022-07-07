@@ -1,4 +1,4 @@
-;;; test-helper --- Test helper for pdf-tools
+;;; test-helper --- Test helper for pdf-tools  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; test helper inspired from https://github.com/tonini/overseer.el/blob/master/test/test-helper.el
@@ -16,7 +16,7 @@
 
 (unless (and (file-exists-p pdf-tools-package)
              (string-match "\\.tar\\'" pdf-tools-package))
-  (error "Invalid tar package:" pdf-tools-package))
+  (error "Invalid tar package: %s" pdf-tools-package))
 
 (unless load-file-name
   (error "load-file-name is unset"))
@@ -98,5 +98,10 @@
 (require 'pdf-info)
 (require 'ert)
 (require 'pdf-tools)
+
+;; FIXME: Can't be compiled with the Package-Requires dependencies alone.
+;; Local Variables:
+;; no-byte-compile: t
+;; End:
 
 ;;; test-helper.el ends here

@@ -46,25 +46,21 @@
 
 (defface pdf-occur-document-face
   '((default (:inherit font-lock-string-face)))
-  "Face used to highlight documents in the list buffer."
-  :group 'pdf-occur)
+  "Face used to highlight documents in the list buffer.")
 
 (defface pdf-occur-page-face
   '((default (:inherit font-lock-type-face)))
-  "Face used to highlight page numbers in the list buffer."
-  :group 'pdf-occur)
+  "Face used to highlight page numbers in the list buffer.")
 
 (defcustom pdf-occur-search-batch-size 16
   "Maximum number of pages searched in one query.
 
 Lower numbers will make Emacs more responsive when searching at
 the cost of slightly increased search time."
-  :group 'pdf-occur
   :type 'integer)
 
 (defcustom pdf-occur-prefer-string-search nil
   "If non-nil, reverse the meaning of the regexp-p prefix-arg."
-  :group 'pdf-occur
   :type 'boolean)
 
 (defvar pdf-occur-history nil
@@ -78,7 +74,7 @@ the cost of slightly increased search time."
 
 Each element should be either the filename of a PDF document or a
 cons \(FILENAME . PAGES\), where PAGES is the list of pages to
-search.  See `pdf-info-normalize-page-range' for it's format.")
+search.  See `pdf-info-normalize-page-range' for its format.")
 
 (defvar pdf-occur-number-of-matches 0
   "The number of matches in all searched documents.")
@@ -92,15 +88,15 @@ search.  See `pdf-info-normalize-page-range' for it's format.")
 (defvar pdf-occur-buffer-mode-map
   (let ((kmap (make-sparse-keymap)))
     (set-keymap-parent kmap tablist-mode-map)
-    (define-key kmap (kbd "RET") 'pdf-occur-goto-occurrence)
-    (define-key kmap (kbd "C-o") 'pdf-occur-view-occurrence)
-    (define-key kmap (kbd "SPC") 'pdf-occur-view-occurrence)
-    (define-key kmap (kbd "C-c C-f") 'next-error-follow-minor-mode)
-    (define-key kmap (kbd "g") 'pdf-occur-revert-buffer-with-args)
-    (define-key kmap (kbd "K") 'pdf-occur-abort-search)
-    (define-key kmap (kbd "D") 'pdf-occur-tablist-do-delete)
-    (define-key kmap (kbd "x") 'pdf-occur-tablist-do-flagged-delete)
-    (define-key kmap (kbd "A") 'pdf-occur-tablist-gather-documents)
+    (define-key kmap (kbd "RET") #'pdf-occur-goto-occurrence)
+    (define-key kmap (kbd "C-o") #'pdf-occur-view-occurrence)
+    (define-key kmap (kbd "SPC") #'pdf-occur-view-occurrence)
+    (define-key kmap (kbd "C-c C-f") #'next-error-follow-minor-mode)
+    (define-key kmap (kbd "g") #'pdf-occur-revert-buffer-with-args)
+    (define-key kmap (kbd "K") #'pdf-occur-abort-search)
+    (define-key kmap (kbd "D") #'pdf-occur-tablist-do-delete)
+    (define-key kmap (kbd "x") #'pdf-occur-tablist-do-flagged-delete)
+    (define-key kmap (kbd "A") #'pdf-occur-tablist-gather-documents)
     kmap)
   "The keymap used for `pdf-occur-buffer-mode'.")
 
@@ -128,9 +124,9 @@ Some useful keys are:
 
 \\{pdf-occur-buffer-mode-map}"
   (setq-local case-fold-search case-fold-search)
-  (setq-local next-error-function 'pdf-occur-next-error)
+  (setq-local next-error-function #'pdf-occur-next-error)
   (setq-local revert-buffer-function
-              'pdf-occur-revert-buffer)
+              #'pdf-occur-revert-buffer)
   (setq next-error-last-buffer (current-buffer))
   (setq-local tabulated-list-sort-key nil)
   (setq-local tabulated-list-use-header-line t)
@@ -192,10 +188,10 @@ For a programmatic search of multiple documents see
   (let* ((2-columns-p (= 1 (length pdf-occur-search-documents)))
          (filename-width
           (min 24
-               (apply 'max
-                 (mapcar 'length
-                         (mapcar 'pdf-occur-abbrev-document
-                                 (mapcar 'car pdf-occur-search-documents))))))
+               (apply #'max
+                 (mapcar #'length
+                         (mapcar #'pdf-occur-abbrev-document
+                                 (mapcar #'car pdf-occur-search-documents))))))
          (page-sorter (tablist-generate-sorter
                        (if 2-columns-p 0 1)
                        '<
@@ -355,7 +351,6 @@ This global minor mode enables (or disables)
 `pdf-occur-ibuffer-minor-mode' and `pdf-occur-dired-minor-mode'
 in all current and future ibuffer/dired buffer."
   :global t
-  :group 'pdf-occur
   (let ((arg (if pdf-occur-global-minor-mode 1 -1)))
     (dolist (buf (buffer-list))
       (with-current-buffer buf
@@ -366,15 +361,15 @@ in all current and future ibuffer/dired buffer."
           (pdf-occur-ibuffer-minor-mode arg)))))
     (cond
      (pdf-occur-global-minor-mode
-      (add-hook 'dired-mode-hook 'pdf-occur-dired-minor-mode)
-      (add-hook 'ibuffer-mode-hook 'pdf-occur-ibuffer-minor-mode))
+      (add-hook 'dired-mode-hook #'pdf-occur-dired-minor-mode)
+      (add-hook 'ibuffer-mode-hook #'pdf-occur-ibuffer-minor-mode))
      (t
-      (remove-hook 'dired-mode-hook 'pdf-occur-dired-minor-mode)
-      (remove-hook 'ibuffer-mode-hook 'pdf-occur-ibuffer-minor-mode)))))
+      (remove-hook 'dired-mode-hook #'pdf-occur-dired-minor-mode)
+      (remove-hook 'ibuffer-mode-hook #'pdf-occur-ibuffer-minor-mode)))))
 
 (defvar pdf-occur-ibuffer-minor-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map [remap ibuffer-do-occur] 'pdf-occur-ibuffer-do-occur)
+    (define-key map [remap ibuffer-do-occur] #'pdf-occur-ibuffer-do-occur)
     map)
   "Keymap used in `pdf-occur-ibuffer-minor-mode'.")
 
@@ -385,8 +380,7 @@ in all current and future ibuffer/dired buffer."
 This mode remaps `ibuffer-do-occur' to
 `pdf-occur-ibuffer-do-occur', which will start the PDF Tools
 version of `occur', if all marked buffer's are in `pdf-view-mode'
-and otherwise fallback to `ibuffer-do-occur'."
-  :group 'pdf-occur)
+and otherwise fallback to `ibuffer-do-occur'.")
 
 (defun pdf-occur-ibuffer-do-occur (&optional regexp-p)
   "Uses `pdf-occur-search', if appropriate.
@@ -409,7 +403,7 @@ I.e. all marked buffers are in PDFView mode."
 
 (defvar pdf-occur-dired-minor-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map [remap dired-do-search] 'pdf-occur-dired-do-search)
+    (define-key map [remap dired-do-search] #'pdf-occur-dired-do-search)
     map)
   "Keymap used in `pdf-occur-dired-minor-mode'.")
 
@@ -420,8 +414,7 @@ I.e. all marked buffers are in PDFView mode."
 This mode remaps `dired-do-search' to
 `pdf-occur-dired-do-search', which will start the PDF Tools
 version of `occur', if all marked buffer's are in `pdf-view-mode'
-and otherwise fallback to `dired-do-search'."
-  :group 'pdf-occur)
+and otherwise fallback to `dired-do-search'.")
 
 (defun pdf-occur-dired-do-search ()
   "Uses `pdf-occur-search', if appropriate.
@@ -452,7 +445,7 @@ I.e. all marked files look like PDF documents."
 DOCUMENTS should be a list of buffers (objects, not names),
 filenames or conses \(BUFFER-OR-FILENAME . PAGES\), where PAGES
 determines the scope of the search of the respective document.
-See `pdf-info-normalize-page-range' for it's format.
+See `pdf-info-normalize-page-range' for its format.
 
 STRING is either the string to search for or, if REGEXP-P is
 non-nil, a Perl compatible regular expression (PCRE).
@@ -477,7 +470,8 @@ Returns the window where the buffer is displayed."
     (display-buffer
      (current-buffer))))
 
-(defadvice tabulated-list-init-header (after update-header activate)
+(advice-add 'tabulated-list-init-header :after #'pdf-occur--update-header)
+(defun pdf-occur--update-header (&rest _)
   "We want our own headers, thank you."
   (when (derived-mode-p 'pdf-occur-buffer-mode)
     (save-current-buffer
@@ -554,7 +548,7 @@ matches linked with PAGE."
          (mapcar (lambda (doc)
                    (pdf-occur-create-entry doc 1))
                  (cl-set-difference
-                  (mapcar 'car
+                  (mapcar #'car
                           pdf-occur-search-documents)
                   (mapcar (lambda (elt)
                             (plist-get (car elt) :document))
@@ -634,7 +628,7 @@ matches linked with PAGE."
      batches)
     (setq pdf-occur-number-of-matches 0)
     (setq pdf-occur-search-pages-left
-          (apply '+ (mapcar (lambda (elt)
+          (apply #'+ (mapcar (lambda (elt)
                               (1+ (- (cdr (nth 1 elt))
                                      (car (nth 1 elt)))))
                             batches)))))
@@ -695,7 +689,7 @@ matches linked with PAGE."
 Examine all dired/ibuffer windows and offer to put marked files
 in the search list."
   (interactive)
-  (let ((searched (mapcar 'car pdf-occur-search-documents))
+  (let ((searched (mapcar #'car pdf-occur-search-documents))
         files)
     (dolist (win (window-list))
       (with-selected-window win
@@ -708,7 +702,7 @@ in the search list."
               (setq files
                     (append files marked nil)))))
          ((derived-mode-p 'ibuffer-mode)
-          (dolist (fname (mapcar 'buffer-file-name
+          (dolist (fname (mapcar #'buffer-file-name
                                  (ibuffer-get-marked-buffers)))
             (when fname
               (push fname files))))
@@ -734,7 +728,7 @@ in the search list."
       (when (tablist-yes-or-no-p
              'add nil (mapcar (lambda (file)
                                 (cons nil (vector file)))
-                              (cl-sort files 'string-lessp)))
+                              (cl-sort files #'string-lessp)))
         (setq pdf-occur-search-documents
               (append pdf-occur-search-documents
                       (pdf-occur-normalize-documents files)))

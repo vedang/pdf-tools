@@ -2,12 +2,13 @@
 
 ;; Copyright (C) 2013, 2014  Andreas Politz
 
-;; Author: Andreas Politz <politza@fh-trier.de>
+;; Author: Andreas Politz <mail@andreas-politz.de>
+;; Maintainer: Vedang Manerikar <vedang.manerikar@gmail.com>
 ;; URL: http://github.com/vedang/pdf-tools/
 ;; Keywords: files, multimedia
 ;; Package: pdf-tools
-;; Version: 1.0
-;; Package-Requires: ((emacs "24.3") (tablist "1.0") (let-alist "1.0.4"))
+;; Version: 1.0.0snapshot
+;; Package-Requires: ((emacs "24.3") (nadvice "0.3") (tablist "1.0") (let-alist "1.0.4"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -72,7 +73,7 @@
 ;;   back to the PDF file.
 ;;
 ;; * Attachments
-;;   Save files attached to the PDF-file or list them in a dired buffer.
+;;   Save files attached to the PDF-file or list them in a Dired buffer.
 ;;
 ;; * Outline
 ;;   Use imenu or a special buffer to examine and navigate the PDF's
@@ -243,6 +244,7 @@ Returns a appropriate directory or nil.  See also
            (list default-directory
                  (expand-file-name "build/server" pdf-tools-directory)
                  (expand-file-name "server")
+                 (expand-file-name "server" pdf-tools-directory)
                  (expand-file-name "../server" pdf-tools-directory))))
 
 (defun pdf-tools-msys2-directory (&optional noninteractive-p)
@@ -312,10 +314,11 @@ Returns the buffer of the compilation process."
   (unless callback (setq callback #'ignore))
   (unless build-directory
     (setq build-directory (pdf-tools-locate-build-directory)))
-  (cl-check-type target-directory file-directory)
+  (cl-check-type target-directory (satisfies file-directory-p))
   (setq target-directory (file-name-as-directory
                           (expand-file-name target-directory)))
-  (cl-check-type build-directory (and (not null) file-directory))
+  (cl-check-type build-directory (and (not null)
+                                      (satisfies file-directory-p)))
   (when (and skip-dependencies-p force-dependencies-p)
     (error "Can't simultaneously skip and force dependencies"))
   (let* ((compilation-auto-jump-to-first-error nil)
@@ -433,13 +436,17 @@ See `pdf-view-mode' and `pdf-tools-enabled-modes'."
   (when (memq 'pdf-virtual-global-minor-mode
               pdf-tools-enabled-modes)
     (pdf-virtual-global-minor-mode 1))
-  (add-hook 'pdf-view-mode-hook 'pdf-tools-enable-minor-modes)
+  (add-hook 'pdf-view-mode-hook #'pdf-tools-enable-minor-modes)
   (dolist (buf (buffer-list))
-    (with-current-buffer buf
-      (when (and (not (derived-mode-p 'pdf-view-mode))
-                 (pdf-tools-pdf-buffer-p)
-                 (buffer-file-name))
-        (pdf-view-mode)))))
+    ;; This when check should not be necessary, but somehow dead
+    ;; buffers are showing up here. See
+    ;; https://github.com/vedang/pdf-tools/pull/93
+    (when (buffer-live-p buf)
+      (with-current-buffer buf
+        (when (and (not (derived-mode-p 'pdf-view-mode))
+                   (pdf-tools-pdf-buffer-p)
+                   (buffer-file-name))
+          (pdf-view-mode))))))
 
 (defun pdf-tools-uninstall ()
   "Uninstall PDF-Tools in all current and future PDF buffers."
@@ -451,7 +458,7 @@ See `pdf-view-mode' and `pdf-tools-enabled-modes'."
     (remove pdf-tools-magic-mode-alist-entry magic-mode-alist))
   (pdf-occur-global-minor-mode -1)
   (pdf-virtual-global-minor-mode -1)
-  (remove-hook 'pdf-view-mode-hook 'pdf-tools-enable-minor-modes)
+  (remove-hook 'pdf-view-mode-hook #'pdf-tools-enable-minor-modes)
   (dolist (buf (buffer-list))
     (with-current-buffer buf
       (when (pdf-util-pdf-buffer-p buf)
@@ -459,7 +466,9 @@ See `pdf-view-mode' and `pdf-tools-enabled-modes'."
         (normal-mode)))))
 
 (defun pdf-tools-pdf-buffer-p (&optional buffer)
-  "Return non-nil if BUFFER contains a PDF document."
+  "Check if the current buffer is a PDF document.
+
+Optionally, take BUFFER as an argument and check if it is a PDF document."
   (save-current-buffer
     (when buffer (set-buffer buffer))
     (save-excursion
@@ -469,10 +478,14 @@ See `pdf-view-mode' and `pdf-tools-enabled-modes'."
         (looking-at "%PDF")))))
 
 (defun pdf-tools-assert-pdf-buffer (&optional buffer)
+  "Throw an error if the current BUFFER does not contain a PDF document."
   (unless (pdf-tools-pdf-buffer-p buffer)
     (error "Buffer does not contain a PDF document")))
 
 (defun pdf-tools-set-modes-enabled (enable &optional modes)
+  "Enable/Disable all the pdf-tools modes on the current buffer based on ENABLE.
+
+Accepts MODES as a optional argument to enable/disable specific modes."
   (dolist (m (or modes pdf-tools-enabled-modes))
     (let ((enabled-p (and (boundp m)
                           (symbol-value m))))
@@ -502,6 +515,7 @@ MODES defaults to `pdf-tools-enabled-modes'."
 
 ;;;###autoload
 (defun pdf-tools-help ()
+  "Show a Help buffer for `pdf-tools'."
   (interactive)
   (help-setup-xref (list #'pdf-tools-help)
                    (called-interactively-p 'interactive))
@@ -509,7 +523,7 @@ MODES defaults to `pdf-tools-enabled-modes'."
     (princ "PDF Tools Help\n\n")
     (princ "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     (dolist (m (cons 'pdf-view-mode
-                     (sort (copy-sequence pdf-tools-modes) 'string<)))
+                     (sort (copy-sequence pdf-tools-modes) #'string<)))
       (princ (format "`%s' is " m))
       (describe-function-1 m)
       (terpri) (terpri)
@@ -524,6 +538,7 @@ MODES defaults to `pdf-tools-enabled-modes'."
   "Non-nil, if debugging PDF Tools.")
 
 (defun pdf-tools-toggle-debug ()
+  "Turn debugging on/off for pdf-tools."
   (interactive)
   (setq pdf-tools-debug (not pdf-tools-debug))
   (when (called-interactively-p 'any)

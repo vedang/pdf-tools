@@ -1,0 +1,4 @@
+# -*- dockerfile -*-
+# Debian 11 is known as bullseye
+FROM debian:11
+RUN apt-get update -y

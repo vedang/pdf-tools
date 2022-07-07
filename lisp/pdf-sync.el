@@ -21,8 +21,8 @@
 ;;
 ;; The backward search uses a heuristic, which is pretty simple, but
 ;; effective: It extracts the text around the click-position in the
-;; PDF, normalizes it's whitespace, deletes certain notorious
-;; character and translates certain other character into their latex
+;; PDF, normalizes its whitespace, deletes certain notorious
+;; characters and translates certain other characters into their latex
 ;; equivalents.  This transformed text is split into a series of
 ;; token.  A similar operation is performed on the source code around
 ;; the position synctex points at.  These two sequences of token are
@@ -43,11 +43,10 @@
   :group 'pdf-tools)
 
 (defcustom pdf-sync-forward-display-pdf-key "C-c C-g"
-  "Key to jump from a TeX buffer to it's PDF file.
+  "Key to jump from a TeX buffer to its PDF file.
 
 This key is added to `TeX-source-correlate-method', when
 command `pdf-sync-minor-mode' is activated and this map is defined."
-  :group 'pdf-sync
   :type 'key-sequence)
 
 (make-obsolete-variable
@@ -58,7 +57,6 @@ command `pdf-sync-minor-mode' is activated and this map is defined."
   "Hook ran after going to a source location.
 
 The hook is run in the TeX buffer."
-  :group 'pdf-sync
   :type 'hook
   :options '(pdf-sync-backward-beginning-of-word))
 
@@ -66,17 +64,14 @@ The hook is run in the TeX buffer."
   "Hook ran after displaying the PDF buffer.
 
 The hook is run in the PDF's buffer."
-  :group 'pdf-sync
   :type 'hook)
 
 (defcustom pdf-sync-forward-display-action nil
   "Display action used when displaying PDF buffers."
-  :group 'pdf-sync
   :type 'display-buffer--action-custom-type)
 
 (defcustom pdf-sync-backward-display-action nil
   "Display action used when displaying TeX buffers."
-  :group 'pdf-sync
   :type 'display-buffer--action-custom-type)
 
 (defcustom pdf-sync-locate-synctex-file-functions nil
@@ -86,13 +81,12 @@ Each function on this hook should accept a single argument: The
 absolute path of a PDF file.  It should return the absolute path
 of the corresponding synctex database or nil, if it was unable to
 locate it."
-  :group 'pdf-sync
   :type 'hook)
 
 (defvar pdf-sync-minor-mode-map
   (let ((kmap (make-sparse-keymap)))
-    (define-key kmap [double-mouse-1] 'pdf-sync-backward-search-mouse)
-    (define-key kmap [C-mouse-1] 'pdf-sync-backward-search-mouse)
+    (define-key kmap [double-mouse-1] #'pdf-sync-backward-search-mouse)
+    (define-key kmap [C-mouse-1] #'pdf-sync-backward-search-mouse)
     kmap))
 
 (defcustom pdf-sync-backward-redirect-functions nil
@@ -110,7 +104,6 @@ none) values modified.
 AUCTeX installs a function here which changes the backward search
 location for synthetic `TeX-region' files back to the equivalent
 position in the original tex file."
-  :group 'pdf-sync
   :type '(repeat function))
 
 
@@ -145,7 +138,6 @@ with AUCTeX."
 
 If nil, just go where Synctex tells us.  Otherwise try to find
 the exact location of the clicked-upon text in the PDF."
-  :group 'pdf-sync
   :type 'boolean)
 
 (defcustom pdf-sync-backward-text-translations
@@ -257,13 +249,12 @@ the exact location of the clicked-upon text in the PDF."
     (9830 "diamondsuit"))
   "Alist mapping PDF character to a list of LaTeX macro names.
 
-Adding a character here with it's LaTeX equivalent names allows
-the heuristic backward search to find it's location in the source
+Adding a character here with its LaTeX equivalent names allows
+the heuristic backward search to find its location in the source
 file.  These strings should not match
 `pdf-sync-backward-source-flush-regexp'.
 
 Has no effect if `pdf-sync-backward-use-heuristic' is nil."
-  :group 'pdf-sync
   :type '(alist :key-type character
                 :value-type (repeat string)))
 
@@ -320,7 +311,7 @@ point to the correct position."
                         .line .column)))
         (cl-destructuring-bind (source line column)
             (or (save-selected-window
-                  (apply 'run-hook-with-args-until-success
+                  (apply #'run-hook-with-args-until-success
                     'pdf-sync-backward-redirect-functions data))
                 data)
           (list source
@@ -539,22 +530,19 @@ word-level searching is desired."
 (define-minor-mode pdf-sync-backward-debug-minor-mode
   "Aid in debugging the backward search."
   :group 'pdf-sync
-  (if (and (fboundp 'advice-add)
-           (fboundp 'advice-remove))
-      (let ((functions
-             '(pdf-sync-backward-search
-               pdf-sync-backward--tokenize
-               pdf-util-seq-alignment)))
-        (cond
-         (pdf-sync-backward-debug-minor-mode
-          (dolist (fn functions)
-            (advice-add fn :around (apply-partially 'pdf-sync-backward-debug-wrapper
-                                                    fn)
-                        `((name . ,(format "%s-debug" fn))))))
-         (t
-          (dolist (fn functions)
-            (advice-remove fn (format "%s-debug" fn))))))
-    (error "Need Emacs version >= 24.4")))
+  (let ((functions
+         '(pdf-sync-backward-search
+           pdf-sync-backward--tokenize
+           pdf-util-seq-alignment)))
+    (cond
+     (pdf-sync-backward-debug-minor-mode
+      (dolist (fn functions)
+        (advice-add fn :around
+                    (apply-partially #'pdf-sync-backward-debug-wrapper fn)
+                    `((name . ,(format "%s-debug" fn))))))
+     (t
+      (dolist (fn functions)
+        (advice-remove fn (format "%s-debug" fn)))))))
 
 (defun pdf-sync-backward-debug-explain ()
   "Explain the last backward search.
@@ -591,7 +579,7 @@ Needs to have `pdf-sync-backward-debug-minor-mode' enabled."
                        (insert
                         (mapconcat (lambda (elt)
                                      (if (consp elt)
-                                         (mapconcat 'identity elt or-sep)
+                                         (mapconcat #'identity elt or-sep)
                                        elt))
                                    (nth 2 (cdr text)) " "))
                        (point)))
@@ -604,7 +592,7 @@ Needs to have `pdf-sync-backward-debug-minor-mode' enabled."
         (insert (propertize "Source Token:" 'face 'font-lock-keyword-face))
         (insert sep)
         (fill-region (point)
-                     (progn (insert (mapconcat 'identity (nth 2 (cdr source)) " "))
+                     (progn (insert (mapconcat #'identity (nth 2 (cdr source)) " "))
                             (point)))
         (insert sep)
 
@@ -617,7 +605,7 @@ Needs to have `pdf-sync-backward-debug-minor-mode' enabled."
           (dolist (a (cdr (cdr alignment)))
             (let* ((source (cdr a))
                    (text (if (consp (car a))
-                             (mapconcat 'identity (car a) or-sep)
+                             (mapconcat #'identity (car a) or-sep)
                            (car a)))
                    (extend (max (length text)
                                 (length source))))

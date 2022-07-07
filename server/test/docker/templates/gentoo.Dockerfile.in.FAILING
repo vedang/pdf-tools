@@ -1,0 +1,6 @@
+# -*- dockerfile -*-
+FROM gentoo/stage3
+RUN emerge --sync
+# IF you see this error, just ignore it: !!! It seems /run is not mounted. Process management may malfunction.
+# Note that gentoo takes a **long** time to build and run, that's okay.
+# @TODO: Currently, running this errors out because it cannot find glib-2.0, needs fixing.

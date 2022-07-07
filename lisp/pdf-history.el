@@ -38,8 +38,10 @@
 
 (defvar pdf-history-minor-mode-map
   (let ((kmap (make-sparse-keymap)))
-    (define-key kmap (kbd "B") 'pdf-history-backward)
-    (define-key kmap (kbd "N") 'pdf-history-forward)
+    (define-key kmap (kbd "B") #'pdf-history-backward)
+    (define-key kmap (kbd "N") #'pdf-history-forward)
+    (define-key kmap (kbd "l") #'pdf-history-backward)
+    (define-key kmap (kbd "r") #'pdf-history-forward)
     kmap)
   "Keymap used in `pdf-history-minor-mode'.")
 
@@ -59,10 +61,10 @@ may be navigated with the following keys.
    (pdf-history-minor-mode
     (pdf-history-push)
     (add-hook 'pdf-view-after-change-page-hook
-              'pdf-history-before-change-page-hook nil t))
+              #'pdf-history-before-change-page-hook nil t))
    (t
     (remove-hook 'pdf-view-after-change-page-hook
-                 'pdf-history-before-change-page-hook t))))
+                 #'pdf-history-before-change-page-hook t))))
 
 (defun pdf-history-before-change-page-hook ()
   "Push a history item, before leaving this page."
@@ -110,7 +112,7 @@ represents the current page."
      (1- (length pdf-history-stack))))
 
 (defun pdf-history-backward (n)
-  "Go N-times backward in the history."
+  "Go N times backward in the history."
   (interactive "p")
   (cond
    ((and (> n 0)
@@ -128,7 +130,7 @@ represents the current page."
    (t 0)))
 
 (defun pdf-history-forward (n)
-  "Go N-times forward in the history."
+  "Go N times forward in the history."
   (interactive "p")
   (pdf-history-backward (- n)))
 
