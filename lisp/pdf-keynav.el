@@ -837,6 +837,8 @@ after scrolling."
   (interactive)
   (setq pdf-keynav-display-pointer-as-cursor
         (not pdf-keynav-display-pointer-as-cursor))
+  (when pdf-keynav-display-pointer-as-cursor
+    (pdf-view-redisplay))
   (pdf-keynav-display-region-cursor))
 
 
