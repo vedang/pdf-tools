@@ -82,6 +82,8 @@
 
 ;; Find a better way to display the region and the cursor.
 
+;; Find a way to control what symbol is used for the mouse pointer.
+
 ;; Idle timer for lazy loading of page-specific buffer-locals.
 
 ;; Maybe include a hotspots map in the image that displays region/cursor,
@@ -121,24 +123,45 @@ page scrolling to be slower, while the first pdf-keynav command might feel a
 bit quicker."
   :type 'boolean)
 
+;; this is used to prevent pointer from going invisible whenever
+;; pdf-keynav-display-pointer-as-cursor is non-nil
+(defun pdf-keynav-make-pointer-invisible (_symbol newval op _where)
+  (if (and newval (equal op 'set))
+      (setq make-pointer-invisible nil)
+    (setq make-pointer-invisible t)))
+
+(add-variable-watcher 'pdf-keynav-display-pointer-as-cursor #'pdf-keynav-make-pointer-invisible)
+;; FIXME call remove-variable-watcher somewhere suitable
+;; maybe move this to minor mode function
+
+(defcustom pdf-keynav-display-pointer-as-cursor t
+  "When non-nil co-opt the mouse pointer to act as a cursor."
+  :group 'pdf-keynav
+  :type 'boolean)
+
 (defcustom pdf-keynav-scroll-window t
   "When non-nil scroll the window so that point is always visible."
+  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-scroll-left-margin 10
   "Left margin in pixels between window edge and point after scrolling."
+  :group 'pdf-keynav
   :type 'integer)
 
 (defcustom pdf-keynav-scroll-right-margin 25
   "Right margin in pixels between window edge and point after scrolling."
+  :group 'pdf-keynav
   :type 'integer)
 
 (defcustom pdf-keynav-no-find-closest-char nil
   "If non-nil mouse selection commands do not search for closest character."
+  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-transient-mark-mode nil
   "Non-nil enables `transient-mark-mode'-like region highlighting."
+  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-newline-cursor-dimensions '(0.01 . 0.015)
@@ -148,6 +171,7 @@ Given as (WIDTH . HEIGHT) relative to the page dimensions."
 
 (defcustom pdf-keynav-continuous pdf-view-continuous
   "When non-nil, reaching the page edges advances to next/previous page."
+  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-paragraph-parameters (list 0.01 0.02 2 5 1 1)
@@ -155,36 +179,43 @@ Given as (WIDTH . HEIGHT) relative to the page dimensions."
 Should contain six numeric elements: (dyx-round-to dys-round-to
 min-indent max-indent max-dx-discrepancy min-dy-discrepancy)
 as described in `pdf-keynav-get-page-paragraphs', to which it is passed."
+  :group 'pdf-keynav
   :type '(list number number natnum natnum natnum))
 
 (defcustom pdf-keynav-copy-filter-add-parbreaks t
   "When non-nil add an extra linebreak at paragraph breaks in copied text.
 Used by the function `pdf-keynav-copy-filter'."
+  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-copy-filter-remove-linebreaks t
   "When non-nil replace single linebreaks with single spaces in copied text.
 Used by the function `pdf-keynav-copy-filter'."
+  :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-copy-region-separator "\n"
   "The separator used between disconnected copied regions of text.
 As constructed by `pdf-keynav-mouse-extend-region'."
+  :group 'pdf-keynav
   :type 'string)
 
 (defcustom pdf-keynav-copy-region-blink-delay copy-region-blink-delay
   "Number of seconds to highlight copied text.
 Highlighting happens when using `pdf-keynav-kill-ring-save',
 unless the region is currently displayed. Set 0 to turn off completely."
+  :group 'pdf-keynav
   :type 'number)
 
 (defcustom pdf-keynav-select-map-prefix (kbd "e")
   "The prefix to use for `pdf-keynav-select-map'."
+  :group 'pdf-keynav
   :type 'string)
 
 (defcustom pdf-keynav-annot-text-margin 10
   "Margin between text annotation and closest text, in pixel.
 Used by `pdf-keynav-annot-add-text-left'."
+  :group 'pdf-keynav
   :type 'integer)
 
 (defcustom pdf-keynav-sentence-end
@@ -197,7 +228,7 @@ Used by `pdf-keynav-annot-add-text-left'."
    ;; (2) Matches full stop but only when not after certain patterns
    "\\(?:" ;; start group for (2)
    ;; excludes " [A-Z]", " p", "e.g", "i.e", and "et al" before "."
-   ;; (other candidates: [1-9], I-X, [a-z], No, Vol/vol, Ed/ed, Eds/eds, etc)
+   ;; (other candidates: [1-9], I-X, [a-z], pp, No, Vol/vol, Ed/ed, Eds/eds, etc)
    "\\(?:"
    "\\(?:[^A-Zpgel]\\)" "\\|"
    "\\(?:[^ \n][A-Z]\\)" "\\|"
@@ -227,6 +258,7 @@ necessarily followed by either a space or newline. Dots which follow a single
 uppercase letter or 'p', or 'e.g', 'i.e', or 'et al' are ignored.
 
 See the source code for a clearer breakdown of the different parts."
+  :group 'pdf-keynav
   :type 'regexp)
 
 (defcustom pdf-keynav-sentence-start
@@ -264,6 +296,7 @@ This is the reverse of `pdf-keynav-sentence-end' used for forward-matching on
 the reversed string.
 
 See the source code for a clearer breakdown of the different parts."
+  :group 'pdf-keynav
   :type 'regexp)
 
 
@@ -498,6 +531,11 @@ necessary buffer-locals have been loaded."
 	  (add-hook 'pdf-view-after-change-page-hook
 		    #'pdf-keynav-setup-buffer-locals nil 'local))
 
+        ;; co-opt pointer as cursor
+        ;;(if pdf-keynav-display-pointer-as-cursor
+        ;;    (advice-add 'pdf-keynav-display-cursor :override
+        ;;                #'pdf-keynav-display-pointer-as-cursor))
+                
 	;; isearch compatibility
 	(add-hook 'isearch-mode-end-hook
 		  #'pdf-keynav-isearch-mode-end-set-point 10 'local)
@@ -611,6 +649,8 @@ point is visible."
   ;; MAYBE Display region and cursor at the same time in different styles? 
   ;;       just pass right args to pdf-info-renderpage-text-regions
   ;; cursor is only displayed when region isn't displayed
+  (when pdf-keynav-scroll-window
+    (pdf-keynav-scroll-to-edges))  
   (if (and pdf-keynav-transient-mark-mode
 	   pdf-keynav-mark-active-p
 	   (not (equal pdf-keynav-point pdf-keynav-mark)))
@@ -622,7 +662,10 @@ point is visible."
 	   (nth 1 (nth pdf-keynav-point pdf-keynav-charlayout)))
 	  (cursor-dim
 	   pdf-keynav-newline-cursor-dimensions))
-      (if (-contains? pdf-keynav-lineends pdf-keynav-point)
+      (if pdf-keynav-display-pointer-as-cursor
+          (pdf-keynav-display-pointer-as-cursor
+           (list inrectangle))
+        (if (-contains? pdf-keynav-lineends pdf-keynav-point)
 	  ;; at newline characters cursor is displayed as inflated rectangle
 	  (pdf-keynav-display-cursor
 	   ;; MAYBE base newline rectangle on previous charregion/line instead
@@ -634,9 +677,11 @@ point is visible."
 	   t)
 	;; else cursor is displayed by highlighting the bounding rectangle
 	(pdf-keynav-display-cursor
-	 (list inrectangle)))))
-  (when pdf-keynav-scroll-window
-    (pdf-keynav-scroll-to-edges)))
+	 (list inrectangle)))))))
+
+;;#FIXME
+;;(when pdf-keynav-scroll-window
+;;    (pdf-keynav-scroll-to-edges))
 
 
 (defun pdf-keynav-display-cursor (region
@@ -667,6 +712,32 @@ region to one line."
             `(,(car colors) ,(cdr colors) ,@region)))
        :width width))))
 
+(defun pdf-keynav-display-pointer-as-cursor (region &optional rectangle-p
+                                                    not-single-line-p)
+  "Sets the position of the mouse pointer based on REGION.
+REGION will usually be the charregion of the character at point.
+
+This function is used to co-opt the pointer as a cursor when
+`pdf-keynav-display-pointer-as-cursor` is non-nil."
+  ;; FIXME does this still introduce new bugs?
+  ;; FIXEM does this work in all cases?
+  (let* ((pixel-region
+          (pdf-util-scale-relative-to-pixel (nth 0 region)))
+         (image-edges
+          (pdf-util-image-displayed-edges))
+         (xpos
+          (round (- (nth 0 pixel-region)
+                    (nth 0 image-edges))))
+         (ypos
+          (round (- (nth 3 pixel-region)
+                    (nth 1 image-edges)))))
+    ;; FIXME pointer seems to behave less erratic when message is called?!
+    ;;       introducing a small delay doesn't give the same effect though,
+    ;;       but a null message works
+    ;;       (sleep-for 0 10)
+    (message "xpos: %s  ypos: %s" xpos ypos)
+    ;;(message nil)    
+    (set-mouse-pixel-position (selected-frame) xpos ypos)))
 
 (defun pdf-keynav-scroll-to-edges (&optional eager-p)
   "Scroll window so that point is visible; wraps `pdf-util-scroll-to-edges'.
@@ -693,6 +764,12 @@ after scrolling."
 				 edges-tmp)))
     (pdf-util-scroll-to-edges edges-out eager-p)))
 
+(defun pdf-keynav-toggle-display-pointer-as-cursor ()
+  "Toggles `pdf-keynav-display-pointer-as-cursor`."
+  (interactive)
+  (setq pdf-keynav-display-pointer-as-cursor
+        (not pdf-keynav-display-pointer-as-cursor))
+  (pdf-keynav-display-region-cursor))
 
 
 ;; * Navigate
@@ -712,7 +789,8 @@ one character into the adjacent page, truncating N)."
   (if (> (+ pdf-keynav-point n)
 	 (1- (length pdf-keynav-charlayout)))
       (if pdf-keynav-continuous
-	  (let ((pdf-view-inhibit-redisplay t))
+	  (let ((pdf-view-inhibit-redisplay
+                 (not pdf-keynav-display-pointer-as-cursor)))
 	    (pdf-view-next-page)
 	    (if pdf-keynav-lazy-load
 		(pdf-keynav-setup-buffer-locals)))
@@ -721,6 +799,7 @@ one character into the adjacent page, truncating N)."
     (setq pdf-keynav-point
 	  (+ pdf-keynav-point n)))
   (pdf-keynav-display-region-cursor))
+
 
 
 (defun pdf-keynav-backward-char (&optional n)
@@ -735,7 +814,8 @@ one character into the adjacent page, truncating N)."
       (pdf-keynav-lazy-load))
   (if (< (- pdf-keynav-point n) 0)
       (if pdf-keynav-continuous
-	  (let ((pdf-view-inhibit-redisplay t))
+	  (let ((pdf-view-inhibit-redisplay
+                 (not pdf-keynav-display-pointer-as-cursor)))
 	    (pdf-view-previous-page)
 	    (if pdf-keynav-lazy-load
 		(pdf-keynav-setup-buffer-locals))
@@ -901,7 +981,8 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
 	(setq pdf-keynav-point
 	      (match-end 0))
       (when pdf-keynav-continuous
-	(let ((pdf-view-inhibit-redisplay t))
+	(let ((pdf-view-inhibit-redisplay
+               (not pdf-keynav-display-pointer-as-cursor)))
 	  (pdf-view-next-page)
 	  (if pdf-keynav-lazy-load
 	      (pdf-keynav-setup-buffer-locals))))))
@@ -931,7 +1012,8 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
 		(- (length pdf-keynav-text)
 		   (match-end 0)))
 	(when pdf-keynav-continuous
-	  (let ((pdf-view-inhibit-redisplay t))
+	  (let ((pdf-view-inhibit-redisplay
+                 (not pdf-keynav-display-pointer-as-cursor)))
 	    (pdf-view-previous-page)
 	    (if pdf-keynav-lazy-load
 		(pdf-keynav-setup-buffer-locals))
@@ -975,7 +1057,8 @@ one line into the adjacent page, truncating N)."
 	   (length lineends))
 	;; handle page break
 	(if pdf-keynav-continuous
-	    (let ((pdf-view-inhibit-redisplay t))
+	    (let ((pdf-view-inhibit-redisplay
+                   (not pdf-keynav-display-pointer-as-cursor)))
 	      (pdf-view-next-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals))
@@ -1012,7 +1095,8 @@ one line into the adjacent page, truncating N)."
     (if (< (- inline n) 1)
 	;; handle page break
 	(if pdf-keynav-continuous
-	    (let ((pdf-view-inhibit-redisplay t))
+	    (let ((pdf-view-inhibit-redisplay
+                   (not pdf-keynav-display-pointer-as-cursor)))
 	      (pdf-view-previous-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals))
@@ -1081,7 +1165,8 @@ alignment of point, making it slightly faster."
 	   (length inlineends))
 	;; handle page break
 	(if pdf-keynav-continuous
-	    (let ((pdf-view-inhibit-redisplay t))
+	    (let ((pdf-view-inhibit-redisplay
+                   (not pdf-keynav-display-pointer-as-cursor)))
 	      (pdf-view-next-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals))
@@ -1124,7 +1209,8 @@ vertical alignment of point, making it slightly faster."
     (if (< (1- inline) n)
 	;; handle page break
 	(if pdf-keynav-continuous
-	    (let ((pdf-view-inhibit-redisplay t))
+	    (let ((pdf-view-inhibit-redisplay
+                   (not pdf-keynav-display-pointer-as-cursor)))
 	      (pdf-view-previous-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals))
@@ -1223,7 +1309,8 @@ For more about textregions see `pdf-keynav-textregion-at-point'."
 	  (if (> (+ intextregion n)
 		 (length textregions))
 	      (if pdf-keynav-continuous
-		  (let ((pdf-view-inhibit-redisplay t))
+		  (let ((pdf-view-inhibit-redisplay
+                         (not pdf-keynav-display-pointer-as-cursor)))
 		    (pdf-view-next-page)
 		    (if pdf-keynav-lazy-load
 			(pdf-keynav-setup-buffer-locals))
@@ -1263,7 +1350,8 @@ For more about textregions see `pdf-keynav-textregion-at-point'."
 		 1)
 	      ;; handle page break
 	      (if pdf-keynav-continuous
-		  (let ((pdf-view-inhibit-redisplay t))
+		  (let ((pdf-view-inhibit-redisplay
+                         (not pdf-keynav-display-pointer-as-cursor)))
 		    (pdf-view-previous-page)
 		    (if pdf-keynav-lazy-load
 			(pdf-keynav-setup-buffer-locals))
@@ -1342,7 +1430,8 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
 		(or (match-end 1) (match-end 2) (match-end 3)))
 	(if (and pdf-keynav-continuous
 		 (equal pdf-keynav-point (1- (length pdf-keynav-text))))
-	    (let ((pdf-view-inhibit-redisplay t))
+	    (let ((pdf-view-inhibit-redisplay
+                   (not pdf-keynav-display-pointer-as-cursor)))
 	      (pdf-view-next-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals)))
@@ -1379,7 +1468,8 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
 		       (match-beginning 3))))
 	(if (and pdf-keynav-continuous
 		 (equal pdf-keynav-point 0))
-	    (let ((pdf-view-inhibit-redisplay t))
+	    (let ((pdf-view-inhibit-redisplay
+                   (not pdf-keynav-display-pointer-as-cursor)))
 	      (pdf-view-previous-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals))
@@ -1584,7 +1674,8 @@ one paragraph into the adjacent page, truncating N)."
 	    (progn
 	      ;; change page and update buffer-locals
 	      ;; but redisplay is done through display-cursor below
-	      (let ((pdf-view-inhibit-redisplay t))
+	      (let ((pdf-view-inhibit-redisplay
+                     (not pdf-keynav-display-pointer-as-cursor)))
 		(pdf-view-next-page)
 		(if pdf-keynav-lazy-load
 		    (pdf-keynav-setup-buffer-locals)))
@@ -1632,7 +1723,8 @@ one paragraph into the adjacent page, truncating N)."
 	    (progn
 	      ;; change page and update buffer-locals
 	      ;; but redisplay is done through display-cursor below
-	      (let ((pdf-view-inhibit-redisplay t))
+	      (let ((pdf-view-inhibit-redisplay
+                     (not pdf-keynav-display-pointer-as-cursor)))
 		(pdf-view-previous-page)
 		(if pdf-keynav-lazy-load
 		    (pdf-keynav-setup-buffer-locals))
@@ -1759,15 +1851,17 @@ the mark."
 	  (pdf-keynav-display-region-cursor))))))
 
 
-(defun pdf-keynav-exchange-point-and-mark ()
+(defun pdf-keynav-exchange-point-and-mark (&optional nodisplay)
   "Put the mark where point is now, and point where the mark is now."
   (interactive)
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))
-  (let ((omark pdf-keynav-mark))
+  (let ((omark pdf-keynav-mark)
+        (point pdf-keynav-point))
     (pdf-keynav-set-mark-command)
     (setq pdf-keynav-point omark)
-    (pdf-keynav-display-region-cursor)))
+    (unless nodisplay 
+    (pdf-keynav-display-region-cursor))))
 
 
 (defun pdf-keynav-transient-mark-mode (&optional arg)
@@ -1844,7 +1938,7 @@ Puts mark at beginning of word and point at end, and displays region."
   (pdf-keynav-forward-word nil t)
   (pdf-keynav-set-mark-command)
   (pdf-keynav-backward-word nil t)
-  (pdf-keynav-exchange-point-and-mark)
+  (pdf-keynav-exchange-point-and-mark t)
   (pdf-view-display-region
    (list (pdf-keynav-get-region-rpos))))
 
@@ -1867,7 +1961,7 @@ Puts mark at beginning of sentence and point at end, and displays region."
   (pdf-keynav-forward-sentence nil t)
   (pdf-keynav-set-mark-command)
   (pdf-keynav-backward-sentence nil t)
-  (pdf-keynav-exchange-point-and-mark)
+  (pdf-keynav-exchange-point-and-mark t)
   (pdf-view-display-region
    (list (pdf-keynav-get-region-rpos))))
 
@@ -2232,13 +2326,12 @@ This function is used as before advice to `pdf-view-active-region'."
     (setq pdf-view-active-region
 	  (list (pdf-keynav-get-region-rpos)))))
 
-
 (defun pdf-keynav-after-markup-advice (&rest _arg)
   "Deactivate region and display cursor."
-  (when pdf-keynav-transient-mark-mode
-    (setq pdf-keynav-mark-active-p nil))
-  (pdf-keynav-display-region-cursor))
-
+  (when (equal major-mode 'pdf-view-mode)
+    (when pdf-keynav-transient-mark-mode
+      (setq pdf-keynav-mark-active-p nil))
+    (pdf-keynav-display-region-cursor)))
 
 (defun pdf-keynav-annot-activate (&optional arg)
   "Edit the contents of the annotation or follow the link at point.
