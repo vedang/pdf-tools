@@ -72,7 +72,7 @@
 ;; When setting `pdf-keynav-display-pointer-as-cursor' to non-nil, for example
 ;; using `pdf-keynav-toggle-display-pointer-as-cursor', the mouse pointer is
 ;; co-opted to function as a cursor. Like this redrawing the whole page image
-;; can be awoided when updating the cursor position, resulting in considerable
+;; can be avoided when updating the cursor position, resulting in considerable
 ;; performance gains.
 
 ;; On certain machines with high-resolution displays and `pdf-view-use-scaling'
@@ -134,17 +134,6 @@ With nil buffer-locals are loaded directly after a page change, which causes
 page scrolling to be slower, while the first pdf-keynav command might feel a
 bit quicker."
   :type 'boolean)
-
-;; this is used to prevent pointer from going invisible whenever
-;; pdf-keynav-display-pointer-as-cursor is non-nil
-(defun pdf-keynav-make-pointer-invisible (_symbol newval op _where)
-  (if (and newval (equal op 'set))
-      (setq make-pointer-invisible nil)
-    (setq make-pointer-invisible t)))
-
-(add-variable-watcher 'pdf-keynav-display-pointer-as-cursor #'pdf-keynav-make-pointer-invisible)
-;; FIXME call remove-variable-watcher somewhere suitable
-;; maybe move this to minor mode function
 
 (defcustom pdf-keynav-display-pointer-as-cursor nil
   "When non-nil co-opt the mouse pointer to act as a cursor."
@@ -464,6 +453,13 @@ necessary buffer-locals have been loaded."
   (unless (equal pdf-keynav-page (pdf-view-current-page))
     (pdf-keynav-setup-buffer-locals)))
 
+(defun pdf-keynav-make-pointer-invisible (_symbol newval op _where)
+  "Variable-watcher function to makepointer in/visible.
+Used to prevent pointer from going invisible whenever
+pdf-keynav-display-pointer-as-cursor is non-nil."
+  (if (and newval (equal op 'set))
+      (setq make-pointer-invisible nil)
+    (setq make-pointer-invisible t)))
 
 
 ;; ** Minor mode
@@ -542,11 +538,6 @@ necessary buffer-locals have been loaded."
 	  (pdf-keynav-setup-buffer-locals)
 	  (add-hook 'pdf-view-after-change-page-hook
 		    #'pdf-keynav-setup-buffer-locals nil 'local))
-
-        ;; co-opt pointer as cursor
-        ;;(if pdf-keynav-display-pointer-as-cursor
-        ;;    (advice-add 'pdf-keynav-display-cursor :override
-        ;;                #'pdf-keynav-display-pointer-as-cursor))
                 
 	;; isearch compatibility
 	(add-hook 'isearch-mode-end-hook
@@ -585,7 +576,13 @@ necessary buffer-locals have been loaded."
 	  (define-key map (kbd "r") 'pdf-view-position-to-register)
 	  (define-key map (kbd "m") nil))
 	(with-eval-after-load 'pdf-sync
-	  (define-key pdf-sync-minor-mode-map [double-mouse-1] nil)))
+	  (define-key pdf-sync-minor-mode-map [double-mouse-1] nil))
+
+        ;; don't hide pointer if pdf-keynav-display-pointer-as-cursor
+        (if pdf-keynav-display-pointer-as-cursor
+            (setq make-pointer-invisible nil))
+        (add-variable-watcher 'pdf-keynav-display-pointer-as-cursor
+                              #'pdf-keynav-make-pointer-invisible))
     
     (message "Deactivating pdf-keynav-minor-mode")
     (remove-hook 'pdf-view-after-change-page-hook
@@ -627,6 +624,11 @@ necessary buffer-locals have been loaded."
     (when (boundp 'pdf-sync-minor-mode-map)
       (define-key 'pdf-sync-minor-mode-map [double-mouse-1] 'pdf-sync-backward-search-mouse))
 
+    ;; stop not hiding pointer
+    (remove-variable-watcher 'pdf-keynav-display-pointer-as-cursor
+                             #'pdf-keynav-make-pointer-invisible)
+
+    
     ;; redisplay to remove region/point
     (pdf-view-redisplay)))
 
