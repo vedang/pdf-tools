@@ -56,12 +56,24 @@
 ;; and sentences also require that the charlayout elements are matched to the
 ;; correct characters.
 
+;; On at least some combination of operating system and Emacs version, there is
+;; a bug where `frame-parameters' are not updated when resizing a frame. This
+;; causes the cursor to be wrongly displayed when
+;; `pdf-keynav-display-pointer-as-cursor' is non-nil. A workaround is to run
+;; `make-frame' after resizing and closing the old frame.
+
 ;; Performance:
 
 ;; Since that's how things are currently done in pdf-tools, this minor mode
 ;; displays the region and cursor by rendering them together with the whole pdf
 ;; page as one png image which is then displayed in Emacs. This makes things
 ;; inherently slow.
+
+;; When setting `pdf-keynav-display-pointer-as-cursor' to non-nil, for example
+;; using `pdf-keynav-toggle-display-pointer-as-cursor', the mouse pointer is
+;; co-opted to function as a cursor. Like this redrawing the whole page image
+;; can be awoided when updating the cursor position, resulting in considerable
+;; performance gains.
 
 ;; On certain machines with high-resolution displays and `pdf-view-use-scaling'
 ;; non-nil, the navigation commands provided here may be considerably slower.
@@ -134,7 +146,7 @@ bit quicker."
 ;; FIXME call remove-variable-watcher somewhere suitable
 ;; maybe move this to minor mode function
 
-(defcustom pdf-keynav-display-pointer-as-cursor t
+(defcustom pdf-keynav-display-pointer-as-cursor nil
   "When non-nil co-opt the mouse pointer to act as a cursor."
   :group 'pdf-keynav
   :type 'boolean)
@@ -679,11 +691,6 @@ point is visible."
 	(pdf-keynav-display-cursor
 	 (list inrectangle)))))))
 
-;;#FIXME
-;;(when pdf-keynav-scroll-window
-;;    (pdf-keynav-scroll-to-edges))
-
-
 (defun pdf-keynav-display-cursor (region
 				  &optional rectangle-p not-single-line-p)
   "Modification of `pdf-view-display-region' used to display the cursor.
@@ -719,6 +726,8 @@ REGION will usually be the charregion of the character at point.
 
 This function is used to co-opt the pointer as a cursor when
 `pdf-keynav-display-pointer-as-cursor` is non-nil."
+  ;; FIXME in some cases positoning is not right in intial frame
+  ;;       but works once one works in a new frame
   ;; FIXME does this still introduce new bugs?
   ;; FIXEM does this work in all cases?
   (let* ((pixel-region
@@ -735,10 +744,21 @@ This function is used to co-opt the pointer as a cursor when
     ;;       introducing a small delay doesn't give the same effect though,
     ;;       but a null message works
     ;;       (sleep-for 0 10)
-    (message "xpos: %s  ypos: %s" xpos ypos)
-    ;;(message nil)    
-    (set-mouse-pixel-position (selected-frame) xpos ypos)))
-
+    ;;(message "xpos: %s  ypos: %s" xpos ypos)
+    (message nil)
+    (let ((left-edge (nth 2 (pdf-util-image-displayed-edges)))
+          (image-width (car (pdf-view-image-size)))
+          (window-width (window-width nil t))
+          (offset 0)
+          )
+      (if (and
+           (equal left-edge image-width)
+           (< image-width window-width))
+          (setq offset
+                ;; FIXME this isn't exact
+                (round (- (/ (- window-width image-width) 2) 0))))
+      (set-mouse-pixel-position (selected-frame) (+ xpos offset) ypos))))
+   
 (defun pdf-keynav-scroll-to-edges (&optional eager-p)
   "Scroll window so that point is visible; wraps `pdf-util-scroll-to-edges'.
 Variables `pdf-keynav-scroll-left-margin' and `pdf-keynav-scroll-right-margin'
@@ -2009,7 +2029,7 @@ character when none is found at event position."
 	 (posn-object-x-y
 	  (event-start event))
 	 pdf-keynav-no-find-closest-char))
-  (unless nodisplay
+  (unless (or nodisplay pdf-keynav-display-pointer-as-cursor)
     (pdf-keynav-display-region-cursor)))
 
 
@@ -2182,7 +2202,9 @@ Create a rectangular region, if RECTANGLE-P is non-nil."
 	(setq pdf-keynav-mark-active-p nil))
       (setq pdf-keynav-point
 	    (pdf-keynav-pixel-pos-to-ichar begin))
-      (pdf-keynav-display-region-cursor))))
+      (if pdf-keynav-display-pointer-as-cursor
+          (pdf-view-redisplay)
+        (pdf-keynav-display-region-cursor)))))
 
 
 (defun pdf-keynav-mouse-extend-region (event)
