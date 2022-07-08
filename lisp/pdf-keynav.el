@@ -140,6 +140,22 @@ bit quicker."
   :group 'pdf-keynav
   :type 'boolean)
 
+(defcustom pdf-keynav-pointer-hrelpos 0.0
+  "Horitzontal positioning of pointer relative to left of character.
+Given a charregion (LEFT TOP RIGHT BOT) this controls at what fraction of the
+distance between LEFT and RIGHT the cursor is placed. Only relevant if
+`pdf-keynav-display-pointer-as-cursor'."
+  :group 'pdf-keynav
+  :type 'float)
+
+(defcustom pdf-keynav-pointer-vrelpos 0.1
+   "Vertical positioning of pointer relative to bottom of character.
+Given a charregion (LEFT TOP RIGHT BOT) this controls at what fraction of the
+distance between BOT and TOP the cursor is placed. Only relevant if
+`pdf-keynav-display-pointer-as-cursor'."
+  :group 'pdf-keynav
+  :type 'float)
+
 (defcustom pdf-keynav-scroll-window t
   "When non-nil scroll the window so that point is always visible."
   :group 'pdf-keynav
@@ -732,40 +748,65 @@ region to one line."
 REGION will usually be the charregion of the character at point.
 
 This function is used to co-opt the pointer as a cursor when
-`pdf-keynav-display-pointer-as-cursor` is non-nil."
+`pdf-keynav-display-pointer-as-cursor` is non-nil.
+
+REGION should be a rectangle given as (LEFT TOP RIGHT BOT).
+`pdf-keynav-pointer-hrelpos` controls at what fraction of the distance between
+LEFT and RIGHT the cursor is placed, while `pdf-keynav-pointer-vrelpos` does
+the same for BOT and TOP. If both are zero the cursor will be placed at (LEFT,
+BOT).
+
+The core of this function is `set-mouse-pixel-position`, which takes left and
+top coordinates in pixels relative to the frame's outer edges. In pdf-keynav
+coordinates are normally relative to the image of a pdf page. This image in
+turn might be smaller or larger than the window it is in. In addition, a window
+is smaller than a frame. An attempt is made to consider all this. Still, if the
+image is narrower than the window, positioning is inexact."
   ;; FIXME in some cases positoning is not right in intial frame
-  ;;       but works once one works in a new frame
+  ;;       but works once one works in a new frame (bug outside pdf-tools)
   ;; FIXME does this still introduce new bugs?
-  ;; FIXEM does this work in all cases?
-  (let* ((pixel-region
-          (pdf-util-scale-relative-to-pixel (nth 0 region)))
-         (image-edges
-          (pdf-util-image-displayed-edges))
-         (xpos
-          (round (- (nth 0 pixel-region)
-                    (nth 0 image-edges))))
-         (ypos
-          (round (- (nth 3 pixel-region)
-                    (nth 1 image-edges)))))
-    ;; FIXME pointer seems to behave less erratic when message is called?!
-    ;;       introducing a small delay doesn't give the same effect though,
-    ;;       but a null message works
-    ;;       (sleep-for 0 10)
-    ;;(message "xpos: %s  ypos: %s" xpos ypos)
+  ;; MAYBE can't get more exact positioning, but someone may be able to?
+  (let* ((outer-edges (frame-edges (selected-frame) 'outer-edges))
+         (inner-edges-abs (window-edges nil nil t t))
+         (inner-edges-rel (window-edges nil nil nil t))
+         (window-left-offset (- (nth 0 inner-edges-abs)
+                                (nth 0 outer-edges)))
+         (window-top-offset (nth 1 inner-edges-rel))
+         (char-region (pdf-util-scale-relative-to-pixel
+                       (nth 0 region)))
+         (image-displayed-edges (pdf-util-image-displayed-edges))
+         (image-width (car (pdf-view-image-size)))
+         (image-left-offset (/ (- (window-pixel-width)
+                                  image-width)
+                               2))
+         ;; assumes the image is horizontally centered
+         ;; this is not exact, due to rounding, but using the inverse
+         ;; of pdf-view-center-in-window is not better
+         ;; it is assumed that image-top-offset is always 0
+         (xpos ;; relative to left top corner of window
+          (round
+           (- (+ (* (- 1.0 pdf-keynav-pointer-hrelpos)
+                    (nth 0 char-region))
+                 (* pdf-keynav-pointer-hrelpos
+                    (nth 2 char-region)))
+              (nth 0 image-displayed-edges))))
+
+         (ypos ;; relative to left top corner of window
+          (round 
+           (- (+ (* (- 1.0 pdf-keynav-pointer-vrelpos)
+                    (nth 3 char-region))
+                 (* pdf-keynav-pointer-vrelpos
+                    (nth 1 char-region)))
+              (nth 1 image-displayed-edges)))))
+    ;; HACK pointer seems to behave less erratic when message is called
+    ;;       even a nil message works
+    ;; (message "xpos: %s  ypos: %s" xpos ypos)
     (message nil)
-    (let ((left-edge (nth 2 (pdf-util-image-displayed-edges)))
-          (image-width (car (pdf-view-image-size)))
-          (window-width (window-width nil t))
-          (offset 0)
-          )
-      (if (and
-           (equal left-edge image-width)
-           (< image-width window-width))
-          (setq offset
-                ;; FIXME this isn't exact
-                (round (- (/ (- window-width image-width) 2) 0))))
-      (set-mouse-pixel-position (selected-frame) (+ xpos offset) ypos))))
-   
+    (set-mouse-pixel-position
+     (selected-frame)
+     (+ xpos (max 0 image-left-offset) window-left-offset)
+     (+ ypos window-top-offset))))
+
 (defun pdf-keynav-scroll-to-edges (&optional eager-p)
   "Scroll window so that point is visible; wraps `pdf-util-scroll-to-edges'.
 Variables `pdf-keynav-scroll-left-margin' and `pdf-keynav-scroll-right-margin'
