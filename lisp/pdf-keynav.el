@@ -403,7 +403,10 @@ is run."
 	;; add a linebreak as the last charlayout element on page
 	(let* ((charlayoutin (pdf-info-charlayout
 			      (pdf-view-current-page) nil nil))
-	       (finaledgesin (nth 1 (-last-item charlayoutin)))
+	       (finaledgesin (if charlayoutin
+                                 (nth 1 (-last-item charlayoutin))
+                               (cons (string-to-char "\n")
+                                     (list 0.1 0.1 0.1 0.1))))
 	       (finaledgesout (list (nth 2 finaledgesin)
 				    (nth 3 finaledgesin)
 				    (nth 2 finaledgesin)
@@ -422,19 +425,21 @@ is run."
 	 (pdf-view-current-page) nil))
   (setq pdf-keynav-lineends
 	;; this is more robust than just checking index of "\n"
-	(--find-indices
-	 (let* ((edges (nth 1 it))
-		(x1 (nth 0 edges))
-		(y1 (nth 1 edges))
-		(x2 (nth 2 edges))
-		(y2 (nth 3 edges))
-		(width (- x2 x1))
-		(height (- y2 y1))
-		(roundto 0.000000001))
-	   (and
-	    (equal (round width roundto) 0)
-	    (equal (round height roundto) 0)))
-	 pdf-keynav-charlayout))
+        (if pdf-keynav-charlayout
+	    (--find-indices
+	     (let* ((edges (nth 1 it))
+		    (x1 (nth 0 edges))
+		    (y1 (nth 1 edges))
+		    (x2 (nth 2 edges))
+		    (y2 (nth 3 edges))
+		    (width (- x2 x1))
+		    (height (- y2 y1))
+		    (roundto 0.000000001))
+	       (and
+	        (equal (round width roundto) 0)
+	        (equal (round height roundto) 0)))
+	     pdf-keynav-charlayout)
+          '(0)))
   (setq pdf-keynav-linestarts
 	(-concat '(0)
 		 (-map #'1+ (butlast pdf-keynav-lineends))))
