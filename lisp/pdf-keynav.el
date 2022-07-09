@@ -40,6 +40,12 @@
 
 ;; Bugs:
 
+;; On at least some combination of operating system and Emacs version, there is
+;; a bug where `frame-parameters' are not updated when resizing a frame. This
+;; causes the cursor to be wrongly displayed when
+;; `pdf-keynav-pointer-as-cursor-minor-mode' is non-nil. A workaround is to run
+;; `make-frame' after resizing and closing the old frame.
+
 ;; There is a bug in poppler versions 21.03.0-21.07.0 which often causes the
 ;; alignment between character boundaries and characters to break, which in
 ;; turn breaks the character-based commands in this minor mode (but not the
@@ -55,12 +61,6 @@
 ;; their functioning, while the movement commands relating to regexes, words,
 ;; and sentences also require that the charlayout elements are matched to the
 ;; correct characters.
-
-;; On at least some combination of operating system and Emacs version, there is
-;; a bug where `frame-parameters' are not updated when resizing a frame. This
-;; causes the cursor to be wrongly displayed when
-;; `pdf-keynav-pointer-as-cursor-minor-mode' is non-nil. A workaround is to run
-;; `make-frame' after resizing and closing the old frame.
 
 ;; Performance:
 
@@ -136,7 +136,7 @@ bit quicker."
   :group 'pdf-keynav 
   :type 'boolean)
 
-(defcustom pdf-keynav-start-with-pointer-as-cursor t
+(defcustom pdf-keynav-start-with-pointer-as-cursor nil
   "When non-nil active pointer-as-cursor with pdf-keynav-minor-mode.
 The pointer-as-cursor feature is activated by calling
 `pdf-keynav-pointer-as-cursor-minor-mode' whenever `pdf-keynav-minor-mode' is
