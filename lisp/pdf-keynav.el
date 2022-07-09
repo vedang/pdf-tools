@@ -59,7 +59,7 @@
 ;; On at least some combination of operating system and Emacs version, there is
 ;; a bug where `frame-parameters' are not updated when resizing a frame. This
 ;; causes the cursor to be wrongly displayed when
-;; `pdf-keynav-display-pointer-as-cursor' is non-nil. A workaround is to run
+;; `pdf-keynav-pointer-as-cursor-minor-mode' is non-nil. A workaround is to run
 ;; `make-frame' after resizing and closing the old frame.
 
 ;; Performance:
@@ -69,7 +69,7 @@
 ;; page as one png image which is then displayed in Emacs. This makes things
 ;; inherently slow.
 
-;; When setting `pdf-keynav-display-pointer-as-cursor' to non-nil, for example
+;; When setting `pdf-keynav-pointer-as-cursor-minor-mode' to non-nil, for example
 ;; using `pdf-keynav-toggle-display-pointer-as-cursor', the mouse pointer is
 ;; co-opted to function as a cursor. Like this redrawing the whole page image
 ;; can be avoided when updating the cursor position, resulting in considerable
@@ -133,34 +133,60 @@
 With nil buffer-locals are loaded directly after a page change, which causes
 page scrolling to be slower, while the first pdf-keynav command might feel a
 bit quicker."
+  :group 'pdf-keynav 
   :type 'boolean)
 
-(defcustom pdf-keynav-display-pointer-as-cursor nil
-  "When non-nil co-opt the mouse pointer to act as a cursor."
+(defcustom pdf-keynav-start-with-pointer-as-cursor t
+  "When non-nil active pointer-as-cursor with pdf-keynav-minor-mode.
+The pointer-as-cursor feature is activated by calling
+`pdf-keynav-pointer-as-cursor-minor-mode' whenever `pdf-keynav-minor-mode' is
+called."
   :group 'pdf-keynav
   :type 'boolean)
 
 (defcustom pdf-keynav-pointer-hrelpos 0.0
   "Horitzontal positioning of pointer relative to left of character.
 Given a charregion (LEFT TOP RIGHT BOT) this controls at what fraction of the
-distance between LEFT and RIGHT the cursor is placed. Only relevant if
-`pdf-keynav-display-pointer-as-cursor'."
+distance between LEFT and RIGHT the cursor is placed. Only relevant in
+`pdf-keynav-pointer-as-cursor-minor-mode'."
   :group 'pdf-keynav
   :type 'float)
 
 (defcustom pdf-keynav-pointer-vrelpos 0.1
    "Vertical positioning of pointer relative to bottom of character.
 Given a charregion (LEFT TOP RIGHT BOT) this controls at what fraction of the
-distance between BOT and TOP the cursor is placed. Only relevant if
-`pdf-keynav-display-pointer-as-cursor'."
+distance between BOT and TOP the cursor is placed. Only relevant in
+`pdf-keynav-pointer-as-cursor-minor-mode'."
   :group 'pdf-keynav
   :type 'float)
 
-(defcustom pdf-keynav-point-from-pointer nil
+(defcustom pdf-keynav-point-from-pointer t
   "When non-nil set point from pointer before running commands.
-Only active if `pdf-keynav-display-pointer-as-cursor'."
+Only active in `pdf-keynav-pointer-as-cursor-minor-mode'."
   :group 'pdf-keynav
   :type 'boolean)
+
+(defcustom pdf-keynav-pointer-shape 'hand
+  "Shape of the pointer to use when it functions as cursor.
+Suitable values include text, arrow, and hand. See the 'Pointer Shape' elisp
+manual entry. Only applicable in `pdf-keynav-pointer-as-cursor-minor-mode'."
+  :group 'pdf-keynav
+  :type 'symbol)
+
+(defcustom pdf-keynav-pointer-layer -4
+  "Hotspot layer at which the hotspot for pointer shape is placed.
+Hotspots are used in pdf-tools to control, among other things, the shape of the
+pointer when hovering over certain image regions. Higher layers take
+precedence. Setting the layer to -4, for example, prevents the pointer from
+changing shape when hovering over a text region.
+
+By default hotspots for annotations are on layer 9, for links on 0, and for
+text on -9. See `pdf-view--hotspot-functions'.
+
+Set to nil to not set any layer and use whatever is default. Only applicable in
+`pdf-keynav-pointer-as-cursor-minor-mode'."
+  :group 'pdf-keynav
+  :type 'integer)
 
 (defcustom pdf-keynav-scroll-window t
   "When non-nil scroll the window so that point is always visible."
@@ -480,13 +506,8 @@ necessary buffer-locals have been loaded."
   (unless (equal pdf-keynav-page (pdf-view-current-page))
     (pdf-keynav-setup-buffer-locals)))
 
-(defun pdf-keynav-make-pointer-invisible (_symbol newval op _where)
-  "Variable-watcher function to makepointer in/visible.
-Used to prevent pointer from going invisible whenever
-pdf-keynav-display-pointer-as-cursor is non-nil."
-  (if (and newval (equal op 'set))
-      (setq make-pointer-invisible nil)
-    (setq make-pointer-invisible t)))
+(defvar pdf-keynav-make-pointer-invisible-original-value make-pointer-invisible
+  "Value of `make-pointer-invisible' before display-pointer-as-cursor.")
 
 
 ;; ** Minor mode
@@ -605,11 +626,10 @@ pdf-keynav-display-pointer-as-cursor is non-nil."
 	(with-eval-after-load 'pdf-sync
 	  (define-key pdf-sync-minor-mode-map [double-mouse-1] nil))
 
-        ;; don't hide pointer if pdf-keynav-display-pointer-as-cursor
-        (if pdf-keynav-display-pointer-as-cursor
-            (setq make-pointer-invisible nil))
-        (add-variable-watcher 'pdf-keynav-display-pointer-as-cursor
-                              #'pdf-keynav-make-pointer-invisible))
+        ;; display pointer as cursor
+        (when pdf-keynav-start-with-pointer-as-cursor
+          (pdf-keynav-pointer-as-cursor-minor-mode 1)))
+
     
     (message "Deactivating pdf-keynav-minor-mode")
     (remove-hook 'pdf-view-after-change-page-hook
@@ -651,14 +671,46 @@ pdf-keynav-display-pointer-as-cursor is non-nil."
     (when (boundp 'pdf-sync-minor-mode-map)
       (define-key 'pdf-sync-minor-mode-map [double-mouse-1] 'pdf-sync-backward-search-mouse))
 
-    ;; stop not hiding pointer
-    (remove-variable-watcher 'pdf-keynav-display-pointer-as-cursor
-                             #'pdf-keynav-make-pointer-invisible)
-
+    ;; disable displaying pointer as cursor
+    (pdf-keynav-pointer-as-cursor-minor-mode 0)
     
     ;; redisplay to remove region/point
     (pdf-view-redisplay)))
 
+
+(define-minor-mode pdf-keynav-pointer-as-cursor-minor-mode
+  "Co-opt the mouse pointer to act as cursor."
+  :init-value nil
+  
+  (if (bound-and-true-p pdf-keynav-pointer-as-cursor-minor-mode)
+      
+      (progn
+        (message "Activating pdf-keynav-pointer-as-cursor-minor-mode")
+
+        ;; don't hide pointer
+        (setq pdf-keynav-make-pointer-invisible-original-value
+              make-pointer-invisible)
+        (setq make-pointer-invisible nil)
+
+        ;; add hotspot to control pointer shape
+        (when pdf-keynav-pointer-layer 
+          (pdf-view-add-hotspot-function
+           'pdf-keynav-hotspot-function pdf-keynav-pointer-layer))
+        
+        (pdf-view-redisplay)
+        )
+    (message "Deactivating pdf-keynav-pointer-as-cursor-minor-mode")
+
+    ;; reset pointer hiding behavior
+    (setq make-pointer-invisible
+          pdf-keynav-make-pointer-invisible-original-value)
+    
+    ;; stop controlling pointer shape
+    (pdf-view-remove-hotspot-function
+     'pdf-keynav-hotspot-function)
+    
+    )
+  (pdf-keynav-display-region-cursor))
 
 
 ;; * Display
@@ -703,7 +755,7 @@ point is visible."
 	   (nth 1 (nth pdf-keynav-point pdf-keynav-charlayout)))
 	  (cursor-dim
 	   pdf-keynav-newline-cursor-dimensions))
-      (if pdf-keynav-display-pointer-as-cursor
+      (if pdf-keynav-pointer-as-cursor-minor-mode
           (pdf-keynav-display-pointer-as-cursor
            (list inrectangle))
         (if (-contains? pdf-keynav-lineends pdf-keynav-point)
@@ -754,7 +806,7 @@ region to one line."
 REGION will usually be the charregion of the character at point.
 
 This function is used to co-opt the pointer as a cursor when
-`pdf-keynav-display-pointer-as-cursor` is non-nil.
+`pdf-keynav-pointer-as-cursor-minor-mode` is non-nil.
 
 REGION should be a rectangle given as (LEFT TOP RIGHT BOT).
 `pdf-keynav-pointer-hrelpos` controls at what fraction of the distance between
@@ -839,27 +891,23 @@ after scrolling."
     (pdf-util-scroll-to-edges edges-out eager-p)))
 
 
-(defun pdf-keynav-toggle-display-pointer-as-cursor ()
-  "Toggles `pdf-keynav-display-pointer-as-cursor`."
-  (interactive)
-  (setq pdf-keynav-display-pointer-as-cursor
-        (not pdf-keynav-display-pointer-as-cursor))
-  (when pdf-keynav-display-pointer-as-cursor
-    (pdf-view-redisplay))
-  (pdf-keynav-display-region-cursor))
-
-
 (defun pdf-keynav-toggle-point-from-pointer ()
   "Toggles `pdf-keynav-point-from-pointer'.
 When this variable is non-nil, point follows the mouse pointer also when it is
 moved using the mouse/trackpad. Point will simple be where the pointer is, in
-almost all settings. Only active when `pdf-keynav-display-pointer-as-cursor'."
+almost all settings. Only active when `pdf-keynav-pointer-as-cursor-minor-mode'."
   (interactive)
   (setq pdf-keynav-point-from-pointer
         (not pdf-keynav-point-from-pointer)))
 
 
-
+(defun pdf-keynav-hotspot-function (page size)
+  "Create image hotspot covering the whole image to control pointer shape."
+  (local-set-key [pdf-view-text-region t]
+                 'pdf-util-image-map-mouse-event-proxy)
+  (list `((rect . ((0 . 0) . (,(car size) . ,(cdr size))))
+	  pdf-view-text-region
+	  (pointer ,pdf-keynav-pointer-shape))))
 
 
 ;; * Navigate
@@ -877,14 +925,14 @@ one character into the adjacent page, truncating N)."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (if (> (+ pdf-keynav-point n)
 	 (1- (length pdf-keynav-charlayout)))
       (if pdf-keynav-continuous
 	  (let ((pdf-view-inhibit-redisplay
-                 (not pdf-keynav-display-pointer-as-cursor)))
+                 (not pdf-keynav-pointer-as-cursor-minor-mode)))
 	    (pdf-view-next-page)
 	    (if pdf-keynav-lazy-load
 		(pdf-keynav-setup-buffer-locals)))
@@ -906,13 +954,13 @@ one character into the adjacent page, truncating N)."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (if (< (- pdf-keynav-point n) 0)
       (if pdf-keynav-continuous
 	  (let ((pdf-view-inhibit-redisplay
-                 (not pdf-keynav-display-pointer-as-cursor)))
+                 (not pdf-keynav-pointer-as-cursor-minor-mode)))
 	    (pdf-view-previous-page)
 	    (if pdf-keynav-lazy-load
 		(pdf-keynav-setup-buffer-locals))
@@ -1072,7 +1120,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (dotimes (_ n)
@@ -1083,7 +1131,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
 	      (match-end 0))
       (when pdf-keynav-continuous
 	(let ((pdf-view-inhibit-redisplay
-               (not pdf-keynav-display-pointer-as-cursor)))
+               (not pdf-keynav-pointer-as-cursor-minor-mode)))
 	  (pdf-view-next-page)
 	  (if pdf-keynav-lazy-load
 	      (pdf-keynav-setup-buffer-locals))))))
@@ -1104,7 +1152,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let ((text (reverse pdf-keynav-text)))
@@ -1118,7 +1166,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
 		   (match-end 0)))
 	(when pdf-keynav-continuous
 	  (let ((pdf-view-inhibit-redisplay
-                 (not pdf-keynav-display-pointer-as-cursor)))
+                 (not pdf-keynav-pointer-as-cursor-minor-mode)))
 	    (pdf-view-previous-page)
 	    (if pdf-keynav-lazy-load
 		(pdf-keynav-setup-buffer-locals))
@@ -1150,7 +1198,7 @@ one line into the adjacent page, truncating N)."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let ((inline (pdf-keynav-line-at-point))
@@ -1167,7 +1215,7 @@ one line into the adjacent page, truncating N)."
 	;; handle page break
 	(if pdf-keynav-continuous
 	    (let ((pdf-view-inhibit-redisplay
-                   (not pdf-keynav-display-pointer-as-cursor)))
+                   (not pdf-keynav-pointer-as-cursor-minor-mode)))
 	      (pdf-view-next-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals))
@@ -1194,7 +1242,7 @@ one line into the adjacent page, truncating N)."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let ((inline (pdf-keynav-line-at-point))
@@ -1209,7 +1257,7 @@ one line into the adjacent page, truncating N)."
 	;; handle page break
 	(if pdf-keynav-continuous
 	    (let ((pdf-view-inhibit-redisplay
-                   (not pdf-keynav-display-pointer-as-cursor)))
+                   (not pdf-keynav-pointer-as-cursor-minor-mode)))
 	      (pdf-view-previous-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals))
@@ -1270,7 +1318,7 @@ alignment of point, making it slightly faster."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let ((inline (pdf-keynav-line-at-point))
@@ -1283,7 +1331,7 @@ alignment of point, making it slightly faster."
 	;; handle page break
 	(if pdf-keynav-continuous
 	    (let ((pdf-view-inhibit-redisplay
-                   (not pdf-keynav-display-pointer-as-cursor)))
+                   (not pdf-keynav-pointer-as-cursor-minor-mode)))
 	      (pdf-view-next-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals))
@@ -1319,7 +1367,7 @@ vertical alignment of point, making it slightly faster."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let ((inline (pdf-keynav-line-at-point))
@@ -1331,7 +1379,7 @@ vertical alignment of point, making it slightly faster."
 	;; handle page break
 	(if pdf-keynav-continuous
 	    (let ((pdf-view-inhibit-redisplay
-                   (not pdf-keynav-display-pointer-as-cursor)))
+                   (not pdf-keynav-pointer-as-cursor-minor-mode)))
 	      (pdf-view-previous-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals))
@@ -1361,7 +1409,7 @@ Do not display region/cursor if NODISPLAY is non-nil."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (setq pdf-keynav-point
@@ -1378,7 +1426,7 @@ Do not display region/cursor if NODISPLAY is non-nil."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (setq pdf-keynav-point
@@ -1395,7 +1443,7 @@ Line width is measured in number of characters."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let* ((line (1- (pdf-keynav-line-at-point)))
@@ -1437,7 +1485,7 @@ For more about textregions see `pdf-keynav-textregion-at-point'."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let* ((intextregion (pdf-keynav-textregion-at-point))
@@ -1447,7 +1495,7 @@ For more about textregions see `pdf-keynav-textregion-at-point'."
 		 (length textregions))
 	      (if pdf-keynav-continuous
 		  (let ((pdf-view-inhibit-redisplay
-                         (not pdf-keynav-display-pointer-as-cursor)))
+                         (not pdf-keynav-pointer-as-cursor-minor-mode)))
 		    (pdf-view-next-page)
 		    (if pdf-keynav-lazy-load
 			(pdf-keynav-setup-buffer-locals))
@@ -1481,7 +1529,7 @@ For more about textregions see `pdf-keynav-textregion-at-point'."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let* ((intextregion (pdf-keynav-textregion-at-point))
@@ -1492,7 +1540,7 @@ For more about textregions see `pdf-keynav-textregion-at-point'."
 	      ;; handle page break
 	      (if pdf-keynav-continuous
 		  (let ((pdf-view-inhibit-redisplay
-                         (not pdf-keynav-display-pointer-as-cursor)))
+                         (not pdf-keynav-pointer-as-cursor-minor-mode)))
 		    (pdf-view-previous-page)
 		    (if pdf-keynav-lazy-load
 			(pdf-keynav-setup-buffer-locals))
@@ -1521,7 +1569,7 @@ For more about textregions see `pdf-keynav-textregion-at-point'."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let* ((pointpos (pdf-keynav-point-to-relative-pos))
@@ -1541,7 +1589,7 @@ For more about textregions see `pdf-keynav-textregion-at-point'."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let* ((pointpos (pdf-keynav-point-to-relative-pos))
@@ -1570,7 +1618,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let ((case-fold-search nil)) ;; make sure case is not ignored
@@ -1584,7 +1632,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
 	(if (and pdf-keynav-continuous
 		 (equal pdf-keynav-point (1- (length pdf-keynav-text))))
 	    (let ((pdf-view-inhibit-redisplay
-                   (not pdf-keynav-display-pointer-as-cursor)))
+                   (not pdf-keynav-pointer-as-cursor-minor-mode)))
 	      (pdf-view-next-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals)))
@@ -1608,7 +1656,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let ((case-fold-search nil) ;; make sure case is not ignored
@@ -1626,7 +1674,7 @@ If `pdf-keynav-continuous' is non-nil move across page breaks."
 	(if (and pdf-keynav-continuous
 		 (equal pdf-keynav-point 0))
 	    (let ((pdf-view-inhibit-redisplay
-                   (not pdf-keynav-display-pointer-as-cursor)))
+                   (not pdf-keynav-pointer-as-cursor-minor-mode)))
 	      (pdf-view-previous-page)
 	      (if pdf-keynav-lazy-load
 		  (pdf-keynav-setup-buffer-locals))
@@ -1820,7 +1868,7 @@ one paragraph into the adjacent page, truncating N)."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let ((inpar (pdf-keynav-paragraph-at-point))
@@ -1836,7 +1884,7 @@ one paragraph into the adjacent page, truncating N)."
 	      ;; change page and update buffer-locals
 	      ;; but redisplay is done through display-cursor below
 	      (let ((pdf-view-inhibit-redisplay
-                     (not pdf-keynav-display-pointer-as-cursor)))
+                     (not pdf-keynav-pointer-as-cursor-minor-mode)))
 		(pdf-view-next-page)
 		(if pdf-keynav-lazy-load
 		    (pdf-keynav-setup-buffer-locals)))
@@ -1873,7 +1921,7 @@ one paragraph into the adjacent page, truncating N)."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let ((inpar (pdf-keynav-paragraph-at-point))
@@ -1889,7 +1937,7 @@ one paragraph into the adjacent page, truncating N)."
 	      ;; change page and update buffer-locals
 	      ;; but redisplay is done through display-cursor below
 	      (let ((pdf-view-inhibit-redisplay
-                     (not pdf-keynav-display-pointer-as-cursor)))
+                     (not pdf-keynav-pointer-as-cursor-minor-mode)))
 		(pdf-view-previous-page)
 		(if pdf-keynav-lazy-load
 		    (pdf-keynav-setup-buffer-locals))
@@ -1919,7 +1967,7 @@ Do not display region/cursor if NODISPLAY is non-nil."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))  
   (setq pdf-keynav-point
@@ -1936,7 +1984,7 @@ Do not display region/cursor if NODISPLAY is non-nil."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (setq pdf-keynav-point
@@ -1955,7 +2003,7 @@ Do not display region/cursor if NODISPLAY is non-nil."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (let* ((paragraph (1- (pdf-keynav-paragraph-at-point)))
@@ -2016,7 +2064,7 @@ the mark."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))  
   (if (equal arg 4)
@@ -2038,7 +2086,7 @@ the mark."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))  
   (let ((omark pdf-keynav-mark)
@@ -2121,7 +2169,7 @@ again."
 Puts mark at beginning of word and point at end, and displays region."
   (interactive)
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (pdf-keynav-forward-word nil t)
@@ -2137,7 +2185,7 @@ Puts mark at beginning of word and point at end, and displays region."
 Puts mark at beginning of line and point at end, and displays region."
   (interactive)
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))     
   (pdf-keynav-beginning-of-line t)
@@ -2152,7 +2200,7 @@ Puts mark at beginning of line and point at end, and displays region."
 Puts mark at beginning of sentence and point at end, and displays region."
   (interactive)
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))     
   (pdf-keynav-forward-sentence nil t)
@@ -2168,7 +2216,7 @@ Puts mark at beginning of sentence and point at end, and displays region."
 Puts mark at beginning of paragraph and point at end, and displays region."
   (interactive)
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))     
   (pdf-keynav-beginning-of-paragraph t)
@@ -2210,7 +2258,7 @@ character when none is found at event position."
 	 (posn-object-x-y
 	  (event-start event))
 	 pdf-keynav-no-find-closest-char))
-  (unless (or nodisplay pdf-keynav-display-pointer-as-cursor)
+  (unless (or nodisplay pdf-keynav-pointer-as-cursor-minor-mode)
     (pdf-keynav-display-region-cursor)))
 
 
@@ -2383,7 +2431,7 @@ Create a rectangular region, if RECTANGLE-P is non-nil."
 	(setq pdf-keynav-mark-active-p nil))
       (setq pdf-keynav-point
 	    (pdf-keynav-pixel-pos-to-ichar begin))
-      (if pdf-keynav-display-pointer-as-cursor
+      (if pdf-keynav-pointer-as-cursor-minor-mode
           (pdf-view-redisplay)
         (pdf-keynav-display-region-cursor)))))
 
@@ -2464,7 +2512,7 @@ the copied text. The display duration can be controlled using
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))
   (if (memq last-command
@@ -2507,7 +2555,7 @@ the copied text. The display duration can be controlled using
 	 (list (pdf-keynav-get-region-rpos)))
 	(sit-for pdf-keynav-copy-region-blink-delay))
       (progn
-	(when pdf-keynav-display-pointer-as-cursor
+	(when pdf-keynav-pointer-as-cursor-minor-mode
 	  (pdf-view-redisplay))
 	(pdf-keynav-display-region-cursor)))))
 
@@ -2582,7 +2630,7 @@ With C-u C-u edit contents of link instead of following it."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))  
   (if (equal arg '(4))
@@ -2645,7 +2693,7 @@ ICON and PROPERTY-ALIST are passed on to `pdf-annot-add-text-annotation', which
 creates the annotation after the right position has been determined."
   (interactive "P")
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))  
   (let ((ypos (cdr (pdf-keynav-point-to-pixel-pos t)))
@@ -2691,7 +2739,7 @@ creates the annotation after the right position has been determined."
   "Simple wrapper around `pdf-keynav-annot-add-text-left'."
   (interactive)
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))  
   (pdf-keynav-annot-add-text-left t icon property-alist))
@@ -2708,7 +2756,7 @@ creates the annotation after the right position has been determined."
 	l))
      links)))
   
-  
+
 (defun pdf-keynav-annot-delete (&optional arg)
   "Delete annotation at point.
 With single pregix ARG delete text annotation closest to point.
@@ -2718,7 +2766,7 @@ in that case annotations of type 'link' are not deleted."
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))  
   (when (and (called-interactively-p 'interactive)
-	     pdf-keynav-display-pointer-as-cursor
+	     pdf-keynav-pointer-as-cursor-minor-mode
 	     pdf-keynav-point-from-pointer)
     (pdf-keynav-mouse-set-point-from-pointer))  
   (cond ((null arg)
