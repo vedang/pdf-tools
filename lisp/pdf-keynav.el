@@ -1,7 +1,7 @@
 ;;; pdf-keynav.el --- Keyboard navigation for PDF files -*- lexical-binding: t; -*-
 ;; * Preamble
 
-;; Copyright (C) 2021 orgtre <orgtre\a.t/posteo.net>
+;; Copyright (C) 2022 orgtre <orgtre\a.t/posteo.net>
 
 ;; Author: orgtre <orgtre\a.t/posteo.net>
 ;; Created: 2021-08-17
@@ -40,7 +40,7 @@
 
 ;; Bugs:
 
-;; On at least some combination of operating system and Emacs version, there is
+;; On at least some builds of Emacs version 29.0.50, but not on 28.1, there is
 ;; a bug where `frame-parameters' are not updated when resizing a frame. This
 ;; causes the cursor to be wrongly displayed when
 ;; `pdf-keynav-pointer-as-cursor-minor-mode' is non-nil. A workaround is to run
@@ -69,11 +69,10 @@
 ;; page as one png image which is then displayed in Emacs. This makes things
 ;; inherently slow.
 
-;; When setting `pdf-keynav-pointer-as-cursor-minor-mode' to non-nil, for example
-;; using `pdf-keynav-toggle-display-pointer-as-cursor', the mouse pointer is
-;; co-opted to function as a cursor. Like this redrawing the whole page image
-;; can be avoided when updating the cursor position, resulting in considerable
-;; performance gains.
+;; When enabling `pdf-keynav-pointer-as-cursor-minor-mode', the mouse pointer
+;; is co-opted to function as a cursor. Like this redrawing the whole page
+;; image can be avoided when updating the cursor position, resulting in
+;; considerable performance gains.
 
 ;; On certain machines with high-resolution displays and `pdf-view-use-scaling'
 ;; non-nil, the navigation commands provided here may be considerably slower.
@@ -92,15 +91,7 @@
 
 ;; TODO:
 
-;; Find a better way to display the region and the cursor.
-
-;; Find a way to control what symbol is used for the mouse pointer.
-
-;; Idle timer for lazy loading of page-specific buffer-locals.
-
-;; Maybe include a hotspots map in the image that displays region/cursor,
-;; however this might impact performance/usability. Right now the region/cursor
-;; can be hidden and hotspots activated with `pdf-keynav-keyboard-quit'.
+;; Maybe an idle timer for lazy loading of page-specific buffer-locals.
 
 ;; Recommended settings outside this minor mode:
 
@@ -166,7 +157,7 @@ Only active in `pdf-keynav-pointer-as-cursor-minor-mode'."
   :group 'pdf-keynav
   :type 'boolean)
 
-(defcustom pdf-keynav-pointer-shape 'hand
+(defcustom pdf-keynav-pointer-shape 'arrow
   "Shape of the pointer to use when it functions as cursor.
 Suitable values include text, arrow, and hand. See the 'Pointer Shape' elisp
 manual entry. Only applicable in `pdf-keynav-pointer-as-cursor-minor-mode'."
@@ -627,7 +618,8 @@ necessary buffer-locals have been loaded."
 	  (define-key pdf-sync-minor-mode-map [double-mouse-1] nil))
 
         ;; display pointer as cursor
-        (when pdf-keynav-start-with-pointer-as-cursor
+        (when pdf-keynav-start-with-pointer-as-cursor          
+          (pdf-keynav-setup-buffer-locals) ;; FIXME fails sometimes
           (pdf-keynav-pointer-as-cursor-minor-mode 1)))
 
     
@@ -686,7 +678,7 @@ necessary buffer-locals have been loaded."
       
       (progn
         (message "Activating pdf-keynav-pointer-as-cursor-minor-mode")
-
+        
         ;; don't hide pointer
         (setq pdf-keynav-make-pointer-invisible-original-value
               make-pointer-invisible)
@@ -697,8 +689,8 @@ necessary buffer-locals have been loaded."
           (pdf-view-add-hotspot-function
            'pdf-keynav-hotspot-function pdf-keynav-pointer-layer))
         
-        (pdf-view-redisplay)
-        )
+        (pdf-view-redisplay))
+    
     (message "Deactivating pdf-keynav-pointer-as-cursor-minor-mode")
 
     ;; reset pointer hiding behavior
@@ -707,9 +699,8 @@ necessary buffer-locals have been loaded."
     
     ;; stop controlling pointer shape
     (pdf-view-remove-hotspot-function
-     'pdf-keynav-hotspot-function)
+     'pdf-keynav-hotspot-function))
     
-    )
   (pdf-keynav-display-region-cursor))
 
 
