@@ -595,6 +595,8 @@ necessary buffer-locals have been loaded."
 		    #'pdf-keynav-region-to-active-region)
 	(advice-add 'pdf-annot-add-markup-annotation :after
 		    #'pdf-keynav-after-markup-advice)
+        (advice-add 'pdf-annot-edit-contents-finalize :after
+	            #'pdf-keynav-after-markup-advice)
 
         ;; add some bindings to pdf-annot-minor-mode-map
         (define-key pdf-annot-minor-mode-map
@@ -641,6 +643,8 @@ necessary buffer-locals have been loaded."
 		   #'pdf-keynav-region-to-active-region)
     (advice-remove 'pdf-annot-add-markup-annotation
 		   #'pdf-keynav-after-markup-advice)
+    (advice-remove 'pdf-annot-edit-contents-finalize
+	           #'pdf-keynav-after-markup-advice)
 
     ;; remove bindings to pdf-annot-minor-mode-map
     (define-key pdf-annot-minor-mode-map
@@ -688,6 +692,10 @@ necessary buffer-locals have been loaded."
         (when pdf-keynav-pointer-layer 
           (pdf-view-add-hotspot-function
            'pdf-keynav-hotspot-function pdf-keynav-pointer-layer))
+
+        ;; remove unnecessary advice
+        (advice-remove 'pdf-annot-edit-contents-finalize
+	               #'pdf-keynav-after-markup-advice)
         
         (pdf-view-redisplay))
     
@@ -699,7 +707,11 @@ necessary buffer-locals have been loaded."
     
     ;; stop controlling pointer shape
     (pdf-view-remove-hotspot-function
-     'pdf-keynav-hotspot-function))
+     'pdf-keynav-hotspot-function)
+
+    ;; add back advice
+    (advice-add 'pdf-annot-edit-contents-finalize :after
+	        #'pdf-keynav-after-markup-advice))
     
   (pdf-keynav-display-region-cursor))
 
