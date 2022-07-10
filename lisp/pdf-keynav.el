@@ -665,7 +665,7 @@ necessary buffer-locals have been loaded."
       (define-key map (kbd "r") 'revert-buffer)
       (define-key map (kbd "m") 'pdf-view-position-to-register))
     (when (boundp 'pdf-sync-minor-mode-map)
-      (define-key 'pdf-sync-minor-mode-map [double-mouse-1] 'pdf-sync-backward-search-mouse))
+      (define-key pdf-sync-minor-mode-map [double-mouse-1] 'pdf-sync-backward-search-mouse))
 
     ;; disable displaying pointer as cursor
     (pdf-keynav-pointer-as-cursor-minor-mode 0)
