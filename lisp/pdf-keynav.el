@@ -665,7 +665,7 @@ necessary buffer-locals have been loaded."
       (define-key map (kbd "r") 'revert-buffer)
       (define-key map (kbd "m") 'pdf-view-position-to-register))
     (when (boundp 'pdf-sync-minor-mode-map)
-      (define-key pdf-sync-minor-mode-map [double-mouse-1] 'pdf-sync-backward-search-mouse))
+      (define-key 'pdf-sync-minor-mode-map [double-mouse-1] 'pdf-sync-backward-search-mouse))
 
     ;; disable displaying pointer as cursor
     (pdf-keynav-pointer-as-cursor-minor-mode 0)
@@ -696,6 +696,11 @@ necessary buffer-locals have been loaded."
         ;; remove unnecessary advice
         (advice-remove 'pdf-annot-edit-contents-finalize
 	               #'pdf-keynav-after-markup-advice)
+
+        ;; pointer behavior in isearch
+        (advice-add 'pdf-isearch-focus-match :after
+	    'pdv-keynav-isearch-focus-match-advice)
+        (add-hook 'isearch-mode-hook 'pdf-keynav-isearch-mode-hook)
         
         (pdf-view-redisplay))
     
@@ -711,7 +716,12 @@ necessary buffer-locals have been loaded."
 
     ;; add back advice
     (advice-add 'pdf-annot-edit-contents-finalize :after
-	        #'pdf-keynav-after-markup-advice))
+	        #'pdf-keynav-after-markup-advice)
+
+    ;; restore old isearch behavior
+    (advice-remove 'pdf-isearch-focus-match
+	           'pdv-keynav-isearch-focus-match-advice)
+    (remove-hook 'isearch-mode-hook 'pdf-keynav-isearch-mode-hook))
     
   (pdf-keynav-display-region-cursor))
 
@@ -742,7 +752,7 @@ If the variable `pdf-keynav-scroll-window' is non-nil, scroll window so that
 point is visible."
   ;; MAYBE Can this be made faster?
   ;;       e.g. by overlaying only a small image to display region/cursor?
-  ;; MAYBE Display region and cursor at the same time in different styles? 
+ ;; MAYBE Display region and cursor at the same time in different styles? 
   ;;       just pass right args to pdf-info-renderpage-text-regions
   ;; cursor is only displayed when region isn't displayed
   (when pdf-keynav-scroll-window
@@ -823,10 +833,8 @@ coordinates are normally relative to the image of a pdf page. This image in
 turn might be smaller or larger than the window it is in. In addition, a window
 is smaller than a frame. An attempt is made to consider all this. Still, if the
 image is narrower than the window, positioning is inexact."
-  ;; FIXME in some cases positoning is not right in intial frame
-  ;;       but works once one works in a new frame (bug outside pdf-tools)
   ;; FIXME does this still introduce new bugs?
-  ;; MAYBE can't get more exact positioning, but someone may be able to?
+  ;; MAYBE Can't get more exact positioning, but someone may be able to?
   (let* ((outer-edges (frame-edges (selected-frame) 'outer-edges))
          (inner-edges-abs (window-edges nil nil t t))
          (inner-edges-rel (window-edges nil nil nil t))
@@ -1055,7 +1063,7 @@ to be set to `pdf-isearch-filter-matches-function' to have an effect."
   "Set point to position of `pdf-isearch-current-match' and displays cursor.
 If the user quits isearch, then just display cursor. This function is bound to
 `isearch-mode-end-hook' so that it is run whenever isearch-mode ends."
-  ;; MAYBE want to both display cursor on quit and go back to starting point
+  ;; FIXME want to both display cursor on quit and go back to starting point
   ;;       even across pages
   (if pdf-keynav-lazy-load
       (pdf-keynav-lazy-load))
@@ -1071,6 +1079,22 @@ If the user quits isearch, then just display cursor. This function is bound to
 			 (nth 3 edges))
 		      2)))))
     (pdf-keynav-display-region-cursor)))
+
+
+(defun pdv-keynav-isearch-focus-match-advice (&rest region)
+  "Moves the pointer to current match.
+Only active in `pdf-keynav-pointer-as-cursor-minor-mode'."
+  (when pdf-keynav-pointer-as-cursor-minor-mode
+    (pdf-keynav-display-pointer-as-cursor
+     (pdf-util-scale-pixel-to-relative (nth 0 region)))))
+
+
+(defun pdf-keynav-isearch-mode-hook ()
+  "Set point from pointer before running isearch.
+Only active in `pdf-keynav-pointer-as-cursor-minor-mode'."  
+  (when (and pdf-keynav-pointer-as-cursor-minor-mode
+             pdf-keynav-point-from-pointer)
+    (pdf-keynav-mouse-set-point-from-pointer)))
 
 
 (defun pdf-keynav-occur-goto-occurence ()
