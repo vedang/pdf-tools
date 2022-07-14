@@ -349,7 +349,7 @@ os_macos() {
     elif which brew >/dev/null 2>&1; then
         PKGCMD=brew
         PKGARGS=install
-        PACKAGES="pkg-config poppler automake"
+        PACKAGES="pkg-config poppler autoconf automake"
         PKG_INSTALL_AS_ROOT=
         # brew installs libffi as keg-only, meaning we need to set
         # PKG_CONFIG_PATH manually so configure can find it
@@ -357,7 +357,7 @@ os_macos() {
     elif which port >/dev/null 2>&1; then
         PKGCMD=port
         PKGARGS=install
-        PACKAGES="pkgconfig poppler automake libpng"
+        PACKAGES="pkgconfig poppler autoconf automake libpng"
     else
         return 1
     fi
