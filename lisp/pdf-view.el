@@ -479,6 +479,12 @@ operating on a local copy of a remote file."
         (when (file-exists-p tempfile)
           (delete-file tempfile))))))
 
+(defun pdf-view--after-revert ()
+  "Reload the local copy in case of a remote file, and close the document."
+  (when pdf-view--buffer-file-name
+    (write-region nil nil pdf-view--buffer-file-name nil 'no-message))
+  (pdf-info-close))
+
 (defun pdf-view-revert-buffer (&optional ignore-auto noconfirm)
   "Revert buffer while preserving current modes.
 
@@ -492,7 +498,7 @@ Optional parameters IGNORE-AUTO and NOCONFIRM are defined as in
   (let ((revert-buffer-function (when (fboundp #'revert-buffer--default)
                                   #'revert-buffer--default))
         (after-revert-hook
-         (cons #'pdf-info-close
+         (cons #'pdf-view--after-revert
                after-revert-hook)))
     (prog1
         (revert-buffer ignore-auto noconfirm 'preserve-modes)
