@@ -234,6 +234,7 @@ Returns nil."
            (cmdfile (make-temp-file "commands"))
            (pdffile (make-temp-file "empty.pdf"))
            (tempdir (make-temp-file "tmpdir" t))
+           (flatpak-p (string-equal (getenv "container") "flatpak"))
            (process-environment (cons (concat "TMPDIR=" tempdir)
                                       process-environment)))
       (unwind-protect
@@ -245,9 +246,13 @@ Returns nil."
               (insert (format "renderpage:%s:1:100\nquit\n"
                               (pdf-info-query--escape pdffile))))
             (unless (= 0 (apply #'call-process
-                                executable cmdfile (current-buffer)
-                                nil (when pdf-info-epdfinfo-error-filename
-                                      (list pdf-info-epdfinfo-error-filename))))
+                                (if flatpak-p "flatpak-spawn" executable)
+                                cmdfile (current-buffer)
+                                nil (append
+                                     (when flatpak-p
+                                       (list "--host" executable))
+                                     (when pdf-info-epdfinfo-error-filename
+                                      (list pdf-info-epdfinfo-error-filename)))))
               (error "Error running `%s': %s"
                      pdf-info-epdfinfo-program
                      (buffer-string))))
@@ -294,10 +299,15 @@ error."
     (pdf-info-check-epdfinfo)
     (let* ((process-connection-type)    ;Avoid 4096 Byte bug #12440.
            (default-directory "~")
+           (flatpak-p (string-equal (getenv "container") "flatpak"))
            (proc (apply #'start-process
-                        "epdfinfo" " *epdfinfo*" pdf-info-epdfinfo-program
-                        (when pdf-info-epdfinfo-error-filename
-                          (list pdf-info-epdfinfo-error-filename)))))
+                        "epdfinfo" " *epdfinfo*"
+                        (if flatpak-p "flatpak-spawn" pdf-info-epdfinfo-program)
+                        (append
+                         (when flatpak-p
+                           (list "--host" pdf-info-epdfinfo-program))
+                         (when pdf-info-epdfinfo-error-filename
+                           (list pdf-info-epdfinfo-error-filename))))))
       (with-current-buffer " *epdfinfo*"
         (erase-buffer))
       (set-process-query-on-exit-flag proc nil)

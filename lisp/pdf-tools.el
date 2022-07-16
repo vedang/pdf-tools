@@ -284,6 +284,15 @@ Returns always nil, unless `system-type' equals windows-nt."
                (expand-file-name "usr/bin/bash.exe" directory))))
       (executable-find "sh")))
 
+(defun pdf-tools-get-ostree-version (flatpak-p)
+  (string-trim
+   (with-output-to-string
+     (with-current-buffer standard-output
+       (shell-command
+        (concat (when flatpak-p "flatpak-spawn --host ")
+                "sh -c 'source /etc/os-release; echo $OSTREE_VERSION'")
+        t "*Messages*")))))
+
 (defun pdf-tools-build-server (target-directory
                                &optional
                                skip-dependencies-p
@@ -322,13 +331,22 @@ Returns the buffer of the compilation process."
          (shell-command-switch "-c")
          (process-environment process-environment)
          (default-directory build-directory)
-         (autobuild (shell-quote-argument
-                     (expand-file-name "autobuild" build-directory)))
+         (flatpak-p (string-equal (getenv "container") "flatpak"))
+         (ostree-p (when (eq system-type 'gnu/linux) (not (string-equal (pdf-tools-get-ostree-version flatpak-p) ""))))
+         (autobuild (list (shell-quote-argument
+                           (expand-file-name "autobuild" build-directory))))
          (msys2-p (equal "bash.exe" (file-name-nondirectory shell-file-name))))
     (unless shell-file-name
       (error "No suitable shell found"))
     (when msys2-p
       (push "BASH_ENV=/etc/profile" process-environment))
+    (when ostree-p
+      (if flatpak-p
+          (call-process "flatpak-spawn" nil nil nil "--host" "toolbox" "create")
+        (call-process "toolbox" nil nil nil "create"))
+      (push "toolbox run" autobuild))
+    (when flatpak-p
+      (push "flatpak-spawn --host" autobuild))
     (let ((executable
            (expand-file-name
             (concat "epdfinfo" (and (eq system-type 'windows-nt) ".exe"))
@@ -336,7 +354,7 @@ Returns the buffer of the compilation process."
           (compilation-buffer
            (compilation-start
             (format "%s -i %s%s%s"
-                    autobuild
+                    (string-join autobuild " ")
                     (shell-quote-argument target-directory)
                     (cond
                      (skip-dependencies-p " -D")

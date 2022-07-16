@@ -258,7 +258,7 @@ os_fedora() {
         return 1
     fi
     PKGCMD=dnf
-    PKGARGS=install
+    PKGARGS="install -y"
     PACKAGES="autoconf
               automake
               gcc
