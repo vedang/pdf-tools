@@ -1,4 +1,6 @@
 # -*- dockerfile -*-
 # Debian 9 is known as stretch
 FROM debian:9
-RUN apt-get update -y
+ARG DEBIAN_FRONTEND=noninteractive
+# Need to install make, tzdata here to avoid stupid prompts when running package install via autobuild
+RUN apt-get update -y && apt-get install -y make tzdata

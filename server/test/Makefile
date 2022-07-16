@@ -20,7 +20,7 @@ check: docker/test
 
 # Create the Dockerfile
 docker/%.Dockerfile: docker/templates/%.Dockerfile.in \
-		     docker/templates/Dockerfile.in
+	docker/templates/Dockerfile.common.in
 	@echo Creating Dockerfile for target $*
 	cat $^ > $@
 
@@ -52,4 +52,13 @@ clean: docker/clean
 	rm -f -- docker/*.Dockerfile
 
 print:
-	@for os in $(DOCKER_OS); do echo $$os; done | sort
+	@echo List of Operating systems where server compilation is tested [via Docker]:
+	@for os in $(DOCKER_OS); do echo - $$os; done | sort
+
+print-failing: FAILING_OS := $(patsubst %.Dockerfile.in.FAILING, %, \
+	$(notdir $(wildcard docker/templates/*.Dockerfile.in.FAILING)))
+
+print-failing:
+	@echo List of Operating systems where server compilation is not tested:
+	@for os in $(FAILING_OS); do echo - $$os; done | sort
+	@echo PLEASE help support your favorite OS! More details at: https://pdftools.wiki/A401543C

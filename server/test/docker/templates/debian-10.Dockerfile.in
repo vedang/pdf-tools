@@ -1,4 +1,6 @@
 # -*- dockerfile -*-
 # Debian 10 is known as buster
 FROM debian:10
-RUN apt-get update -y
+ARG DEBIAN_FRONTEND=noninteractive
+# Need to install make, tzdata here to avoid stupid prompts when running package install via autobuild
+RUN apt-get update -y && apt-get install -y make tzdata

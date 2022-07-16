@@ -95,3 +95,9 @@ server-clean:
 
 server-distclean:
 	! [ -f server/Makefile ] || $(MAKE) -C server distclean
+
+server-test-supported: server/test/Makefile
+	$(MAKE) -C server/test print
+
+server-test-unsupported: server/test/Makefile
+	$(MAKE) -C server/test print-failing
