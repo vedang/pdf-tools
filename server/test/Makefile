@@ -27,13 +27,13 @@ docker/%.Dockerfile: docker/templates/%.Dockerfile.in \
 # Build the Dockerfile
 docker/.%.build: docker/%.Dockerfile ../autobuild docker/lib
 	@echo Building target $*
-	podman build $(DOCKER_BUILD_ARGS) -t epdfinfo/$* -f $< ../
+	podman image build $(DOCKER_BUILD_ARGS) -t epdfinfo/$* -f $< ../ || exit 0
 	touch $@
 
 # Run the Dockerfile
 docker/%: docker/.%.build
 	@echo Running tests on target $*
-	podman run --name epdfinfo-$* epdfinfo/$*
+	podman container run --rm --name epdfinfo-$* epdfinfo/$*
 
 # Run all Dockerfiles
 docker/test: docker/build $(patsubst %, docker/%, $(DOCKER_OS))
