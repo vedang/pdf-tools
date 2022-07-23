@@ -50,7 +50,7 @@ The functions on this hook will be called when some annotation is
 activated, usually by a mouse-click.  Each one is called with the
 annotation as a single argument and it should return a non-nil
 value if it has `handled' it.  If no such function exists, the
-default handler `pdf-annot-default-handler' will be
+default handler `pdf-annot-default-activate-handler' will be
 called.
 
 This hook is meant to allow for custom annotations.  FIXME:
@@ -293,7 +293,6 @@ Setting this after the package was loaded has no effect."
         (smap (make-sparse-keymap)))
     (define-key kmap pdf-annot-minor-mode-map-prefix smap)
     (define-key smap "l" #'pdf-annot-list-annotations)
-    ;; (define-key smap "d" 'pdf-annot-toggle-display-annotations)
     (define-key smap "a" #'pdf-annot-attachment-dired)
     (when (pdf-info-writable-annotations-p)
       (define-key smap "D" #'pdf-annot-delete)
@@ -1574,7 +1573,7 @@ Currently supported properties are page, type, label, date and contents."
              (date (integer :value 24 :tag "Column Width"))
              (contents (integer :value 56 :tag "Column Width"))))
 
-(defcustom pdf-annot-list-highlight-type nil
+(defcustom pdf-annot-list-highlight-type t
   "Whether to highlight \"Type\" column annotation list with annotation color."
   :type 'boolean)
 
