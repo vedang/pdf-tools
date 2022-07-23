@@ -705,12 +705,15 @@ next page only on typing SPC (ARG is nil)."
   (interactive "P")
   (if (or pdf-view-continuous (null arg))
       (let ((hscroll (window-hscroll))
-            (cur-page (pdf-view-current-page)))
-        (when (or (= (window-vscroll nil pdf-view-have-image-mode-pixel-vscroll)
-                     (image-scroll-up arg))
-                  ;; Workaround rounding/off-by-one issues.
-                  (memq pdf-view-display-size
-                        '(fit-height fit-page)))
+            (cur-page (pdf-view-current-page))
+            (win-scroll (window-vscroll nil pdf-view-have-image-mode-pixel-vscroll))
+            (img-scroll (image-scroll-up arg)))
+        (when (or
+               ;; There is no next line for the image to scroll to
+               (and img-scroll (= win-scroll img-scroll))
+               ;; Workaround rounding/off-by-one issues.
+               (memq pdf-view-display-size
+                     '(fit-height fit-page)))
           (pdf-view-next-page)
           (when (/= cur-page (pdf-view-current-page))
             (image-bob)
@@ -727,12 +730,15 @@ to previous page only on typing DEL (ARG is nil)."
   (interactive "P")
   (if (or pdf-view-continuous (null arg))
       (let ((hscroll (window-hscroll))
-            (cur-page (pdf-view-current-page)))
-        (when (or (= (window-vscroll nil pdf-view-have-image-mode-pixel-vscroll)
-                     (image-scroll-down arg))
-                  ;; Workaround rounding/off-by-one issues.
-                  (memq pdf-view-display-size
-                        '(fit-height fit-page)))
+            (cur-page (pdf-view-current-page))
+            (win-scroll (window-vscroll nil pdf-view-have-image-mode-pixel-vscroll))
+            (img-scroll (image-scroll-down arg)))
+        (when (or
+               ;; There is no previous line for the image to scroll to
+               (and img-scroll (= win-scroll img-scroll))
+               ;; Workaround rounding/off-by-one issues.
+               (memq pdf-view-display-size
+                     '(fit-height fit-page)))
           (pdf-view-previous-page)
           (when (/= cur-page (pdf-view-current-page))
             (image-eob)
