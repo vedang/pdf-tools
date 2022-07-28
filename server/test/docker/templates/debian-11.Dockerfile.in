@@ -1,4 +1,6 @@
 # -*- dockerfile -*-
 # Debian 11 is known as bullseye
 FROM debian:11
-RUN apt-get update -y
+ARG DEBIAN_FRONTEND=noninteractive
+# Need to install make, tzdata here to avoid stupid prompts when running package install via autobuild
+RUN apt-get update -y && apt-get install -y make tzdata

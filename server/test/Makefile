@@ -20,20 +20,20 @@ check: docker/test
 
 # Create the Dockerfile
 docker/%.Dockerfile: docker/templates/%.Dockerfile.in \
-		     docker/templates/Dockerfile.in
+	docker/templates/Dockerfile.common.in
 	@echo Creating Dockerfile for target $*
 	cat $^ > $@
 
 # Build the Dockerfile
 docker/.%.build: docker/%.Dockerfile ../autobuild docker/lib
 	@echo Building target $*
-	podman build $(DOCKER_BUILD_ARGS) -t epdfinfo/$* -f $< ../
+	podman image build $(DOCKER_BUILD_ARGS) -t epdfinfo/$* -f $< ../ || exit 0
 	touch $@
 
 # Run the Dockerfile
 docker/%: docker/.%.build
 	@echo Running tests on target $*
-	podman run --name epdfinfo-$* epdfinfo/$*
+	podman container run --rm --name epdfinfo-$* epdfinfo/$*
 
 # Run all Dockerfiles
 docker/test: docker/build $(patsubst %, docker/%, $(DOCKER_OS))
@@ -52,4 +52,13 @@ clean: docker/clean
 	rm -f -- docker/*.Dockerfile
 
 print:
-	@for os in $(DOCKER_OS); do echo $$os; done | sort
+	@echo List of Operating systems where server compilation is tested [via Docker]:
+	@for os in $(DOCKER_OS); do echo - $$os; done | sort
+
+print-failing: FAILING_OS := $(patsubst %.Dockerfile.in.FAILING, %, \
+	$(notdir $(wildcard docker/templates/*.Dockerfile.in.FAILING)))
+
+print-failing:
+	@echo List of Operating systems where server compilation is not tested:
+	@for os in $(FAILING_OS); do echo - $$os; done | sort
+	@echo PLEASE help support your favorite OS! More details at: https://pdftools.wiki/A401543C

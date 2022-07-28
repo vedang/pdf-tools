@@ -9,6 +9,59 @@
 [[https://stable.melpa.org/#/pdf-tools][http://stable.melpa.org/packages/pdf-tools-badge.svg]]
 [[https://melpa.org/#/pdf-tools][http://melpa.org/packages/pdf-tools-badge.svg]] [[https://ci.appveyor.com/project/vedang/pdf-tools][https://ci.appveyor.com/api/projects/status/yqic2san0wi7o5v8/branch/master?svg=true]]
 
+=======
+The ~pdf-tools~ Wiki is maintained at https://pdftools.wiki. Head to the site if you find it easier to navigate a website for reading a manual. All the topics on the site are listed at https://pdftools.wiki/impulse.
+
+* About PDF Tools
+:PROPERTIES:
+:CREATED:  [2021-12-29 Wed 18:34]
+:ID:       5a884389-6aec-498a-90d5-f37168809b4f
+:EXPORT_FILE_NAME: index
+:END:
+PDF Tools is, among other things, a replacement of DocView for PDF files. The key difference is that pages are not pre-rendered by e.g. ghostscript and stored in the file-system, but rather created on-demand and stored in memory.
+
+This rendering is performed by a special library named, for whatever reason, ~poppler~, running inside a server program. This program is called ~epdfinfo~ and its job is to successively read requests from Emacs and produce the proper results, i.e. the PNG image of a PDF page.
+
+Actually, displaying PDF files is just one part of ~pdf-tools~. Since ~poppler~ can provide us with all kinds of information about a document and is also able to modify it, there is a lot more we can do with it. [[https://www.dailymotion.com/video/x2bc1is][Watch this video for a detailed demo!]]
+
+* Installing ~pdf-tools~
+:PROPERTIES:
+:CREATED:  [2021-12-29 Wed 18:34]
+:ID:       6ceea50c-cbaa-4d8a-b450-8067c5e8c9da
+:NEURON_DIRTREE_DISPLAY: false
+:END:
+Installing this package via NonGNU ELPA or MELPA or any of the other package managers is straightforward and should just work.
+~pdf-tools~ requires a server ~epdfinfo~ to run against, which it will try to compile and build when it is activated for the first time.
+
+You should not require any manual changes. The documentation below is *only if you are installing from source*, or for troubleshooting / debugging purposes. The following steps need to be followed *in this order*, to install ~pdf-tools~ and ~epdfinfo~ correctly:
+
+- [[brain-child:8ce3cf4e-d186-4de1-a40e-f41063068ab0][Installing ~epdfinfo~ server prerequisites]]
+- [[brain-child:e305cd0a-e798-4c2b-af27-21bcd936c1c9][Installing the ~epdfinfo~ server]]
+- [[brain-child:3d4e6b6b-f015-475d-8ea2-84988efd6c22][Installing ~pdf-tools~ elisp prerequisites]]
+- [[brain-child:32c4fc3b-b4ea-43bd-b92c-bdf2d3831fcf][Installing ~pdf-tools~ elisp code]]
+
+** Installing ~epdfinfo~ server prerequisites
+:PROPERTIES:
+:CREATED:  [2021-12-29 Wed 18:34]
+:ID:       8ce3cf4e-d186-4de1-a40e-f41063068ab0
+:END:
+If you install ~pdf-tools~ via NonGNU ELPA or MELPA, *you don't need to worry about this separate server installation at all*.  However, if you have a non-standard installation, please refer to the links below for installing ~epdfinfo~ server prerequisites.
+
+Note: You'll need GNU Emacs \ge 26.1 and some form of a GNU/Linux OS. Other operating systems are not officially supported, but ~pdf-tools~ is known to work on many of them.
+
+Similarly, package-managers are not officially supported, but ~pdf-tools~ is known to be available on some of them. See the section on [[id:fb5cef15-fed4-4dec-a443-52f7c00c7831][Installing the ~epdfinfo~ server from package managers]] to avoid manual installation of server / server prerequisites.
+
+See the section on [[id:A34704B9-1B51-4614-8806-C4059F7B42D5][I want to add support for ~pdf-tools~ on =My Fav OS=. How do I do that?]] to add your favorite Operating System to this list.
+
+*** Installing ~epdfinfo~ Server Prerequisites on a Debian-based system
+:PROPERTIES:
+:CREATED:  [2022-02-13 Sun 23:17]
+:ID:       abaae1be-3bbb-4d99-90e7-5429c56083e1
+:END:
+First make sure a suitable build-system is installed. We need at least a C compiler (~gcc~), ~make~, ~automake~ and ~autoconf~.
+
+Next we need to install a few libraries ~pdf-tools~ depends on, some of which are probably already on your system.
+
 #+begin_src sh
   $ sudo apt install libpng-dev zlib1g-dev libpoppler-glib-dev
 #+end_src
@@ -489,7 +542,7 @@ L/R scrolling breaks while zoomed into a pdf, with usage of sublimity smooth scr
 #+end_src
 Toggling debug mode prints information about various operations in the ~*Messages*~ buffer, and this is useful to see what is happening behind the scenes
 
-** Run basic tests locally
+** Run Emacs lisp tests locally
 :PROPERTIES:
 :CREATED:  [2022-05-09 Mon 21:27]
 :ID:       1CBE7325-A5A1-479B-9A98-BEEFBAC9D8FF
@@ -497,6 +550,25 @@ Toggling debug mode prints information about various operations in the ~*Message
 You can go to the ~pdf-tools~ folder and run ~make test~ to run the ERT tests and check if the changes you have made to the code break any of the tests.
 
 The tests are written in ERT, which is the built-in testing system in Emacs. However, they are run using ~Cask~ which you will have to install first, if you don't have it already. You can install ~Cask~ by following the instructions on their site at https://github.com/cask/cask
+** Run server compilation tests locally
+:PROPERTIES:
+:CREATED:  [2022-07-20 Wed 16:42]
+:ID:       5327945D-9D92-4462-8172-7237DEF4C359
+:END:
+You can go to the ~pdf-tools~ folder and run ~make server-test~ to check if the changes you have made to the server code break compilation on any of the supported operating systems.
+
+The tests build ~Podman~ images for all supported operating systems, so you will have to install ~Podman~ first, if you don't have already. You can install ~Podman~ by following the instructions on their site at https://podman.io/getting-started/installation
+
+Podman is compatible with Docker, so if you already have ~docker~ installed, you should be able to ~alias podman=docker~ on your shell and run the tests, without having to install Docker. (Note: I have not tested this)
+
+** Add a Dockerfile to automate server compilation testing
+:PROPERTIES:
+:CREATED:  [2022-07-20 Wed 16:52]
+:ID:       A401543C-308B-4175-8212-5B78CD6C8389
+:END:
+The ~server/test/docker~ folder contains Dockerfile templates used for testing that the ~epdfinfo~ server compiles correctly on various operating systems ([[id:5327945D-9D92-4462-8172-7237DEF4C359][more details here]]).
+
+To see the list of operating systems where compilation testing is supported, run ~make server-test-supported~. To see the list of operating systems where testing is unsupported, run ~make server-test-unsupported~. To add support, look into the ~server/test/docker/templates~ folder (~ubuntu~ files are a good example to refer to)
 
 * FAQs
 :PROPERTIES:
@@ -532,12 +604,13 @@ I'm working on automating ~pdf-tools~ installation as much as possible, in order
 1. Add a call to ~os_myfavos~ under ~handle-options~ at the end of the existing call chain. Here we try and pick up the correct Operating System and install the relevant dependencies.
 2. Add handling for the ~--os~ argument in ~os_argument~ for ~myfavos~, so that the appropriate function can be called to install pre-requisites. ~--os~ is the argument that we pass to the script from the command-line to indicate which OS we are on.
 3. Create a ~os_myfavos~ function. This function checks if we are running on MyFavOS. If we are running on MyFavOS, it sets up ~PKGCMD~, ~PKGARGS~ and ~PACKAGES~ variables so that the appropriate package manager can install the dependencies as part of the rest of the ~autobuild~ script.
+4. If you are adding support for your favorite operating system, consider adding automated testing support as well, to help me ensure that ~epdfinfo~ continues to compile correctly. See [[id:A401543C-308B-4175-8212-5B78CD6C8389][Add a Dockerfile to automate server compilation testing]] for more details.
 
 The idea here is to make the ~server/autobuild~ file the single place from which installation can happen on any Operating System. This makes building ~pdf-tools~ dead simple via the ~Makefile~.
 
 This seems like a lot of work, but it is not. If you need a reference, search for ~os_gentoo~ or ~os_debian~ in the ~server/autobuild~ file and see how these are setup and used. The functions are used to install dependencies on Gentoo and Debian respectively, and are simple to copy / change.
 
-When you make your changes, be sure to test them!
+When you make your changes, please be sure to test [[id:1CBE7325-A5A1-479B-9A98-BEEFBAC9D8FF][the elisp changes]] as well as [[id:5327945D-9D92-4462-8172-7237DEF4C359][the server code changes]] as described in the linked articles.
 
 ** I am on a Macbook M1 and ~pdf-tools~ installation fails with a stack-trace
 :PROPERTIES:

@@ -1031,7 +1031,11 @@ Manually opened documents are never closed automatically."
 Returns t, if the document was actually open, otherwise nil.
 This command is rarely needed, see also `pdf-info-open'."
   (let* ((pdf (pdf-info--normalize-file-or-buffer file-or-buffer))
-         (buffer (find-buffer-visiting pdf)))
+         (buffer (cond
+                  ((not file-or-buffer) (current-buffer))
+                  ((bufferp file-or-buffer) file-or-buffer)
+                  ((stringp file-or-buffer)
+                   (find-buffer-visiting file-or-buffer)))))
     (prog1
         (pdf-info-query 'close pdf)
       (if (buffer-live-p buffer)

@@ -334,6 +334,10 @@ PNG images in Emacs buffers."
       (setq-local mwheel-scroll-down-function
                   #'pdf-view-scroll-down-or-previous-page))
 
+  ;; Disable pixel-scroll-precision-mode locally if enabled
+  (if (bound-and-true-p pixel-scroll-precision-mode)
+      (set (make-local-variable 'pixel-scroll-precision-mode) nil))
+
   ;; Clearing overlays
   (add-hook 'change-major-mode-hook
             (lambda ()
@@ -479,6 +483,12 @@ operating on a local copy of a remote file."
         (when (file-exists-p tempfile)
           (delete-file tempfile))))))
 
+(defun pdf-view--after-revert ()
+  "Reload the local copy in case of a remote file, and close the document."
+  (when pdf-view--buffer-file-name
+    (write-region nil nil pdf-view--buffer-file-name nil 'no-message))
+  (pdf-info-close))
+
 (defun pdf-view-revert-buffer (&optional ignore-auto noconfirm)
   "Revert buffer while preserving current modes.
 
@@ -492,7 +502,7 @@ Optional parameters IGNORE-AUTO and NOCONFIRM are defined as in
   (let ((revert-buffer-function (when (fboundp #'revert-buffer--default)
                                   #'revert-buffer--default))
         (after-revert-hook
-         (cons #'pdf-info-close
+         (cons #'pdf-view--after-revert
                after-revert-hook)))
     (prog1
         (revert-buffer ignore-auto noconfirm 'preserve-modes)
@@ -695,12 +705,15 @@ next page only on typing SPC (ARG is nil)."
   (interactive "P")
   (if (or pdf-view-continuous (null arg))
       (let ((hscroll (window-hscroll))
-            (cur-page (pdf-view-current-page)))
-        (when (or (= (window-vscroll nil pdf-view-have-image-mode-pixel-vscroll)
-                     (image-scroll-up arg))
-                  ;; Workaround rounding/off-by-one issues.
-                  (memq pdf-view-display-size
-                        '(fit-height fit-page)))
+            (cur-page (pdf-view-current-page))
+            (win-scroll (window-vscroll nil pdf-view-have-image-mode-pixel-vscroll))
+            (img-scroll (image-scroll-up arg)))
+        (when (or
+               ;; There is no next line for the image to scroll to
+               (and img-scroll (= win-scroll img-scroll))
+               ;; Workaround rounding/off-by-one issues.
+               (memq pdf-view-display-size
+                     '(fit-height fit-page)))
           (pdf-view-next-page)
           (when (/= cur-page (pdf-view-current-page))
             (image-bob)
@@ -717,12 +730,15 @@ to previous page only on typing DEL (ARG is nil)."
   (interactive "P")
   (if (or pdf-view-continuous (null arg))
       (let ((hscroll (window-hscroll))
-            (cur-page (pdf-view-current-page)))
-        (when (or (= (window-vscroll nil pdf-view-have-image-mode-pixel-vscroll)
-                     (image-scroll-down arg))
-                  ;; Workaround rounding/off-by-one issues.
-                  (memq pdf-view-display-size
-                        '(fit-height fit-page)))
+            (cur-page (pdf-view-current-page))
+            (win-scroll (window-vscroll nil pdf-view-have-image-mode-pixel-vscroll))
+            (img-scroll (image-scroll-down arg)))
+        (when (or
+               ;; There is no previous line for the image to scroll to
+               (and img-scroll (= win-scroll img-scroll))
+               ;; Workaround rounding/off-by-one issues.
+               (memq pdf-view-display-size
+                     '(fit-height fit-page)))
           (pdf-view-previous-page)
           (when (/= cur-page (pdf-view-current-page))
             (image-eob)
