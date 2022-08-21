@@ -354,7 +354,7 @@ mktempfile()
       filename =  tempnam(NULL, "epdfinfo");
       if (filename)
         {
-          int fd = open(filename, O_CREAT | O_EXCL | O_RDONLY, S_IRWXU);
+          int fd = open(filename, O_CREAT | O_EXCL | O_RDONLY, S_IRUSR | S_IWUSR);
           if (fd > 0)
             close (fd);
           else
