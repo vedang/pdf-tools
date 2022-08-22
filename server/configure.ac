@@ -84,7 +84,7 @@ AC_C_BIGENDIAN
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_STRTOD
-AC_CHECK_FUNCS([strcspn strtol getline])
+AC_CHECK_FUNCS([strcspn strtol getline vasprintf])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
