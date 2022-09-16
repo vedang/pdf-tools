@@ -243,7 +243,10 @@ with a space. It size is determined from the image its
   (display-warning '(image-roll) (format "undisplay %s" page)
                    :debug "*image-roll-debug-log*")
   (let* ((o (image-roll-page-overlay page))
-         (im (overlay-get o 'display))
+         (d (overlay-get o 'display))
+         (im (if pdf-view-auto-slice-minor-mode
+                 (nth 1 d)
+               d))
          (s (image-size im t))
          (w (car s))
          (h (cdr s)))
