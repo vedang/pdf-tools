@@ -524,12 +524,11 @@ the variable is nil and this function is called again."
            (union (cl-union (cl-union changed inserted :test 'pdf-annot-equal)
                             deleted :test 'pdf-annot-equal))
            (closure (lambda (arg)
-                      (cl-ecase arg
+                      (cl-case arg
                         (:inserted (copy-sequence inserted))
                         (:changed (copy-sequence changed))
                         (:deleted (copy-sequence deleted))
-                        (t (copy-sequence union))
-                        (nil nil))))
+                        (t (copy-sequence union)))))
            (pages (mapcar (lambda (a) (pdf-annot-get a 'page)) union)))
       (when union
         (unwind-protect
@@ -1464,7 +1463,7 @@ annotation's contents and otherwise `org-mode'."
   "Finalize edit-operations on an Annotation.
 
 If DO-SAVE is t, save the changes to annotation content without
-asking. If DO-SAVE is 'ask, check if the user if contents should
+asking. If DO-SAVE is `ask', check if the user if contents should
 be saved.
 
 If DO-KILL is t, kill all windows displaying the annotation
