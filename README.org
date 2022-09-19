@@ -515,6 +515,37 @@ With a recent [[https://www.gnu.org/software/auctex/][AUCTeX]] installation, you
 :END:
 L/R scrolling breaks while zoomed into a pdf, with usage of sublimity smooth scrolling features
 
+** Text selection is not transparent in PDFs OCRed with Tesseract
+:PROPERTIES:
+:CREATED:  [2022-09-19 Mon 18:50]
+:ID:       C3A4A7C0-6BBB-4923-AD39-3707C8482A76
+:END:
+
+In such PDFs the selected text becomes hidden behind the selection; see [[https://github.com/vedang/pdf-tools/issues/149][this issue]], which also describes the workaround in detail. The following function, which depends on the [[https://github.com/orgtre/qpdf.el][qpdf.el]] package, can be used to convert such a PDF file into one where text selection is transparent: 
+#+begin_src elisp
+  (defun my-fix-pdf-selection ()
+    "Replace pdf with one where selection shows transparently."
+    (interactive)
+    (unless (equal (file-name-extension (buffer-file-name)) "pdf")
+      (error "Buffer should visit a pdf file."))
+    (unless (equal major-mode 'pdf-view-mode)
+      (pdf-view-mode))
+    ;; save file in QDF-mode
+    (qpdf-run (list
+               (concat "--infile="
+                       (buffer-file-name))
+               "--qdf --object-streams=disable"
+               "--replace-input"))
+    ;; do replacements
+    (text-mode)
+    (read-only-mode -1)
+    (while (re-search-forward "3 Tr" nil t)
+      (replace-match "7 Tr" nil nil))
+    (save-buffer)
+    (pdf-view-mode))
+#+end_src
+Note that this overwrites the PDF file visited in the buffer from which it is run! To avoid this replace the ~--replace-input~ with ~(concat "--outfile=" (file-truename (read-file-name "Outfile: ")))~.
+
 * Key-bindings in PDF Tools
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
