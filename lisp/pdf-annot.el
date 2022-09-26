@@ -528,7 +528,6 @@ the variable is nil and this function is called again."
                         (:inserted (copy-sequence inserted))
                         (:changed (copy-sequence changed))
                         (:deleted (copy-sequence deleted))
-                        (t (copy-sequence union))
                         (nil nil))))
            (pages (mapcar (lambda (a) (pdf-annot-get a 'page)) union)))
       (when union
