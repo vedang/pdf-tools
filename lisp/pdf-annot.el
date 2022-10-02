@@ -524,12 +524,12 @@ the variable is nil and this function is called again."
            (union (cl-union (cl-union changed inserted :test 'pdf-annot-equal)
                             deleted :test 'pdf-annot-equal))
            (closure (lambda (arg)
-                      (cl-ecase arg
-                        (:inserted (copy-sequence inserted))
-                        (:changed (copy-sequence changed))
-                        (:deleted (copy-sequence deleted))
-                        (t (copy-sequence union))
-                        (nil nil))))
+                      (when arg
+                        (cl-case arg
+                          (:inserted (copy-sequence inserted))
+                          (:changed (copy-sequence changed))
+                          (:deleted (copy-sequence deleted))
+                          (t (copy-sequence union))))))
            (pages (mapcar (lambda (a) (pdf-annot-get a 'page)) union)))
       (when union
         (unwind-protect
