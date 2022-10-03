@@ -735,8 +735,8 @@ PAGE should be a page-number."
        (defun ,fn ,(cons base-fn-arg arglist)
          ,(format "%sPDF virtual adapter to `%s'.
 
-This function delegates to `%s', unless the FILE-OR-BUFFER
-argument denotes a VPDF document."
+This function delegates to `%s',
+unless the FILE-OR-BUFFER argument denotes a VPDF document."
                   (if doc (concat doc "\n\n") "")
                   base-fn
                   base-fn)

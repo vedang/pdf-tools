@@ -648,7 +648,7 @@ Signal an error, if color is invalid."
       (unless values
         (signal 'wrong-type-argument (list 'color-defined-p color)))
       (apply #'format "#%02x%02x%02x"
-             (mapcar (lambda (c) (lsh c -8))
+             (mapcar (lambda (c) (ash c -8))
                      values)))))
 
 (defun pdf-util-highlight-regexp-in-string (regexp string &optional face)
@@ -668,6 +668,8 @@ string."
          (point)
          'face (or face 'match))))
     (buffer-string)))
+
+(autoload 'list-colors-duplicates "facemenu")
 
 (defun pdf-util-color-completions ()
   "Return a fontified list of defined colors."
@@ -1059,14 +1061,14 @@ replacement string.
 IN-FILE coordinates. Each such rectangle triggers one execution
 of the last commands given earlier in SPEC. E.g. a call like
 
-\(pdf-util-convert
-       image-file out-file
-       :foreground \"black\"
-       :background \"white\"
-       :commands '(\"-fill\" \"%f\" \"-draw\" \"rectangle %x,%y,%X,%Y\")
-       :apply '((0 0 10 10) (10 10 20 20))
-       :commands '(\"-fill\" \"%b\" \"-draw\" \"rectangle %x,%y,%X,%Y\")
-       :apply '((10 0 20 10) (0 10 10 20)))
+  (pdf-util-convert
+   image-file out-file
+   :foreground \"black\"
+   :background \"white\"
+   :commands \\='(\"-fill\" \"%f\" \"-draw\" \"rectangle %x,%y,%X,%Y\")
+   :apply \\='((0 0 10 10) (10 10 20 20))
+   :commands \\='(\"-fill\" \"%b\" \"-draw\" \"rectangle %x,%y,%X,%Y\")
+   :apply \\='((10 0 20 10) (0 10 10 20)))
 
 would draw a 4x4 checkerboard pattern in the left corner of the
 image, while leaving the rest of it as it was.
