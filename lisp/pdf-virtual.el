@@ -31,12 +31,6 @@
 ;; asynchronous case.
 
 ;;; Code:
-(eval-when-compile
-  (unless (or (> emacs-major-version 24)
-              (and (= emacs-major-version 24)
-                   (>= emacs-minor-version 4)))
-    (error "pdf-virtual.el only works with Emacs >= 24.4")))
-
 (require 'let-alist)
 (require 'pdf-info)
 (require 'pdf-util)
