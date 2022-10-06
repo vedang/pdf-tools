@@ -20,6 +20,19 @@ all: docker/test
 test: docker/test
 check: docker/test
 
+# Create the Podman VM, if it hasn't already been created
+create-vm:
+	podman machine init --cpus 8 --memory 8192 --disk-size 50 || exit 0
+
+# Start Podman, if it isn't running
+start-vm: create-vm
+	podman machine start || exit 0
+	touch .$@
+
+# Stop Podman
+stop-vm:
+	podman machine stop
+
 # Create the Dockerfile
 docker/%.Dockerfile: docker/templates/%.Dockerfile.in \
 	docker/templates/Dockerfile.common.in
