@@ -43,37 +43,6 @@
 ;; * Compatibility with older Emacssen (< 25.1)
 ;; * ================================================================== *
 
-;; The with-file-modes macro is only available in recent Emacs
-;; versions.
-(eval-when-compile
-  (unless (fboundp 'with-file-modes)
-    (defmacro with-file-modes (modes &rest body)
-      "Execute BODY with default file permissions temporarily set to MODES.
-MODES is as for `set-default-file-modes'."
-      (declare (indent 1) (debug t))
-      (let ((umask (make-symbol "umask")))
-        `(let ((,umask (default-file-modes)))
-           (unwind-protect
-               (progn
-                 (set-default-file-modes ,modes)
-                 ,@body)
-             (set-default-file-modes ,umask)))))))
-
-(unless (fboundp 'alist-get) ;;25.1
-  (defun alist-get (key alist &optional default remove)
-    "Get the value associated to KEY in ALIST.
-DEFAULT is the value to return if KEY is not found in ALIST.
-REMOVE, if non-nil, means that when setting this element, we should
-remove the entry if the new value is `eql' to DEFAULT."
-    (ignore remove) ;;Silence byte-compiler.
-    (let ((x (assq key alist)))
-      (if x (cdr x) default))))
-
-(require 'register)
-(unless (fboundp 'register-read-with-preview)
-  (defalias 'register-read-with-preview #'read-char
-    "Compatibility alias for pdf-tools."))
-
 ;; In Emacs 24.3 window-width does not have a PIXELWISE argument.
 (defmacro pdf-util-window-pixel-width (&optional window)
   "Return the width of WINDOW in pixel."
