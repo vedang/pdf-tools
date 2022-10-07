@@ -1135,7 +1135,7 @@ If WINDOW is t, redisplay pages in all windows."
   (let* ((pagesize (pdf-cache-pagesize
                     (or page (pdf-view-current-page window))))
          (slice (pdf-view-current-slice window))
-         (width-scale (/ (/ (float (pdf-util-window-pixel-width window))
+         (width-scale (/ (/ (float (window-body-width window t))
                             (or (nth 2 slice) 1.0))
                          (float (car pagesize))))
          (height (- (nth 3 (window-inside-pixel-edges window))

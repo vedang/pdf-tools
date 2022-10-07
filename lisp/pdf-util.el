@@ -43,16 +43,6 @@
 ;; * Compatibility with older Emacssen (< 25.1)
 ;; * ================================================================== *
 
-;; In Emacs 24.3 window-width does not have a PIXELWISE argument.
-(defmacro pdf-util-window-pixel-width (&optional window)
-  "Return the width of WINDOW in pixel."
-  (if (< (cdr (subr-arity (symbol-function 'window-body-width))) 2)
-      (let ((window* (make-symbol "window")))
-        `(let ((,window* ,window))
-           (*  (window-body-width ,window*)
-               (frame-char-width (window-frame ,window*)))))
-    `(window-body-width ,window t)))
-
 ;; In Emacs 24.3 image-mode-winprops leads to infinite recursion.
 (unless (or (> emacs-major-version 24)
             (and (= emacs-major-version 24)
