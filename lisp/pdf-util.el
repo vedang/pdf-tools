@@ -40,53 +40,6 @@
 
 
 ;; * ================================================================== *
-;; * Compatibility with older Emacssen (< 25.1)
-;; * ================================================================== *
-
-;; In Emacs 24.3 image-mode-winprops leads to infinite recursion.
-(unless (or (> emacs-major-version 24)
-            (and (= emacs-major-version 24)
-                 (>= emacs-minor-version 4)))
-  (require 'image-mode)
-  (defvar image-mode-winprops-original-function
-    (symbol-function 'image-mode-winprops))
-  (defvar image-mode-winprops-alist)
-  (eval-after-load "image-mode"
-    '(defun image-mode-winprops (&optional window cleanup)
-       (if (not (eq major-mode 'pdf-view-mode))
-           (funcall image-mode-winprops-original-function
-                    window cleanup)
-         (cond ((null window)
-                (setq window
-                      (if (eq (current-buffer) (window-buffer)) (selected-window) t)))
-               ((eq window t))
-               ((not (windowp window))
-                (error "Not a window: %s" window)))
-         (when cleanup
-           (setq image-mode-winprops-alist
-                 (delq nil (mapcar (lambda (winprop)
-                                     (let ((w (car-safe winprop)))
-                                       (if (or (not (windowp w)) (window-live-p w))
-                                           winprop)))
-                                   image-mode-winprops-alist))))
-         (let ((winprops (assq window image-mode-winprops-alist)))
-           ;; For new windows, set defaults from the latest.
-           (if winprops
-               ;; Move window to front.
-               (setq image-mode-winprops-alist
-                     (cons winprops (delq winprops image-mode-winprops-alist)))
-             (setq winprops (cons window
-                                  (copy-alist (cdar image-mode-winprops-alist))))
-             ;; Add winprops before running the hook, to avoid inf-loops if the hook
-             ;; triggers window-configuration-change-hook.
-             (setq image-mode-winprops-alist
-                   (cons winprops image-mode-winprops-alist))
-             (run-hook-with-args 'image-mode-new-window-functions winprops))
-           winprops)))))
-
-
-
-;; * ================================================================== *
 ;; * Transforming coordinates
 ;; * ================================================================== *
 
