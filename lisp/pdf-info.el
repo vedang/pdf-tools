@@ -305,7 +305,9 @@ error."
       (setq pdf-info--queue (tq-create proc))))
   pdf-info--queue)
 
-(when (< emacs-major-version 27) (advice-add 'tq-process-buffer :around #'pdf-info--tq-workaround))
+(when (< emacs-major-version 27)
+  (advice-add 'tq-process-buffer :around #'pdf-info--tq-workaround))
+
 (defun pdf-info--tq-workaround (orig-fun tq &rest args)
   "Fix a bug in trunk where the wrong callback gets called.
 
