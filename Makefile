@@ -27,6 +27,11 @@ $(pkgfile): .cask/$(emacs_version) server/epdfinfo lisp/*.el
 bytecompile: .cask/$(emacs_version)
 	$(CASK) exec $(emacs) --batch -L lisp -f batch-byte-compile lisp/*.el
 
+# Clean bytecompiled sources
+byteclean:
+	rm -f -- lisp/*.elc
+	rm -f -- lisp/*.eln
+
 # Run ERT tests
 test: all
 	PACKAGE_TAR=$(pkgfile) $(CASK) exec ert-runner
@@ -68,9 +73,8 @@ melpa-package: $(pkgfile)
 		-f $(pkgname)-melpa.tar
 
 # Various clean targets
-clean: server-clean
+clean: server-clean byteclean
 	rm -f -- $(pkgfile)
-	rm -f -- lisp/*.elc
 	rm -f -- pdf-tools-readme.txt
 	rm -f -- pdf-tools-$(version).entry
 
