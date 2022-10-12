@@ -455,6 +455,28 @@ os_opensuse() {
     return 0
 }
 
+# Alpine Linux
+os_alpine() {
+    if [ -f "/etc/os-release" ]; then
+        . /etc/os-release
+        if [ "$ID" != "alpine" ]; then
+          return 1
+        fi
+    else
+      return 1
+    fi
+    PACKAGES="autoconf
+              automake
+              libpng-dev
+              poppler-dev
+              glib-dev
+              gcc
+              build-base"
+    PKGCMD=apk
+    PKGARGS="add"
+    return 0
+}
+
 # By Parameter --os
 os_argument() {
     [ -z "$OS" ] && return 1
@@ -471,6 +493,7 @@ os_argument() {
         nixos)   os_nixos   "$@";;
         void)    os_void    "$@";;
         opensuse) os_opensuse "$@";;
+        alpine)  os_alpine  "$@";;
         *)       echo "Invalid --os argument: $OS"
                  exit 1
     esac || {
@@ -480,7 +503,8 @@ os_argument() {
 }
 
 ## +-----------------------------------------------------------+
-## * Figure out were we are, install deps and build the program
+## * Figure out where we are
+## ** install deps and build the program
 ## +-----------------------------------------------------------+
 
 handle_options "$@"
@@ -498,6 +522,7 @@ os_msys2    "$@" || \
 os_nixos    "$@" || \
 os_void     "$@" || \
 os_opensuse "$@" || \
+os_alpine   "$@" || \
 {
     OS_IS_HANDLED=
     if [ -z "$DRY_RUN" ]; then
