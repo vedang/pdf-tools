@@ -856,14 +856,22 @@ See also `regexp-quote'."
 
 (defun pdf-util-frame-ppi ()
   "Return the PPI of the current frame."
-  (let* ((props (frame-monitor-attributes))
-         (px (nthcdr 2 (alist-get 'geometry props)))
-         (mm (alist-get 'mm-size props))
-         (dp (sqrt (+ (expt (nth 0 px) 2)
-                      (expt (nth 1 px) 2))))
-         (di (sqrt (+ (expt (/ (nth 0 mm) 25.4) 2)
-                      (expt (/ (nth 1 mm) 25.4) 2)))))
-    (/ dp di)))
+  (condition-case nil
+      (let* ((props (frame-monitor-attributes))
+             (px (nthcdr 2 (alist-get 'geometry props)))
+             (mm (alist-get 'mm-size props))
+             (dp (sqrt (+ (expt (nth 0 px) 2)
+                          (expt (nth 1 px) 2))))
+             (di (sqrt (+ (expt (/ (nth 0 mm) 25.4) 2)
+                          (expt (/ (nth 1 mm) 25.4) 2)))))
+        (/ dp di))
+    ;; Calculating frame-ppi failed, return 0 to indicate unknown.
+    ;; This can happen when (frame-monitor-attributes) does not have
+    ;; the right properties (Emacs 26, 27). It leads to the
+    ;; wrong-type-argument error, which is the only one we are
+    ;; catching here. We will catch more errors only if we see them
+    ;; happening.
+    (wrong-type-argument 0)))
 
 (defvar pdf-view-use-scaling)
 

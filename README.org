@@ -521,7 +521,7 @@ L/R scrolling breaks while zoomed into a pdf, with usage of sublimity smooth scr
 :ID:       C3A4A7C0-6BBB-4923-AD39-3707C8482A76
 :END:
 
-In such PDFs the selected text becomes hidden behind the selection; see [[https://github.com/vedang/pdf-tools/issues/149][this issue]], which also describes the workaround in detail. The following function, which depends on the [[https://github.com/orgtre/qpdf.el][qpdf.el]] package, can be used to convert such a PDF file into one where text selection is transparent: 
+In such PDFs the selected text becomes hidden behind the selection; see [[https://github.com/vedang/pdf-tools/issues/149][this issue]], which also describes the workaround in detail. The following function, which depends on the [[https://github.com/orgtre/qpdf.el][qpdf.el]] package, can be used to convert such a PDF file into one where text selection is transparent:
 #+begin_src elisp
   (defun my-fix-pdf-selection ()
     "Replace pdf with one where selection shows transparently."
@@ -605,15 +605,15 @@ To see the list of operating systems where compilation testing is supported, run
 :CREATED:  [2021-12-30 Thu 22:04]
 :ID:       3be6abe7-163e-4c3e-a7df-28e8470fe37f
 :END:
-** I'm on a Macbook and PDFs are rendering blurry
+** PDFs are not rendering well!
 :PROPERTIES:
 :CREATED:  [2021-12-30 Thu 22:04]
 :ID:       20ef86be-7c92-4cda-97ec-70a22484e689
 :END:
-If you are on a Macbook with a Retina display, you may see PDFs as blurry due to the high resolution display. Use:
+~pdf-tools~ version ~1.1.0~ release changed the default value of ~pdf-view-use-scaling~ to ~t~ (previously, it was ~nil~). This has been done keeping in mind that most modern monitors are HiDPI screens, so the default configuration should cater to this user. If you are not using a HiDPI screen, you might have to change this value to ~nil~ in your configuration
 
 #+begin_src elisp
-  (setq pdf-view-use-scaling t)
+  (setq pdf-view-use-scaling nil)
 #+end_src
 
 to scale the images correctly when rendering them.

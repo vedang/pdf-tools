@@ -86,7 +86,7 @@ FIXME: Explain dis-/advantages of imagemagick and png."
   :group 'pdf-view
   :type 'boolean)
 
-(defcustom pdf-view-use-scaling nil
+(defcustom pdf-view-use-scaling t
   "Whether images should be allowed to be scaled for rendering.
 
 This variable affects both the reuse of higher-resolution images
@@ -955,9 +955,9 @@ See also `pdf-view-use-imagemagick'."
   (let* ((size (pdf-view-desired-image-size page window))
          (data (pdf-cache-renderpage
                 page (car size)
-                (if (not pdf-view-use-scaling)
-                    (car size)
-                  (* 2 (car size)))))
+                (if pdf-view-use-scaling
+                    (* 2 (car size))
+                  (car size))))
          (hotspots (pdf-view-apply-hotspot-functions
                     window page size)))
     (pdf-view-create-image data
