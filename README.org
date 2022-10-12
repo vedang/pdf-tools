@@ -11,287 +11,183 @@
 
 The ~pdf-tools~ Wiki is maintained at https://pdftools.wiki. Head to the site if you find it easier to navigate a website for reading a manual. All the topics on the site are listed at https://pdftools.wiki/impulse.
 
+* Table of Contents                                            :noexport:TOC_3_org:
+- [[About PDF Tools][About PDF Tools]]
+- [[Installing pdf-tools][Installing pdf-tools]]
+  - [[Installing the epdfinfo server][Installing the epdfinfo server]]
+    - [[Installing the epdfinfo server from package managers][Installing the epdfinfo server from package managers]]
+    - [[Installing the epdfinfo server from source on Windows (+ Gotchas)][Installing the epdfinfo server from source on Windows (+ Gotchas)]]
+    - [[Installing the epdfinfo server from source on macOS (+ Gotchas)][Installing the epdfinfo server from source on macOS (+ Gotchas)]]
+    - [[Common installation gotchas][Common installation gotchas]]
+    - [[Installing optional features][Installing optional features]]
+  - [[Installing pdf-tools elisp code][Installing pdf-tools elisp code]]
+  - [[Updating pdf-tools][Updating pdf-tools]]
+- [[Features][Features]]
+  - [[View and Navigate PDFs][View and Navigate PDFs]]
+    - [[Keybindings for navigating PDF documents][Keybindings for navigating PDF documents]]
+    - [[Keybindings for manipulating display of PDF][Keybindings for manipulating display of PDF]]
+  - [[Annotations][Annotations]]
+    - [[Keybindings for working with Annotations][Keybindings for working with Annotations]]
+  - [[Working with AUCTeX][Working with AUCTeX]]
+    - [[Keybindings for working with AUCTeX][Keybindings for working with AUCTeX]]
+  - [[Miscellaneous features][Miscellaneous features]]
+    - [[Keybindings for miscellaneous features in PDF tools][Keybindings for miscellaneous features in PDF tools]]
+  - [[Easy Help for PDF Tools features][Easy Help for PDF Tools features]]
+  - [[Configuring PDF Tools features][Configuring PDF Tools features]]
+- [[Known problems][Known problems]]
+  - [[linum-mode][linum-mode]]
+  - [[display-line-numbers-mode][display-line-numbers-mode]]
+  - [[auto-revert][auto-revert]]
+  - [[sublimity][sublimity]]
+  - [[Text selection is not transparent in PDFs OCRed with Tesseract][Text selection is not transparent in PDFs OCRed with Tesseract]]
+- [[Key-bindings in PDF Tools][Key-bindings in PDF Tools]]
+- [[Tips and Tricks for Developers][Tips and Tricks for Developers]]
+  - [[Turn on debug mode][Turn on debug mode]]
+  - [[Run Emacs lisp tests locally][Run Emacs lisp tests locally]]
+  - [[Run server compilation tests locally][Run server compilation tests locally]]
+  - [[Add a Dockerfile to automate server compilation testing][Add a Dockerfile to automate server compilation testing]]
+- [[FAQs][FAQs]]
+  - [[PDFs are not rendering well!][PDFs are not rendering well!]]
+  - [[What Emacs versions does pdf-tools support?][What Emacs versions does pdf-tools support?]]
+  - [[I want to add support for pdf-tools on "My Fav OS". How do I do that?][I want to add support for pdf-tools on "My Fav OS". How do I do that?]]
+  - [[I am on a Macbook M1 and pdf-tools installation fails with a stack-trace][I am on a Macbook M1 and pdf-tools installation fails with a stack-trace]]
+  - [[I am a developer, making changes to the pdf-tools source code][I am a developer, making changes to the pdf-tools source code]]
+
 * About PDF Tools
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       5a884389-6aec-498a-90d5-f37168809b4f
 :EXPORT_FILE_NAME: index
 :END:
-PDF Tools is, among other things, a replacement of DocView for PDF files. The key difference is that pages are not pre-rendered by e.g. ghostscript and stored in the file-system, but rather created on-demand and stored in memory.
+PDF Tools is, among other things, a replacement of DocView for PDF files. The key difference is that pages are not pre-rendered by, say, ~ghostscript~ and stored in the file-system, but rather created on-demand and stored in memory.
 
 This rendering is performed by a special library named, for whatever reason, ~poppler~, running inside a server program. This program is called ~epdfinfo~ and its job is to successively read requests from Emacs and produce the proper results, i.e. the PNG image of a PDF page.
 
 Actually, displaying PDF files is just one part of ~pdf-tools~. Since ~poppler~ can provide us with all kinds of information about a document and is also able to modify it, there is a lot more we can do with it. [[https://www.dailymotion.com/video/x2bc1is][Watch this video for a detailed demo!]]
 
-* Installing ~pdf-tools~
+* Installing pdf-tools
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       6ceea50c-cbaa-4d8a-b450-8067c5e8c9da
 :NEURON_DIRTREE_DISPLAY: false
 :END:
-Installing this package via NonGNU ELPA or MELPA or any of the other package managers is straightforward and should just work.
-~pdf-tools~ requires a server ~epdfinfo~ to run against, which it will try to compile and build when it is activated for the first time.
+Installing this package via NonGNU ELPA or MELPA or any of the other package managers is straightforward and should just work! You should not require any manual changes. The documentation below is *only if you are installing from source*, or for troubleshooting / debugging purposes.
 
-You should not require any manual changes. The documentation below is *only if you are installing from source*, or for troubleshooting / debugging purposes. The following steps need to be followed *in this order*, to install ~pdf-tools~ and ~epdfinfo~ correctly:
+~pdf-tools~ requires a server ~epdfinfo~ to run against, which it will try to compile and build when it is activated for the first time. The following steps need to be followed *in this order*, to install ~pdf-tools~ and ~epdfinfo~ correctly:
 
-- [[brain-child:8ce3cf4e-d186-4de1-a40e-f41063068ab0][Installing ~epdfinfo~ server prerequisites]]
-- [[brain-child:e305cd0a-e798-4c2b-af27-21bcd936c1c9][Installing the ~epdfinfo~ server]]
-- [[brain-child:3d4e6b6b-f015-475d-8ea2-84988efd6c22][Installing ~pdf-tools~ elisp prerequisites]]
-- [[brain-child:32c4fc3b-b4ea-43bd-b92c-bdf2d3831fcf][Installing ~pdf-tools~ elisp code]]
+- [[brain-child:e305cd0a-e798-4c2b-af27-21bcd936c1c9][Installing the epdfinfo server]]
+- [[brain-child:32c4fc3b-b4ea-43bd-b92c-bdf2d3831fcf][Installing pdf-tools elisp code]]
 
-** Installing ~epdfinfo~ server prerequisites
-:PROPERTIES:
-:CREATED:  [2021-12-29 Wed 18:34]
-:ID:       8ce3cf4e-d186-4de1-a40e-f41063068ab0
-:END:
-If you install ~pdf-tools~ via NonGNU ELPA or MELPA, *you don't need to worry about this separate server installation at all*.  However, if you have a non-standard installation, please refer to the links below for installing ~epdfinfo~ server prerequisites.
-
-Note: You'll need GNU Emacs \ge 26.1 and some form of a GNU/Linux OS. Other operating systems are not officially supported, but ~pdf-tools~ is known to work on many of them.
-
-Similarly, package-managers are not officially supported, but ~pdf-tools~ is known to be available on some of them. See the section on [[id:fb5cef15-fed4-4dec-a443-52f7c00c7831][Installing the ~epdfinfo~ server from package managers]] to avoid manual installation of server / server prerequisites.
-
-See the section on [[id:A34704B9-1B51-4614-8806-C4059F7B42D5][I want to add support for ~pdf-tools~ on =My Fav OS=. How do I do that?]] to add your favorite Operating System to this list.
-
-*** Installing ~epdfinfo~ Server Prerequisites on a Debian-based system
-:PROPERTIES:
-:CREATED:  [2022-02-13 Sun 23:17]
-:ID:       abaae1be-3bbb-4d99-90e7-5429c56083e1
-:END:
-First make sure a suitable build-system is installed. We need at least a C compiler (~gcc~), ~make~, ~automake~ and ~autoconf~.
-
-Next we need to install a few libraries ~pdf-tools~ depends on, some of which are probably already on your system.
-
-#+begin_src sh
-  $ sudo apt install libpng-dev zlib1g-dev libpoppler-glib-dev
-#+end_src
-
-On some older Ubuntu systems, the final command will possibly give an error. This should be no problem, since in some versions this package was contained in the main package ~libpoppler-dev~. Also note, that ~zlib1g-dev~ was for a long time called ~libz-dev~, which it still may be on your system.
-
-Debian wheezy comes with ~libpoppler~ version ~0.18~, which is pretty old. The minimally required version is ~0.16~, but some features of ~pdf-tools~ depend on a more recent version of this library. See the following table for what they are and what version they require.
-
-| You want to ...                           | Required version |
-|-------------------------------------------+------------------|
-| ... create and modify text annotations.   | \ge 0.19.4       |
-| ... search case-sensitive.                | \ge 0.22         |
-| ... create and modify markup annotations. | \ge 0.26         |
-|-------------------------------------------+------------------|
-
-In case you decide to install ~libpoppler~ from source, make sure to run its configure script with the ~--enable-xpdf-headers~ option.
-
-Finally there is one feature (following links of a PDF document by plain keystrokes) which requires imagemagick's convert utility. This requirement is optional and you may install it like so:
-#+begin_src sh
-  $ sudo apt install imagemagick
-#+end_src
-*** Installing ~epdfinfo~ Server Prerequisites On macOS
-:PROPERTIES:
-:CREATED:  [2021-12-29 Wed 18:34]
-:ID:       f10e9d94-bdec-44dc-8d3c-1816d62ef1c4
-:END:
-Although macOS is not officially supported, it has been reported that ~pdf-tools~ works well on macOS. You will need to install ~poppler~ which you can get with Homebrew via
-#+BEGIN_SRC sh
-  $ brew install poppler automake
-#+END_SRC
-
-You will also have to help ~pkg-config~ find some libraries by setting ~PKG_CONFIG_PATH~. ~brew~ will show you which paths need to be added to ~PKG_CONFIG_PATH~ during the installation process. Make sure you export the paths to the env variable, eg:
-#+BEGIN_SRC sh
-  $ export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:$(brew --prefix libffi)/lib/pkgconfig/:/usr/local/Cellar/zlib/1.2.8/lib/pkgconfig:/usr/local/lib/pkgconfig:/opt/X11/lib/pkgconfig"
-#+END_SRC
-or likewise within Emacs using ~setenv~.
-
-After that, compilation should proceed as normal.
-*** Installing ~epdfinfo~ Server Prerequisites On FreeBSD
-:PROPERTIES:
-:CREATED:  [2021-12-29 Wed 18:34]
-:ID:       00faf3e3-6d09-4cf7-9373-838f3d231504
-:END:
-Although not officially supported, it has been reported that ~pdf-tools~ work well on FreeBSD. Instead of building ~pdf-tools~, you can install one of the OS packages with e.g.
-#+BEGIN_SRC sh
-  $ pkg install pdf-tools-emacs26
-#+END_SRC
-
-To see the current list of ~pdf-tools~ packages for FreeBSD visit [[https://repology.org/metapackages/?search=pdf-tools&inrepo=freebsd][the Repology list]].
-
-To build ~pdf-tools~ from either MELPA or directly from the source repository, install the dependencies with
-#+BEGIN_SRC sh
-  $ pkg install autotools gmake poppler-glib
-#+END_SRC
-
-If you choose not to install from MELPA, you must substitute ~gmake~ for ~make~ in the instructions below.
-*** Installing ~epdfinfo~ Server Prerequisites On CentOS
-:PROPERTIES:
-:CREATED:  [2021-12-29 Wed 18:34]
-:ID:       e39946d0-3a28-405d-bb23-337120412dac
-:END:
-#+BEGIN_SRC sh
-  $ yum install poppler-devel poppler-glib-devel
-#+END_SRC
-
-*** Installing ~epdfinfo~ Server Prerequisites On Fedora
-:PROPERTIES:
-:CREATED:  [2021-12-29 Wed 18:34]
-:ID:       d0013822-f4d0-4354-b3db-c54ffe41ce58
-:END:
-#+BEGIN_SRC sh
-  $ sudo dnf install make automake autoconf gcc libpng-devel zlib-devel poppler-glib-devel
-#+END_SRC
-
-There is one feature (following links of a PDF document by plain keystrokes) which requires imagemagick's convert utility. This requirement is optional and you may install it like so:
-#+begin_src sh
-  $ sudo dnf install imagemagick
-#+end_src
-*** Installing ~epdfinfo~ Server Prerequisites On openSUSE
-:PROPERTIES:
-:ID:       07033620-fee5-4b52-a99d-e62e4b758ccc
-:CREATED:  [2022-04-25 Mon 21:09]
-:END:
-For openSUSE Tumbleweed and Leap:
-#+BEGIN_SRC sh
-  $ sudo zypper install make automake autoconf gcc libpng16-devel libpng16-compat-devel zlib-devel libpoppler-devel libpoppler-glib-devel glib2-devel
-#+END_SRC
-
-For openSUSE MicroOS Desktop:
-#+BEGIN_SRC sh
-  $ pkcon install make automake autoconf gcc libpng16-devel libpng16-compat-devel zlib-devel libpoppler-devel libpoppler-glib-devel glib2-devel
-#+END_SRC
-
-There is one feature (following links of a PDF document by plain keystrokes) which requires imagemagick's convert utility. This requirement is optional and you may install the imagemagick package via the package manager of your choice.
-*** Installing ~epdfinfo~ Server Prerequisites On Alpine Linux
-:PROPERTIES:
-:CREATED:  [2021-12-29 Wed 18:34]
-:ID:       443d9b18-096e-4770-b59c-4e472a5d4b0e
-:END:
-#+BEGIN_SRC sh
-  $ apk add build-base gcc automake autoconf libpng-dev glib-dev poppler-dev
-#+END_SRC
-
-*** Installing ~epdfinfo~ Server Prerequisites On Windows
-:PROPERTIES:
-:CREATED:  [2021-12-29 Wed 18:34]
-:ID:       005243cb-1557-4f94-a73d-e647e0d4b53d
-:END:
-~pdf-tools~ can be built and used on Windows using the MSYS2 compiler, or pre-built binaries can be installed in MSYS2.
-
-The pre-built binaries will work with native (not Cygwin) Windows builds of Emacs. They include the standard binaries provided by the GNU project, those available as MSYS2 packages and numerous third-party binaries. Refer to the appropriate section under [[id:e305cd0a-e798-4c2b-af27-21bcd936c1c9][Installing the ~epdfinfo~ server]] for more details.
-
-~pdf-tools~ will successfully compile using Cygwin, but it will not be able to open PDFs properly due to the way binaries compiled with Cygwin handle file paths.
-
-** Installing the ~epdfinfo~ server
+** Installing the epdfinfo server
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       e305cd0a-e798-4c2b-af27-21bcd936c1c9
 :END:
-If you install ~pdf-tools~ via NonGNU ELPA or MELPA, you don't need to worry about this separate server installation at all. However, if you have a non-standard installation, please refer to the links below for installing ~epdfinfo~.
-*** Compiling and Installing the ~epdfinfo~ server from source on Linux
-:PROPERTIES:
-:CREATED:  [2022-02-13 Sun 23:11]
-:ID:       bd7fd084-8fdf-4698-b40a-da75920d17ed
-:END:
-Note that this is the only officially supported method for installing the ~epdfinfo~ binary. Instructions:
+If you install ~pdf-tools~ via NonGNU ELPA or MELPA, *you don't need to worry about this separate server installation at all*.
 
+Note: You'll need GNU Emacs \ge 26.3 and some form of a GNU/Linux OS. Other operating systems are not officially supported, but ~pdf-tools~ is known to work on many of them.
+
+The ~epdfinfo~ install script takes care of installing all the necessary pre-requisites on supported operating systems (see list below). See the section on [[id:A34704B9-1B51-4614-8806-C4059F7B42D5][I want to add support for ~pdf-tools~ on =My Fav OS=. How do I do that?]] to learn how to add your favorite Operating System to this list.
+
+Similarly, package-managers are not officially supported, but ~pdf-tools~ is known to be available on some of them. See the section on [[id:fb5cef15-fed4-4dec-a443-52f7c00c7831][Installing the ~epdfinfo~ server from package managers]] to avoid manual installation of server / server prerequisites.
+
+Installation Instructions for ~epdfinfo~:
 #+begin_src sh
-    $ cd /path/to/pdf-tools
-    $ make -s
+  $ git clone https://github.com/vedang/pdf-tools
+  $ cd /path/to/pdf-tools
+  $ make -s # If you don't have make installed, run ./server/autobuild and it will install make
 #+end_src
 
-This should compile the source code and create a Emacs Lisp Package in the root directory of the project. The configure script also tells you at the very end, which features, depending on the ~libpoppler~ version, will be available. These commands should give no error, otherwise you are in trouble.
-*** Compiling and Installing the ~epdfinfo~ server from source on Windows
-:PROPERTIES:
-:CREATED:  [2021-12-29 Wed 18:34]
-:ID:       d14e01ff-9bd5-47ee-86fc-859b4499d5d7
-:END:
+This should give you no error and should compile the ~epdfinfo~ server. If you face a problem, please report on the issue tracker!
 
-If using the GNU binaries for Windows, support for PNG and ~zlib~ must first be installed by copying the appropriate dlls into emacs' ~bin/~ directory. Most third-party binaries come with this already done.
+The following Operating Systems / package managers are supported. *Note*: The package manager used to install pre-requisites should be installed on your OS for the script to work:
 
-First, [[https://www.msys2.org/][install MSYS2]] and update the package database and core packages using the instructions provided. Then, to compile ~pdf-tools~ itself:
+- Debian-based systems (~debian~, ~ubuntu~): ~apt-get~
+- Fedora: ~dnf~
+- macOS: ~brew~
+- Windows (MSYS2/ MingW): ~pacman~
+- NixOS: ~nix-shell~
+- openSUSE (Tumbleweed and Leap): ~zypper~
+- Void Linux: ~xbps-install~
+- Apline Linux: ~apk~
+- FreeBSD: ~pkg~
+- OpenBSD: ~pkg_add~
+- Arch Linux: ~pacman~
+- Gentoo: ~emerge~
+- CentOS: ~yum~
 
-1. Open msys2 shell
-2. Update and install dependencies, skipping any you already have
-   #+BEGIN_SRC sh
-   $ pacman -Syu
-   $ pacman -S base-devel
-   $ pacman -S mingw-w64-x86_64-toolchain
-   $ pacman -S mingw-w64-x86_64-zlib
-   $ pacman -S mingw-w64-x86_64-libpng
-   $ pacman -S mingw-w64-x86_64-poppler
-   $ pacman -S mingw-w64-x86_64-imagemagick
-   #+END_SRC
-3. Install ~pdf-tools~ in Emacs, but do not try to compile the server. Instead, get a separate copy of the source somewhere else.
-   #+BEGIN_SRC sh
-   $ git clone https://github.com/vedang/pdf-tools
-   #+END_SRC
-4. Open ~mingw64~ shell (*Note:* You must use ~mingw64.exe~ and not ~msys2.exe~)
-5. Compile pdf-tools
-   #+BEGIN_SRC sh
-   $ cd /path/to/pdf-tools
-   $ make -s
-   #+END_SRC
-6. This should produce a file ~server/epdfinfo.exe~. Copy this file into the ~pdf-tools/~ installation directory in your Emacs.
-7. Start Emacs and activate the package.
-   #+BEGIN_SRC
-   M-x pdf-tools-install RET
-   #+END_SRC
-8. Test.
-   #+BEGIN_SRC
-   M-x pdf-info-check-epdfinfo RET
-   #+END_SRC
-
-If this is successful, ~(pdf-tools-install)~ can be added to Emacs' config. See the note on how to set up PATH in the previous section.
-
-*** Installing the ~epdfinfo~ server from package managers
+*** Installing the epdfinfo server from package managers
 :PROPERTIES:
 :CREATED:  [2022-02-13 Sun 23:10]
 :ID:       fb5cef15-fed4-4dec-a443-52f7c00c7831
 :END:
-Note that the packages available on these package managers are not maintained by the author and might be outdated.
-**** Using the pre-built MINGW packages from MSYS2 on Windows
-:PROPERTIES:
-:CREATED:  [2022-02-13 Sun 22:55]
-:ID:       1fc6e25b-ae09-45d7-8288-c57c7065326c
-:END:
-Package maintained at: https://packages.msys2.org/package/mingw-w64-x86_64-emacs-pdf-tools-server?repo=mingw64
+~pdf-tools~ can be directly installed from the package manager on some operating systems. Note that the packages available on these package managers are not maintained by the author and might be outdated.
 
-Users installing Emacs from the MSYS2 distribution can install pre-built binaries of the ~epdfinfo~ server.
+- Debian:  https://packages.debian.org/buster/elpa-pdf-tools-server
+- Ubuntu: https://packages.ubuntu.com/impish/elpa-pdf-tools-server
+- MSYS2 / MINGW (Windows): https://packages.msys2.org/package/mingw-w64-x86_64-emacs-pdf-tools-server?repo=mingw64
+- FreeBSD: https://repology.org/metapackages/?search=pdf-tools&inrepo=freebsd
 
-1. [[https://www.msys2.org/][Install MSYS2]] and update the package database and core packages using the instructions provided.
-2. Install packages: ~pacman -Ss mingw-w64-x86_64-{emacs,emacs-pdf-tools-server,imagemagick}~ (ImageMagick is optional, see above.)
-3. Make sure Emacs can find ~epdfinfo.exe~. Either add the MINGW install location (e.g. ~C:/msys2/mingw64/bin~) to the system path with ~setx PATH "C:\msys2\mingw64\bin;%PATH%"~ or set Emacs's path with ~(setenv "PATH" (concat "C:\\msys64\\mingw64\\bin;" (getenv "PATH")))~. Note that libraries from other GNU utilities, such as Git for Windows, may interfere with those needed by ~pdf-tools~. ~pdf-info-check-epdinfo~ will succeed, but errors occur when trying to view a PDF file. This can be fixed by ensuring that the MSYS libraries are always preferred.
-4. Add ~(pdf-tools-install)~ to your Emacs config.
-
-**** Using the pre-built packages from Debian
-:PROPERTIES:
-:CREATED:  [2022-02-13 Sun 23:30]
-:ID:       416af9e8-b437-4f6e-ac21-15b79822780e
-:END:
-Package maintained at: https://packages.debian.org/buster/elpa-pdf-tools-server
-**** Using the pre-built packages from Ubuntu
-:PROPERTIES:
-:CREATED:  [2022-02-13 Sun 23:31]
-:ID:       b2c49338-845f-421a-93f3-a3da5efcc4ac
-:END:
-Package maintained at: https://packages.ubuntu.com/impish/elpa-pdf-tools-server
-** Installing ~pdf-tools~ elisp prerequisites
+*** Installing the epdfinfo server from source on Windows (+ Gotchas)
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
-:ID:       3d4e6b6b-f015-475d-8ea2-84988efd6c22
+:ID:       d14e01ff-9bd5-47ee-86fc-859b4499d5d7
 :END:
-This package depends on the following Elisp packages, which should be installed before installing the ~pdf-tools~ package.
-| Package   | Required version                 |
-|-----------+----------------------------------|
-| [[http://melpa.org/#/tablist][tablist]]   | >= 0.70                          |
-|-----------+----------------------------------|
+If using the GNU binaries for Windows, support for PNG and ~zlib~ must first be installed by copying the appropriate dlls into emacs' ~bin/~ directory. Most third-party binaries come with this already done.
 
-** Installing ~pdf-tools~ elisp code
+1. [[https://www.msys2.org/][install MSYS2]] and update the package database and core packages using the instructions provided.
+2. Open ~mingw64~ shell (*Note:* You must use ~mingw64.exe~ and not ~msys2.exe~)
+3. Compile the ~epdfinfo~ server using Installation steps described in [[id:e305cd0a-e798-4c2b-af27-21bcd936c1c9][Installing the ~epdfinfo~ server]]
+4. This should produce a file ~server/epdfinfo.exe~. Copy this file into the ~pdf-tools/~ installation directory in your Emacs.
+5. Make sure Emacs can find ~epdfinfo.exe~. Either add the MINGW install location (e.g. ~C:/msys2/mingw64/bin~) to the system path with ~setx PATH "C:\msys2\mingw64\bin;%PATH%"~ or set Emacs's path with ~(setenv "PATH" (concat "C:\\msys64\\mingw64\\bin;" (getenv "PATH")))~. Note that libraries from other GNU utilities, such as Git for Windows, may interfere with those needed by ~pdf-tools~. ~pdf-info-check-epdinfo~ will succeed, but errors occur when trying to view a PDF file. This can be fixed by ensuring that the MSYS libraries are always preferred.
+6. ~pdf-tools~ will successfully compile using Cygwin, but it will not be able to open PDFs properly due to the way binaries compiled with Cygwin handle file paths. Please use MSYS2.
+
+*** Installing the epdfinfo server from source on macOS (+ Gotchas)
+:PROPERTIES:
+:CREATED:  [2022-10-11 Tue 11:42]
+:ID:       60CBCD65-5654-400A-913F-8B31901D071C
+:END:
+On macOS, ~autobuild~ adjusts ~PKG_CONFIG_PATH~ so that ~pdf-tools~ can find some of the keg-only packages installed by ~brew~. It is recommended that you review the output logs printed by ~brew~ during the installation process to also export the relevant paths to the appropriate ENV variables.
+
+*** Common installation gotchas
+:PROPERTIES:
+:CREATED:  [2022-10-11 Tue 11:04]
+:ID:       3F4C0FDF-6AC0-4845-BA2D-ED7C2F40D894
+:END:
+In case you decide to install ~libpoppler~ from source, make sure to run its configure script with the ~--enable-xpdf-headers~ option.
+
+*** Installing optional features
+:PROPERTIES:
+:CREATED:  [2022-10-11 Tue 11:15]
+:ID:       97FC4447-B567-457F-A498-7CCA74DD5657
+:END:
+One feature -- following links of a PDF document by plain keystrokes -- requires ~imagemagick~'s convert utility. This requirement is optional, the installation process will detect if you have ~imagemagick~ installed or not.
+** Installing pdf-tools elisp code
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       32c4fc3b-b4ea-43bd-b92c-bdf2d3831fcf
 :END:
-If ~make~ produced the ELP file ~pdf-tools-${VERSION}.tar~ you are fine. This package contains all the necessary files for Emacs and may be installed by either using
+~pdf-tools~ requires ~tablist~ package (>= version 0.70) to be installed, for it to work correctly. Please make sure that the latest version of ~tablist~ is installed.
+
+We have already run the steps necessary to install ~pdf-tools~ as part of [[id:e305cd0a-e798-4c2b-af27-21bcd936c1c9][the server installation]]! These are:
+#+BEGIN_SRC sh
+  $ git clone https://github.com/vedang/pdf-tools
+  $ cd /path/to/pdf-tools
+  $ make -s
+#+END_SRC
+
+If the ~make~ command produced the ELP file ~pdf-tools-${VERSION}.tar~ you are fine! This package contains all the necessary files for Emacs and may be installed by either using
 #+begin_src sh
     $ make install-package
 #+end_src
 or executing the Emacs command
 #+begin_src elisp
   M-x package-install-file RET pdf-tools-${VERSION}.tar RET
+#+end_src
+
+You can test if the package has been installed correctly, by running
+#+begin_src elisp
+  M-x pdf-info-check-epdfinfo RET
 #+end_src
 
 To complete the installation process, you need to activate the package by putting the code below somewhere in your ~.emacs~.  Alternatively, and if you care about startup time, you may want to use the loader version instead.
@@ -301,14 +197,15 @@ To complete the installation process, you need to activate the package by puttin
 #+end_src
 
 Once the Installation process is complete, check out [[id:19a3daea-6fa6-4ac3-9201-d2034c46ad8c][Easy Help for PDF Tools features]] and [[id:8dccd685-18b8-4c98-977a-0fe2d66b724c][Configuring PDF Tools features]] to get started!
-** Updating ~pdf-tools~
+** Updating pdf-tools
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
 :ID:       9dd62314-f5ad-4bd4-83fa-8e28343e3d9c
 :END:
-Some day you might want to update this package via ~git pull~ and then reinstall it. Sometimes this may fail, especially if Lisp-Macros are involved and the version hasn't changed. To avoid this kind of problems, you should delete the old package via ~list-packages~, restart Emacs and then reinstall the package.
+Some day you might want to update this package via ~git pull~ and then reinstall it. Sometimes this may fail, especially if Lisp-Macros are involved and the version hasn't changed. To avoid this kind of problems, you should delete the old package via ~list-packages~, restart Emacs, run ~make distclean~ and then reinstall the package. Follow the steps described in [[id:32c4fc3b-b4ea-43bd-b92c-bdf2d3831fcf][Installing pdf-tools elisp code]].
 
-This also applies when updating via package and MELPA.
+This also applies when updating via MELPA / NonGNU ELPA (except for running the ~make distclean~ step).
+
 * Features
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
@@ -339,26 +236,25 @@ PDFView Mode is an Emacs PDF viewer. It displays PDF files as PNG images in Emac
 :CREATED:  [2021-12-30 Thu 18:25]
 :ID:       01864499-2286-4e64-91f5-f8133f53ec61
 :END:
-| Navigation                                    |                       |
-|-----------------------------------------------+-----------------------|
-| Scroll Up / Down by Page-full                 | ~space~ / ~backspace~ |
-| Scroll Up / Down by Line                      | ~C-n~ / ~C-p~         |
-| Scroll Right / Left                           | ~C-f~ / ~C-b~         |
-| First Page / Last Page                        | ~<~ / ~>~             |
-| Next Page / Previous Page                     | ~n~ / ~p~             |
-| First Page / Last Page                        | ~M-<~ / ~M->~         |
-| Incremental Search Forward / Backward         | ~C-s~ / ~C-r~         |
-| Occur (list all lines containing a phrase)    | ~M-s o~               |
-| Jump to Occur Line                            | ~RETURN~              |
-| Pick a Link and Jump                          | ~F~                   |
-| Incremental Search in Links                   | ~f~                   |
-| History Back / Forwards                       | ~l~ / ~r~             |
-| Display Outline                               | ~o~                   |
-| Jump to Section from Outline                  | ~RETURN~              |
-| Jump to Page                                  | ~M-g g~               |
-| Store position / Jump to position in register | ~m~ / ~'~             |
-|-----------------------------------------------+-----------------------|
-|                                               |                       |
+| Navigation                                    |                         |
+|-----------------------------------------------+-------------------------|
+| Scroll Up / Down by Page-full                 | ~space~ / ~backspace~   |
+| Scroll Up / Down by Line                      | ~C-n~ / ~C-p~           |
+| Scroll Right / Left                           | ~C-f~ / ~C-b~           |
+| First Page / Last Page                        | ~<~, ~M-<~ / ~>~, ~M->~ |
+| Next Page / Previous Page                     | ~n~ / ~p~               |
+| Incremental Search Forward / Backward         | ~C-s~ / ~C-r~           |
+| Occur (list all lines containing a phrase)    | ~M-s o~                 |
+| Jump to Occur Line                            | ~RETURN~                |
+| Pick a Link and Jump                          | ~F~                     |
+| Incremental Search in Links                   | ~f~                     |
+| History Back / Forwards                       | ~l~ / ~r~               |
+| Display Outline                               | ~o~                     |
+| Jump to Section from Outline                  | ~RETURN~                |
+| Jump to Page                                  | ~M-g g~                 |
+| Store position / Jump to position in register | ~m~ / ~'~               |
+|-----------------------------------------------+-------------------------|
+|                                               |                         |
 Note that ~pdf-tools~ renders the PDF as images inside Emacs. This means that all the keybindings of ~image-mode~ work on individual PDF pages as well.
 | Image Mode             |                                             |
 |------------------------+---------------------------------------------|
@@ -618,20 +514,20 @@ To see the list of operating systems where compilation testing is supported, run
 
 to scale the images correctly when rendering them.
 
-** What Emacs versions does ~pdf-tools~ support?
+** What Emacs versions does pdf-tools support?
 :PROPERTIES:
 :CREATED:  [2022-01-02 Sun 10:12]
 :ID:       f44c66e6-402d-4154-b806-6bb4180a0a5b
 :END:
-~pdf-tools~ supports the 3 latest versions of Emacs major releases. At the moment of this writing, this means that the minimum supported Emacs version is ~26.1~.
-** I want to add support for ~pdf-tools~ on =My Fav OS=. How do I do that?
+~pdf-tools~ supports the 3 latest versions of Emacs major releases. At the moment of this writing, this means that the minimum supported Emacs version is ~26.3~.
+** I want to add support for pdf-tools on "My Fav OS". How do I do that?
 :PROPERTIES:
 :CREATED:  [2022-04-25 Mon 21:50]
 :ID:       A34704B9-1B51-4614-8806-C4059F7B42D5
 :END:
 I'm working on automating ~pdf-tools~ installation as much as possible, in order to improve the installation experience. If you want to add support for a new / currently unsupported Operating System, please modify the ~server/autobuild~ script. Say you want to support a new Operating System called MyFavOS. You need to do the following work:
 
-1. Add a call to ~os_myfavos~ under ~handle-options~ at the end of the existing call chain. Here we try and pick up the correct Operating System and install the relevant dependencies.
+1. Search for the ~Figure out where we are~ section. Here, add a call to ~os_myfavos~ right below ~handle_options~ at the end of the existing call chain. Here we try and pick up the correct Operating System and install the relevant dependencies.
 2. Add handling for the ~--os~ argument in ~os_argument~ for ~myfavos~, so that the appropriate function can be called to install pre-requisites. ~--os~ is the argument that we pass to the script from the command-line to indicate which OS we are on.
 3. Create a ~os_myfavos~ function. This function checks if we are running on MyFavOS. If we are running on MyFavOS, it sets up ~PKGCMD~, ~PKGARGS~ and ~PACKAGES~ variables so that the appropriate package manager can install the dependencies as part of the rest of the ~autobuild~ script.
 4. If you are adding support for your favorite operating system, consider adding automated testing support as well, to help me ensure that ~epdfinfo~ continues to compile correctly. See [[id:A401543C-308B-4175-8212-5B78CD6C8389][Add a Dockerfile to automate server compilation testing]] for more details.
@@ -642,7 +538,7 @@ This seems like a lot of work, but it is not. If you need a reference, search fo
 
 When you make your changes, please be sure to test [[id:1CBE7325-A5A1-479B-9A98-BEEFBAC9D8FF][the elisp changes]] as well as [[id:5327945D-9D92-4462-8172-7237DEF4C359][the server code changes]] as described in the linked articles.
 
-** I am on a Macbook M1 and ~pdf-tools~ installation fails with a stack-trace
+** I am on a Macbook M1 and pdf-tools installation fails with a stack-trace
 :PROPERTIES:
 :CREATED:  [2022-05-09 Mon 20:29]
 :ID:       96D389D8-DD23-4FB0-996C-2D6F70A76BB2
@@ -683,7 +579,7 @@ You can see this by opening the =Activity Monitor=, selecting =Emacs=, clicking 
 
 If your Emacs is compiled for x86, the =Code Type= will be =x86_64=.
 
-** I am a developer, making changes to the ~pdf-tools~ source code
+** I am a developer, making changes to the pdf-tools source code
 :PROPERTIES:
 :CREATED:  [2022-05-09 Mon 21:31]
 :ID:       2D173424-C211-4474-B0D0-83F4381CAFFA
