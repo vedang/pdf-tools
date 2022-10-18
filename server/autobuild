@@ -410,7 +410,7 @@ os_gentoo() {
 os_void() {
     if [ -f "/etc/os-release" ]; then
         . /etc/os-release
-        if [ "$NAME" != "void" ]; then
+        if [ "$NAME" != "void" ] && [ "$NAME" != "Void" ]; then
           return 1
         fi
     else
@@ -426,6 +426,7 @@ os_void() {
               pkgconf"
     PKGCMD=xbps-install
     PKGARGS="-Sy"
+    export PKG_CONFIG_PATH=/usr/lib/:$PKG_CONFIG_PATH
     return 0
 }
 
