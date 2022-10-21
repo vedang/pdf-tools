@@ -426,7 +426,7 @@ os_void() {
               pkgconf"
     PKGCMD=xbps-install
     PKGARGS="-Sy"
-    export PKG_CONFIG_PATH=/usr/lib/:$PKG_CONFIG_PATH
+    export PKG_CONFIG_PATH=/usr/lib/pkgconfig:$PKG_CONFIG_PATH
     return 0
 }
 
