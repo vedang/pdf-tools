@@ -410,7 +410,7 @@ os_gentoo() {
 os_void() {
     if [ -f "/etc/os-release" ]; then
         . /etc/os-release
-        if [ "$NAME" != "void" ] && [ "$NAME" != "Void" ]; then
+        if [ "$ID" != "void" ]; then
           return 1
         fi
     else
