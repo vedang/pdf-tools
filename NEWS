@@ -5,6 +5,9 @@
   + This feature enabled us to change the default ~selection-style~ used in ~pdf-tools~ from =GLYPH= to =WORD=.
   + The change makes highlighting / selecting text *much* snappier. If you want to go back to the old behaviour of selecting by glyph instead of word, or if you want to select a whole line instead, customize ~pdf-view-selection-style~
 
+- Track rotation of pages and add a command to make rotation of pages easy @vizs #165
+  + The new command is bound to =R= in `pdf-view-mode-map`.
+
 ** Functionality fixes and improvements
 - Fix: Saving a PDF when ~buffer-file-name~ is missing will now prompt for a filename (eg: in EWW) @akater #178
 

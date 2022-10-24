@@ -226,6 +226,9 @@ regarding display of the region in the later function.")
 (defvar-local pdf-view--hotspot-functions nil
   "Alist of hotspot functions.")
 
+(defvar-local pdf-view--current-rotation nil
+  "Current rotation of the page.")
+
 (defvar-local pdf-view-register-alist nil
   "Local, dedicated register for PDF positions.")
 
@@ -290,6 +293,8 @@ regarding display of the region in the later function.")
     (define-key map (kbd "s m")       'pdf-view-set-slice-using-mouse)
     (define-key map (kbd "s b")       'pdf-view-set-slice-from-bounding-box)
     (define-key map (kbd "s r")       'pdf-view-reset-slice)
+    ;; Rotation.
+    (define-key map (kbd "R")              #'pdf-view-rotate)
     ;; Reconvert
     (define-key map (kbd "C-c C-c")   'doc-view-mode)
     (define-key map (kbd "g")         'revert-buffer)
@@ -586,6 +591,21 @@ For example, (pdf-view-shrink 1.25) decreases size by 20%."
   (setq pdf-view-display-size 1.0)
   (pdf-view-redisplay t))
 
+
+;; * ================================================================== *
+;; * Rotation
+;; * ================================================================== *
+(defun pdf-view-rotate (angle)
+  "Rotate the current page by ANGLE degrees clockwise.
+When called interactively, angle defaults to 90.  Moreover, if
+called interactively with a prefix argument, then rotate
+anti-clockwise."
+  (interactive (list (if current-prefix-arg -90 90)))
+  (setq-local pdf-view--current-rotation
+              (mod (+ (or pdf-view--current-rotation 0)
+                      angle)
+                   360))
+  (pdf-view-redisplay t))
 
 
 ;; * ================================================================== *
@@ -974,6 +994,7 @@ See also `pdf-view-use-imagemagick'."
                     window page size)))
     (pdf-view-create-image data
       :width (car size)
+      :rotation (or pdf-view--current-rotation 0)
       :map hotspots
       :pointer 'arrow)))
 

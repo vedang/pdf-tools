@@ -288,6 +288,8 @@ Note that ~pdf-tools~ renders the PDF as images inside Emacs. This means that al
 | Trim Margins (set slice to bounding box) | ~s b~           |
 | Reset Margins                            | ~s r~           |
 | Reset Zoom                               | ~0~             |
+| Rotate Page                              | ~R~             |
+|------------------------------------------+-----------------|
 
 ** Annotations
 :PROPERTIES:
