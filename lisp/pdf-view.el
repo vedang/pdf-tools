@@ -301,6 +301,7 @@ regarding display of the region in the later function.")
     (define-key map (kbd "C-c C-r m") 'pdf-view-midnight-minor-mode)
     (define-key map (kbd "C-c C-r t") 'pdf-view-themed-minor-mode)
     (define-key map (kbd "C-c C-r p") 'pdf-view-printer-minor-mode)
+    (define-key map (kbd "C-c C-r h") 'pdf-view-recolor-hue-minor-mode)
     map)
   "Keymap used by `pdf-view-mode' when displaying a doc as a set of images.")
 
@@ -1229,6 +1230,24 @@ The colors are determined by the variable
       (remove-hook 'after-save-hook enable t)
       (remove-hook 'after-revert-hook enable t)
       (pdf-info-setoptions :render/usecolors nil))))
+  (pdf-cache-clear-images)
+  (pdf-view-redisplay t))
+
+(define-minor-mode pdf-view-recolor-hue-minor-mode
+  "Preserve hue when recoloring the PDF (e.g. with `pdf-view-midnight-minor-mode')."
+  :group 'pdf-view
+  :lighter " Hue"
+  (pdf-util-assert-pdf-buffer)
+  (let ((enable (lambda () (pdf-info-setoptions :render/recolor-hue t))))
+    (cond
+     (pdf-view-recolor-hue-minor-mode
+      (add-hook 'after-save-hook enable nil t)
+      (add-hook 'after-revert-hook enable nil t)
+      (funcall enable))
+     (t
+      (remove-hook 'after-save-hook enable t)
+      (remove-hook 'after-revert-hook enable t)
+      (pdf-info-setoptions :render/recolor-hue nil))))
   (pdf-cache-clear-images)
   (pdf-view-redisplay t))
 

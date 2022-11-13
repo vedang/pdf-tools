@@ -187,6 +187,7 @@ typedef struct
 {
   PopplerColor bg, fg;
   gboolean usecolors;
+  gboolean recolor_hue;
   gboolean printed;
 } render_options_t;
 

@@ -370,17 +370,55 @@ mktempfile()
   return filename;
 }
 
-static void
-image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
-	       const PopplerColor * bg)
+/**
+ * Assumes that l is in the interval l1, l2 and corrects the value to
+ * force u=0 on l1 and l2
+ *
+ * @returns the maximum possible saturation for given h and l.
+ */
+static double
+colorumax(const double h[3], double l, double l1, double l2)
 {
-  /* uses a representation of a rgb color as follows:
-     - a lightness scalar (between 0,1), which is a weighted average of r, g, b,
-     - a hue vector, which indicates a radian direction from the grey axis,
-     inside the equal lightness plane.
-     - a saturation scalar between 0,1. It is 0 when grey, 1 when the color is
-     in the boundary of the rgb cube.
-   */
+  /* This is taken straight from zathura's `colorumax`. */
+
+  if (fabs(h[0]) <= DBL_EPSILON && fabs(h[1]) <= DBL_EPSILON && fabs(h[2]) <= DBL_EPSILON) {
+    return 0;
+  }
+
+  const double lv = (l - l1) / (l2 - l1);    /* Remap l to the whole interval [0,1] */
+  double u = DBL_MAX;
+  double v = DBL_MAX;
+  for (unsigned int k = 0; k < 3; ++k) {
+    if (h[k] > DBL_EPSILON) {
+      u = fmin(fabs((1-l)/h[k]), u);
+      v = fmin(fabs((1-lv)/h[k]), v);
+    } else if (h[k] < -DBL_EPSILON) {
+      u = fmin(fabs(l/h[k]), u);
+      v = fmin(fabs(lv/h[k]), v);
+    }
+  }
+
+  /* rescale v according to the length of the interval [l1, l2] */
+  v = fabs(l2 - l1) * v;
+
+  /* forces the returned value to be 0 on l1 and l2, trying not to distort colors too much */
+  return fmin(u, v);
+}
+
+static void
+image_recolor (cairo_surface_t * surface, const render_options_t *options)
+{
+  /*
+    This is mostly taken from zathura's `recolor` and adapted to work with our datatypes.
+    Since we don't have a "reverse video mode" like zathur, that part is not included here.
+
+    Uses a representation of a rgb color as follows:
+    - a lightness scalar (between 0,1), which is a weighted average of r, g, b,
+    - a hue vector, which indicates a radian direction from the grey axis,
+    inside the equal lightness plane.
+    - a saturation scalar between 0,1. It is 0 when grey, 1 when the color is
+    in the boundary of the rgb cube.
+  */
 
   const unsigned int page_width = cairo_image_surface_get_width (surface);
   const unsigned int page_height = cairo_image_surface_get_height (surface);
@@ -391,47 +429,112 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
   static const double a[] = { 0.30, 0.59, 0.11 };
 
   const double f = 65535.;
-  const double rgb_fg[] = {
-    fg->red / f, fg->green / f, fg->blue / f
+  PopplerColor fg = options->fg;
+  const double rgb1[] = {
+    fg.red / f, fg.green / f, fg.blue / f, 1.0
   };
-  const double rgb_bg[] = {
-    bg->red / f, bg->green / f, bg->blue / f
+  PopplerColor bg = options->bg;
+  const double rgb2[] = {
+    bg.red / f, bg.green / f, bg.blue / f, 1.0
   };
+
+  const double l1 = a[0]*rgb1[0] + a[1]*rgb1[1] + a[2]*rgb1[2];
+  const double l2 = a[0]*rgb2[0] + a[1]*rgb2[1] + a[2]*rgb2[2];
+  const double negalph1 = 1. - rgb1[3];
+  const double negalph2 = 1. - rgb2[3];
 
   const double rgb_diff[] = {
-    rgb_bg[0] - rgb_fg[0],
-    rgb_bg[1] - rgb_fg[1],
-    rgb_bg[2] - rgb_fg[2]
+    rgb2[0] - rgb1[0],
+    rgb2[1] - rgb1[1],
+    rgb2[2] - rgb1[2]
   };
 
-  unsigned int y;
-  for (y = 0; y < page_height * rowstride; y += rowstride)
-    {
-      unsigned char *data = image + y;
+  const double h1[3] = {
+    rgb1[0]*rgb1[3] - l1,
+    rgb1[1]*rgb1[3] - l1,
+    rgb1[2]*rgb1[3] - l1,
+  };
 
-      unsigned int x;
-      for (x = 0; x < page_width; x++, data += 4)
-	{
-	  /* Careful. data color components blue, green, red. */
-	  const double rgb[3] = {
-	    (double) data[2] / 256.,
-	    (double) data[1] / 256.,
-	    (double) data[0] / 256.
-	  };
+  const double h2[3] = {
+    rgb2[0]*rgb2[3] - l2,
+    rgb2[1]*rgb2[3] - l2,
+    rgb2[2]*rgb2[3] - l2,
+  };
 
-	  /* compute h, s, l data   */
-	  double l = a[0] * rgb[0] + a[1] * rgb[1] + a[2] * rgb[2];
+  /* Decide if we can use the older, faster formulas */
+  const gboolean fast_formula = (!options->recolor_hue || (
+    fabs(rgb1[0] - rgb1[2]) < DBL_EPSILON && fabs(rgb1[0] - rgb1[1]) < DBL_EPSILON &&
+    fabs(rgb2[0] - rgb2[2]) < DBL_EPSILON && fabs(rgb2[0] - rgb2[1]) < DBL_EPSILON
+  )) && (rgb1[3] >= 1. - DBL_EPSILON && rgb2[3] >= 1. - DBL_EPSILON);
 
-	  /* linear interpolation between dark and light with color ligtness as
-	   * a parameter */
-	  data[2] =
-	    (unsigned char) round (255. * (l * rgb_diff[0] + rgb_fg[0]));
-	  data[1] =
-	    (unsigned char) round (255. * (l * rgb_diff[1] + rgb_fg[1]));
-	  data[0] =
-	    (unsigned char) round (255. * (l * rgb_diff[2] + rgb_fg[2]));
-	}
+  for (unsigned int y = 0; y < page_height; y++) {
+    unsigned char* data = image + y * rowstride;
+
+    for (unsigned int x = 0; x < page_width; x++, data += 4) {
+      /* Careful. data color components blue, green, red. */
+      const double rgb[3] = {
+        data[2] / 255.,
+        data[1] / 255.,
+        data[0] / 255.
+      };
+
+      /* compute h, s, l data   */
+      double l = a[0]*rgb[0] + a[1]*rgb[1] + a[2]*rgb[2];
+
+      if (options->recolor_hue) {
+        /* adjusting lightness keeping hue of current color. white and black
+         * go to grays of same ligtness as light and dark colors. */
+        const double h[3] = {
+          rgb[0] - l,
+          rgb[1] - l,
+          rgb[2] - l
+        };
+
+        /* u is the maximum possible saturation for given h and l. s is a
+         * rescaled saturation between 0 and 1 */
+        const double u = colorumax(h, l, 0, 1);
+        const double s = fabs(u) > DBL_EPSILON ? 1.0 / u : 0.0;
+
+        /* Interpolates lightness between light and dark colors. white goes to
+         * light, and black goes to dark. */
+        l = l * (l2 - l1) + l1;
+
+        const double su = s * colorumax(h, l, l1, l2);
+
+        if (fast_formula) {
+          data[3] = 255;
+          data[2] = (unsigned char)round(255.*(l + su * h[0]));
+          data[1] = (unsigned char)round(255.*(l + su * h[1]));
+          data[0] = (unsigned char)round(255.*(l + su * h[2]));
+        } else {
+          /* Mix lightcolor, darkcolor and the original color, according to the
+           * minimal and maximal channel of the original color */
+          const double tr1 = (1. - fmax(fmax(rgb[0], rgb[1]), rgb[2]));
+          const double tr2 = fmin(fmin(rgb[0], rgb[1]), rgb[2]);
+          data[3] = (unsigned char)round(255.*(1. - tr1*negalph1 - tr2*negalph2));
+          data[2] = (unsigned char)round(255.*fmin(1, fmax(0, tr1*h1[0] + tr2*h2[0] + (l + su * h[0]))));
+          data[1] = (unsigned char)round(255.*fmin(1, fmax(0, tr1*h1[1] + tr2*h2[1] + (l + su * h[1]))));
+          data[0] = (unsigned char)round(255.*fmin(1, fmax(0, tr1*h1[2] + tr2*h2[2] + (l + su * h[2]))));
+        }
+      } else {
+        /* linear interpolation between dark and light with color ligtness as
+         * a parameter */
+        if (fast_formula) {
+          data[3] = 255;
+          data[2] = (unsigned char)round(255.*(l * rgb_diff[0] + rgb1[0]));
+          data[1] = (unsigned char)round(255.*(l * rgb_diff[1] + rgb1[1]));
+          data[0] = (unsigned char)round(255.*(l * rgb_diff[2] + rgb1[2]));
+        } else {
+          const double f1 = 1. - (1. - fmax(fmax(rgb[0], rgb[1]), rgb[2]))*negalph1;
+          const double f2 = fmin(fmin(rgb[0], rgb[1]), rgb[2])*negalph2;
+          data[3] = (unsigned char)round(255.*(f1 - f2));
+          data[2] = (unsigned char)round(255.*(l * rgb_diff[0] - f2*rgb2[0] + f1*rgb1[0]));
+          data[1] = (unsigned char)round(255.*(l * rgb_diff[1] - f2*rgb2[1] + f1*rgb1[1]));
+          data[0] = (unsigned char)round(255.*(l * rgb_diff[2] - f2*rgb2[2] + f1*rgb1[2]));
+        }
+      }
     }
+  }
 }
 
 /**
@@ -502,7 +605,7 @@ image_render_page(PopplerDocument *pdf, PopplerPage *page,
   cairo_paint (cr);
 
   if (options && options->usecolors)
-    image_recolor (surface, &options->fg, &options->bg);
+    image_recolor (surface, options);
 
   cairo_destroy (cr);
 
@@ -3421,6 +3524,7 @@ cmd_charlayout(const epdfinfo_t *ctx, const command_arg_t *args)
 const document_option_t document_options [] =
   {
     DEC_DOPT (":render/usecolors", ARG_BOOL, render.usecolors),
+    DEC_DOPT (":render/recolor-hue", ARG_BOOL, render.recolor_hue),
     DEC_DOPT (":render/printed", ARG_BOOL, render.printed),
     DEC_DOPT (":render/foreground", ARG_COLOR, render.fg),
     DEC_DOPT (":render/background", ARG_COLOR, render.bg),

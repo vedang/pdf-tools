@@ -138,7 +138,13 @@
                         (pdf-view-midnight-minor-mode 'toggle))
       :style toggle
       :selected pdf-view-midnight-minor-mode
-      :help "Apply a color-filter appropriate for past midnight reading."])
+      :help "Apply a color-filter appropriate for past midnight reading."]
+     ["Preserve Hue Mode" (lambda ()
+                            (interactive)
+                            (pdf-view-recolor-hue-minor-mode 'toggle))
+      :style toggle
+      :selected pdf-view-recolor-hue-minor-mode
+      :help "Preserve hue when recoloring the PDF."])
     "--"
     ["Copy region" pdf-view-kill-ring-save
      :keys "\\[kill-ring-save]"

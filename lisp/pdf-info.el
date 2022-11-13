@@ -568,7 +568,7 @@ interrupted."
          (let ((key (intern (car key-value)))
                (value (cadr key-value)))
            (cl-case key
-             ((:render/printed :render/usecolors)
+             ((:render/printed :render/usecolors :render/recolor-hue)
               (setq value (equal value "1"))))
            (push value options)
            (push key options)))
@@ -1716,7 +1716,7 @@ Returns a list \(LEFT TOP RIGHT BOT\)."
             ((:render/foreground :render/background)
              (push (pdf-util-hexcolor value)
                    soptions))
-            ((:render/usecolors :render/printed)
+            ((:render/usecolors :render/recolor-hue :render/printed)
              (push (if value 1 0) soptions))
             (t (push value soptions)))
           (push key soptions)))
