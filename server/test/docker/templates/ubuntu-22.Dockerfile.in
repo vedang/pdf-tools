@@ -2,4 +2,4 @@
 FROM ubuntu:jammy
 ARG DEBIAN_FRONTEND=noninteractive
 # Need to install make, tzdata here to avoid stupid prompts when running package install via autobuild
-RUN apt-get update -y && apt-get install -y make tzdata
+RUN apt-get update --fix-missing -y && apt-get install -y make tzdata

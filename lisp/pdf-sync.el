@@ -113,14 +113,14 @@ position in the original tex file."
 \\<pdf-sync-minor-mode-map>
 This works via SyncTeX, which means the TeX sources need to have
 been compiled with `--synctex=1'.  In AUCTeX this can be done by
-setting `TeX-source-correlate-method' to 'synctex \(before AUCTeX
-is loaded\) and enabling `TeX-source-correlate-mode'.
+setting `TeX-source-correlate-method' to `synctex' (before AUCTeX
+is loaded) and enabling `TeX-source-correlate-mode'.
 
-Then \\[pdf-sync-backward-search-mouse] in the PDF buffer will open the
-corresponding TeX location.
+Then \\[pdf-sync-backward-search-mouse] in the PDF buffer will
+open the corresponding TeX location.
 
 If AUCTeX is your preferred tex-mode, this library arranges to
-bind `pdf-sync-forward-display-pdf-key' \(the default is `C-c C-g'\)
+bind `pdf-sync-forward-display-pdf-key' (the default is `C-c C-g')
 to `pdf-sync-forward-search' in `TeX-source-correlate-map'.  This
 function displays the PDF page corresponding to the current
 position in the TeX buffer.  This function only works together
@@ -758,7 +758,7 @@ The first such filename is returned, or nil if none was found."
                   (let ((syncname (match-string-no-properties 1)))
                     (when (and (file-exists-p syncname)
                                (file-equal-p filename syncname))
-                      (goto-char (point-at-bol))
+                      (goto-char (line-beginning-position))
                       (throw 'found syncname))))
                 (setq end beg
                       beg (point-min))

@@ -524,12 +524,12 @@ the variable is nil and this function is called again."
            (union (cl-union (cl-union changed inserted :test 'pdf-annot-equal)
                             deleted :test 'pdf-annot-equal))
            (closure (lambda (arg)
-                      (cl-ecase arg
-                        (:inserted (copy-sequence inserted))
-                        (:changed (copy-sequence changed))
-                        (:deleted (copy-sequence deleted))
-                        (t (copy-sequence union))
-                        (nil nil))))
+                      (when arg
+                        (cl-case arg
+                          (:inserted (copy-sequence inserted))
+                          (:changed (copy-sequence changed))
+                          (:deleted (copy-sequence deleted))
+                          (t (copy-sequence union))))))
            (pages (mapcar (lambda (a) (pdf-annot-get a 'page)) union)))
       (when union
         (unwind-protect
@@ -1371,10 +1371,7 @@ by a header."
                  ;; latex-preview regardless of the user
                  ;; configuration.
                  (org-preview-latex-default-process 'dvipng)
-                 ;; For backward compatibility with emacs-version < 26.1
-                 (org-latex-create-formula-image-program 'dvipng)
-                 (org-format-latex-header
-                  pdf-annot-latex-header)
+                 (org-format-latex-header pdf-annot-latex-header)
                  (temporary-file-directory
                   (pdf-util-expand-file-name "pdf-annot-print-annotation-latex")))
             (unless (file-directory-p temporary-file-directory)
@@ -1464,8 +1461,8 @@ annotation's contents and otherwise `org-mode'."
   "Finalize edit-operations on an Annotation.
 
 If DO-SAVE is t, save the changes to annotation content without
-asking. If DO-SAVE is 'ask, check if the user if contents should
-be saved.
+asking. If DO-SAVE is `ask', check with the user if contents
+should be saved.
 
 If DO-KILL is t, kill all windows displaying the annotation
 contents. Else just bury the buffers."
