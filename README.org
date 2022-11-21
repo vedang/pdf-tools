@@ -112,6 +112,7 @@ The following Operating Systems / package managers are supported. *Note*: The pa
 - Apline Linux: ~apk~
 - FreeBSD: ~pkg~
 - OpenBSD: ~pkg_add~
+- NetBSD: ~pkgin~
 - Arch Linux: ~pacman~
 - Gentoo: ~emerge~
 - CentOS: ~yum~
