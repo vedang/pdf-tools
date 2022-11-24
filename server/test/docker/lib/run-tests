@@ -2,8 +2,23 @@
 
 PATH="$(dirname "$0")":$PATH
 
-set -e
+run_tests_exit_success()
+{
+    echo "==============================="
+    echo "   Elisp Tests succeeded. :O)  "
+    echo "==============================="
+    exit 0
+}
 
-yes-or-enter | ./autobuild -i /bin
-yes-or-enter | ./autobuild -i /usr/bin | \
+set -e
+# Check that install completes successfully
+yes-or-enter | ./server/autobuild -i /bin
+# Check that re-install skips package installation
+yes-or-enter | ./server/autobuild -i /usr/bin | \
     grep -q "Skipping package installation (already installed)"
+# Check that lisp tests run correctly, if emacs is installed and available on PATH
+echo
+if which emacs > /dev/null 2> /dev/null; then
+    echo "Emacs found installed! Running elisp tests"
+    make test && run_tests_exit_success
+fi

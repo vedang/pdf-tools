@@ -39,10 +39,10 @@ docker/%.Dockerfile: docker/templates/%.Dockerfile.in \
 	@echo Creating Dockerfile for target $*
 	cat $^ > $@
 
-# Build the Docker Image
+# Build the Docker Image. Since we are building a new image, remove the existing container.
 docker/.%.build: docker/%.Dockerfile ../autobuild docker/lib
 	@echo Building target image $*
-	podman image build $(DOCKER_BUILD_ARGS) epdfinfo/$* -f $< ../
+	podman image build $(DOCKER_BUILD_ARGS) epdfinfo/$* -f $< ../../
 	touch $@
 
 # Build the Docker Container
@@ -67,6 +67,8 @@ docker/.%.clean:
 	podman container rm epdfinfo-$* || exit 0
 
 docker/clean: $(patsubst %, docker/.%.clean, $(DOCKER_OS))
+
+test: docker/test
 
 clean: docker/clean
 	rm -f -- docker/.[^.]*.build

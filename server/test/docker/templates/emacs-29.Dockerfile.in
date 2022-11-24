@@ -1,0 +1,5 @@
+# -*- dockerfile -*-
+FROM silex/emacs:master-ci-cask
+ARG DEBIAN_FRONTEND=noninteractive
+# Need to install make, tzdata here to avoid stupid prompts when running package install via autobuild
+RUN apt-get update -y && apt-get install -y make tzdata
