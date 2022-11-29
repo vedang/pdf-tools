@@ -86,7 +86,7 @@ FIXME: Explain dis-/advantages of imagemagick and png."
   :group 'pdf-view
   :type 'boolean)
 
-(defcustom pdf-view-use-scaling nil
+(defcustom pdf-view-use-scaling t
   "Whether images should be allowed to be scaled for rendering.
 
 This variable affects both the reuse of higher-resolution images
@@ -374,14 +374,6 @@ PNG images in Emacs buffers."
   ;; Enable transient-mark-mode, so region deactivation when quitting
   ;; will work.
   (setq-local transient-mark-mode t)
-  ;; In Emacs >= 24.4, `cua-copy-region' should have been advised when
-  ;; loading pdf-view.el so as to make it work with
-  ;; pdf-view-mode. Disable cua-mode if that is not the case.
-  ;; FIXME: cua-mode is a global minor-mode, but setting cua-mode to
-  ;; nil seems to do the trick.
-  (when (and (bound-and-true-p cua-mode)
-             (version< emacs-version "24.4"))
-    (setq-local cua-mode nil))
 
   (add-hook 'window-configuration-change-hook
             'pdf-view-redisplay-some-windows nil t)
@@ -403,16 +395,15 @@ PNG images in Emacs buffers."
                             (pdf-view-check-incompatible-modes buffer)))
 		  (current-buffer)))
 
-(unless (version< emacs-version "24.4")
-  (advice-add 'cua-copy-region
-	          :before-until
-	          #'cua-copy-region--pdf-view-advice)
-  (defun cua-copy-region--pdf-view-advice (&rest _)
-    "If the current buffer is in `pdf-view' mode, call
-`pdf-view-kill-ring-save'."
-    (when (eq major-mode 'pdf-view-mode)
-      (pdf-view-kill-ring-save)
-      t)))
+(advice-add 'cua-copy-region
+	        :before-until
+	        #'cua-copy-region--pdf-view-advice)
+
+(defun cua-copy-region--pdf-view-advice (&rest _)
+  "If the current buffer is in `pdf-view' mode, call `pdf-view-kill-ring-save'."
+  (when (eq major-mode 'pdf-view-mode)
+    (pdf-view-kill-ring-save)
+    t))
 
 (defun pdf-view-check-incompatible-modes (&optional buffer)
   "Check BUFFER for incompatible modes, maybe issue a warning."
@@ -964,9 +955,9 @@ See also `pdf-view-use-imagemagick'."
   (let* ((size (pdf-view-desired-image-size page window))
          (data (pdf-cache-renderpage
                 page (car size)
-                (if (not pdf-view-use-scaling)
-                    (car size)
-                  (* 2 (car size)))))
+                (if pdf-view-use-scaling
+                    (* 2 (car size))
+                  (car size))))
          (hotspots (pdf-view-apply-hotspot-functions
                     window page size)))
     (pdf-view-create-image data
@@ -1135,7 +1126,7 @@ If WINDOW is t, redisplay pages in all windows."
   (let* ((pagesize (pdf-cache-pagesize
                     (or page (pdf-view-current-page window))))
          (slice (pdf-view-current-slice window))
-         (width-scale (/ (/ (float (pdf-util-window-pixel-width window))
+         (width-scale (/ (/ (float (window-body-width window t))
                             (or (nth 2 slice) 1.0))
                          (float (car pagesize))))
          (height (- (nth 3 (window-inside-pixel-edges window))

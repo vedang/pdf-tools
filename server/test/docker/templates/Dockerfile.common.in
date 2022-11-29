@@ -1,4 +1,4 @@
-ADD . /epdfinfo
-WORKDIR /epdfinfo
+COPY . /pdf-tools
+WORKDIR /pdf-tools
 RUN make -s distclean || true
-CMD ["sh", "./test/docker/lib/run-tests"]
+CMD ["sh", "./server/test/docker/lib/run-tests"]

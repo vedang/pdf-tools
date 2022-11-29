@@ -95,7 +95,7 @@ jobs:
       - run:
           name: Add Cask and Gnu-SED to the Path
           command: |
-            echo 'export PATH="$HOME"/.cask/bin:"$(brew --prefix)"/opt/gnu-sed/libexec/gnubin:"$PATH"' >> "$BASH_ENV"
+            echo 'export PATH="$HOME"/.cask/bin:"$(brew --prefix gnu-sed)"/libexec/gnubin:"$PATH"' >> "$BASH_ENV"
       - install-pdf-tools-server
 
 workflows:

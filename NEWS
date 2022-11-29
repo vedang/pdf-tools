@@ -2,8 +2,24 @@
 
 * Version 1.0.0 (Under Development)
 From this version onward, we will follow Semantic Versioning for new ~pdf-tools~ releases.
-** Raise the minimum supported version of Emacs to 26.1
-Drop support for Emacs 24 and 25. This allows for some code cleanup.
+
+** Breaking changes:
+*** Raise the minimum supported version of Emacs to 26.3 #26
+Drop support for Emacs 24 and 25. This allows for some code cleanup. *This is a major breaking change*.
+*** Change the default value of pdf-view-use-scaling #133
+~pdf-view-use-scaling~ is now true by default, leading to rendering of crisp images on high-resolution screens. This should not cause problems on low-resolution screen (other than taking up more cache space / increasing rendering time), but if it does, please ~(setq pdf-view-use-scaling nil)~ in your configuration.
+
+** Improve overall user experience
+- Set ~pdf-annot-list-highlight-type~ to true by default.
+  + Show annotation color when listing them by default, allow the user to turn them off if need be.
+
+** Make changes required by newer versions of Emacs
+- Emacs 29 introduces ~pixel-scroll-precision-mode~, which interferes with ~pdf-view~ scrolling. This is fixed in #124
+
+** Functionality fixes and improvements
+- Fix ~revert-buffer~ to correctly work over Tramp #128
+- Fix sorting by date in ~pdf-annot-list-mode~ #75
+
 * Version 0.91
 ** Change the keybindings for traversing history
 This is a minor but *breaking change*. ~l~ (backward) and ~r~ (forward) are the conventional bindings for history navigation in Emacs, but ~pdf-tools~ uses ~B~ and ~N~. The previous keybindings are kept as-is for people who were used to it, while introducing ~l~ and ~r~ keybindings as well.

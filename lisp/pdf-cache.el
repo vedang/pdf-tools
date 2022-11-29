@@ -429,9 +429,9 @@ WINDOW and IMAGE-WIDTH decide the page and scale of the final image."
                   (pdf-cache-lookup-image
                    page
                    image-width
-                   (if (not pdf-view-use-scaling)
-                       image-width
-                     (* 2 image-width))))
+                   (if pdf-view-use-scaling
+                       (* 2 image-width)
+                     image-width)))
         (setq page (pop pdf-cache--prefetch-pages)))
       (pdf-util-debug
         (when (null page)

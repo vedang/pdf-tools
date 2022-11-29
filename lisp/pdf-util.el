@@ -40,94 +40,6 @@
 
 
 ;; * ================================================================== *
-;; * Compatibility with older Emacssen (< 25.1)
-;; * ================================================================== *
-
-;; The with-file-modes macro is only available in recent Emacs
-;; versions.
-(eval-when-compile
-  (unless (fboundp 'with-file-modes)
-    (defmacro with-file-modes (modes &rest body)
-      "Execute BODY with default file permissions temporarily set to MODES.
-MODES is as for `set-default-file-modes'."
-      (declare (indent 1) (debug t))
-      (let ((umask (make-symbol "umask")))
-        `(let ((,umask (default-file-modes)))
-           (unwind-protect
-               (progn
-                 (set-default-file-modes ,modes)
-                 ,@body)
-             (set-default-file-modes ,umask)))))))
-
-(unless (fboundp 'alist-get) ;;25.1
-  (defun alist-get (key alist &optional default remove)
-    "Get the value associated to KEY in ALIST.
-DEFAULT is the value to return if KEY is not found in ALIST.
-REMOVE, if non-nil, means that when setting this element, we should
-remove the entry if the new value is `eql' to DEFAULT."
-    (ignore remove) ;;Silence byte-compiler.
-    (let ((x (assq key alist)))
-      (if x (cdr x) default))))
-
-(require 'register)
-(unless (fboundp 'register-read-with-preview)
-  (defalias 'register-read-with-preview #'read-char
-    "Compatibility alias for pdf-tools."))
-
-;; In Emacs 24.3 window-width does not have a PIXELWISE argument.
-(defmacro pdf-util-window-pixel-width (&optional window)
-  "Return the width of WINDOW in pixel."
-  (if (< (cdr (subr-arity (symbol-function 'window-body-width))) 2)
-      (let ((window* (make-symbol "window")))
-        `(let ((,window* ,window))
-           (*  (window-body-width ,window*)
-               (frame-char-width (window-frame ,window*)))))
-    `(window-body-width ,window t)))
-
-;; In Emacs 24.3 image-mode-winprops leads to infinite recursion.
-(unless (or (> emacs-major-version 24)
-            (and (= emacs-major-version 24)
-                 (>= emacs-minor-version 4)))
-  (require 'image-mode)
-  (defvar image-mode-winprops-original-function
-    (symbol-function 'image-mode-winprops))
-  (defvar image-mode-winprops-alist)
-  (eval-after-load "image-mode"
-    '(defun image-mode-winprops (&optional window cleanup)
-       (if (not (eq major-mode 'pdf-view-mode))
-           (funcall image-mode-winprops-original-function
-                    window cleanup)
-         (cond ((null window)
-                (setq window
-                      (if (eq (current-buffer) (window-buffer)) (selected-window) t)))
-               ((eq window t))
-               ((not (windowp window))
-                (error "Not a window: %s" window)))
-         (when cleanup
-           (setq image-mode-winprops-alist
-                 (delq nil (mapcar (lambda (winprop)
-                                     (let ((w (car-safe winprop)))
-                                       (if (or (not (windowp w)) (window-live-p w))
-                                           winprop)))
-                                   image-mode-winprops-alist))))
-         (let ((winprops (assq window image-mode-winprops-alist)))
-           ;; For new windows, set defaults from the latest.
-           (if winprops
-               ;; Move window to front.
-               (setq image-mode-winprops-alist
-                     (cons winprops (delq winprops image-mode-winprops-alist)))
-             (setq winprops (cons window
-                                  (copy-alist (cdar image-mode-winprops-alist))))
-             ;; Add winprops before running the hook, to avoid inf-loops if the hook
-             ;; triggers window-configuration-change-hook.
-             (setq image-mode-winprops-alist
-                   (cons winprops image-mode-winprops-alist))
-             (run-hook-with-args 'image-mode-new-window-functions winprops))
-           winprops)))))
-
-
-
-;; * ================================================================== *
 ;; * Transforming coordinates
 ;; * ================================================================== *
 
@@ -944,14 +856,22 @@ See also `regexp-quote'."
 
 (defun pdf-util-frame-ppi ()
   "Return the PPI of the current frame."
-  (let* ((props (frame-monitor-attributes))
-         (px (nthcdr 2 (alist-get 'geometry props)))
-         (mm (alist-get 'mm-size props))
-         (dp (sqrt (+ (expt (nth 0 px) 2)
-                      (expt (nth 1 px) 2))))
-         (di (sqrt (+ (expt (/ (nth 0 mm) 25.4) 2)
-                      (expt (/ (nth 1 mm) 25.4) 2)))))
-    (/ dp di)))
+  (condition-case nil
+      (let* ((props (frame-monitor-attributes))
+             (px (nthcdr 2 (alist-get 'geometry props)))
+             (mm (alist-get 'mm-size props))
+             (dp (sqrt (+ (expt (nth 0 px) 2)
+                          (expt (nth 1 px) 2))))
+             (di (sqrt (+ (expt (/ (nth 0 mm) 25.4) 2)
+                          (expt (/ (nth 1 mm) 25.4) 2)))))
+        (/ dp di))
+    ;; Calculating frame-ppi failed, return 0 to indicate unknown.
+    ;; This can happen when (frame-monitor-attributes) does not have
+    ;; the right properties (Emacs 26, 27). It leads to the
+    ;; wrong-type-argument error, which is the only one we are
+    ;; catching here. We will catch more errors only if we see them
+    ;; happening.
+    (wrong-type-argument 0)))
 
 (defvar pdf-view-use-scaling)
 

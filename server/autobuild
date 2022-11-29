@@ -239,6 +239,17 @@ os_freebsd() {
     return 0
 }
 
+# NetBSD
+os_netbsd() {
+    if ! which uname >/dev/null 2>&1 || [ "$(uname -s)" != "NetBSD" ]; then
+        return 1
+    fi
+    PKGCMD=pkgin
+    PKGARGS=install
+    PACKAGES="autoconf automake poppler-glib png pkgconf"
+    return 0
+}
+
 # OpenBSD
 os_openbsd() {
     if ! which uname >/dev/null 2>&1 || [ "$(uname -s)" != "OpenBSD" ]; then
@@ -353,7 +364,7 @@ os_macos() {
         PKG_INSTALL_AS_ROOT=
         # brew installs libffi as keg-only, meaning we need to set
         # PKG_CONFIG_PATH manually so configure can find it
-        export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:$(brew --prefix libffi)/lib/pkgconfig/"
+        export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:$(brew --prefix libffi)/lib/pkgconfig/:$(brew --prefix zlib)/lib/pkgconfig/"
     elif which port >/dev/null 2>&1; then
         PKGCMD=port
         PKGARGS=install
@@ -455,6 +466,28 @@ os_opensuse() {
     return 0
 }
 
+# Alpine Linux
+os_alpine() {
+    if [ -f "/etc/os-release" ]; then
+        . /etc/os-release
+        if [ "$ID" != "alpine" ]; then
+          return 1
+        fi
+    else
+      return 1
+    fi
+    PACKAGES="autoconf
+              automake
+              libpng-dev
+              poppler-dev
+              glib-dev
+              gcc
+              build-base"
+    PKGCMD=apk
+    PKGARGS="add"
+    return 0
+}
+
 # By Parameter --os
 os_argument() {
     [ -z "$OS" ] && return 1
@@ -463,6 +496,7 @@ os_argument() {
         freebsd) os_freebsd "$@";;
         arch)    os_arch    "$@";;
         centos)  os_centos  "$@";;
+        netbsd)  os_netbsd  "$@";;
         openbsd) os_openbsd "$@";;
         fedora)  os_fedora  "$@";;
         debian)  os_debian  "$@";;
@@ -471,6 +505,7 @@ os_argument() {
         nixos)   os_nixos   "$@";;
         void)    os_void    "$@";;
         opensuse) os_opensuse "$@";;
+        alpine)  os_alpine  "$@";;
         *)       echo "Invalid --os argument: $OS"
                  exit 1
     esac || {
@@ -480,7 +515,8 @@ os_argument() {
 }
 
 ## +-----------------------------------------------------------+
-## * Figure out were we are, install deps and build the program
+## * Figure out where we are
+## ** install deps and build the program
 ## +-----------------------------------------------------------+
 
 handle_options "$@"
@@ -490,6 +526,7 @@ os_macos    "$@" || \
 os_freebsd  "$@" || \
 os_arch     "$@" || \
 os_centos   "$@" || \
+os_netbsd   "$@" || \
 os_openbsd  "$@" || \
 os_fedora   "$@" || \
 os_debian   "$@" || \
@@ -498,6 +535,7 @@ os_msys2    "$@" || \
 os_nixos    "$@" || \
 os_void     "$@" || \
 os_opensuse "$@" || \
+os_alpine   "$@" || \
 {
     OS_IS_HANDLED=
     if [ -z "$DRY_RUN" ]; then
