@@ -1792,7 +1792,7 @@ The optional, boolean args exclude certain attributes."
       (let ((displayed-p (eq (current-buffer)
                              (window-buffer))))
         (cons (buffer-name)
-              (append (bookmark-make-record-default nil t 1)
+              (append (bookmark-make-record-default nil t (if pdf-view-roll-minor-mode (point) 1))
                       `(,(unless no-page
                            (cons 'page (pdf-view-current-page)))
                         ,(unless no-slice
@@ -1800,7 +1800,7 @@ The optional, boolean args exclude certain attributes."
                                              (pdf-view-current-slice))))
                         ,(unless no-size
                            (cons 'size pdf-view-display-size))
-                        ,(unless no-origin
+                        ,(unless (or no-origin pdf-view-roll-minor-mode)
                            (cons 'origin
                                  (and displayed-p
                                       (let ((edges (pdf-util-image-displayed-edges nil t)))

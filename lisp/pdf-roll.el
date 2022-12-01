@@ -61,6 +61,7 @@ continuous scrolling."
 
          (let ((inhibit-read-only t))
            (erase-buffer)
+           (remove-overlays)
            (image-roll-new-window-function (list (selected-window))))
          (pdf-view-redisplay)
 
@@ -78,6 +79,7 @@ continuous scrolling."
 
          (let ((inhibit-read-only t))
            (erase-buffer)
+           (remove-overlays)
            (insert-file-contents-literally (buffer-file-name))
            (pdf-view-new-window-function (list (selected-window)))
            (set-buffer-modified-p nil))
