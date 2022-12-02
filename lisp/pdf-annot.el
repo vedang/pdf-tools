@@ -1652,7 +1652,7 @@ pretty-printed output."
         (type
          (let ((color (pdf-annot-get a 'color))
                (type (pdf-annot-print-property a 'type)))
-           (if pdf-annot-list-highlight-type
+           (if (and pdf-annot-list-highlight-type color)
                (propertize
                 type 'face
                 `(:background ,color
