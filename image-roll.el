@@ -374,7 +374,8 @@ is a substitute for the `pdf-view-redisplay' function)."
     ;; (redisplay)
     ;; TODO implement in redisplay, `fractional vscroll' (in page units)
     (image-set-window-vscroll (or (image-mode-window-get 'vscroll)
-                                  image-roll-vertical-margin))))
+                                  image-roll-vertical-margin))
+    (set-window-vscroll (selected-window) (image-mode-window-get 'vscroll winprops) t)))
 
 (defun image-roll-update-displayed-pages ()
   (let ((old (print (image-mode-window-get 'displayed-pages) #'external-debugging-output))
