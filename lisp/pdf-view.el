@@ -470,7 +470,10 @@ operating on a local copy of a remote file."
             ;; in the process), it may be immediately reopened due to
             ;; redisplay happening inside the pdf-info-close function
             ;; (while waiting for a response from the process.).
-            (copy-file tempfile (buffer-file-name) t)
+            (copy-file tempfile (or (buffer-file-name)
+                                    (read-file-name
+                                     "File name to save PDF to: "))
+                       t)
             (pdf-info-close pdf-view--server-file-name)
 
             (when pdf-view--buffer-file-name
