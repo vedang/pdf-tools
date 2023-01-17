@@ -575,9 +575,9 @@ interrupted."
              ((:render/usecolors)
               (setq value (ignore-errors
                             (let ((int-val (cl-parse-integer value)))
-                              (if (> int-val 0)
+                              (if (> 3 int-val 0)
                                   int-val
-                                nil))))))
+                                0))))))
            (push value options)
            (push key options)))
        options))
@@ -1740,10 +1740,7 @@ Returns a list \(LEFT TOP RIGHT BOT\)."
              ;;      :render/foreground and white to :render/background
              ;; 2 -> recolor document by inverting the perceived lightness
              ;;      preserving hue
-             (push (cond ((integerp value) value)
-                         ;; Map nil -> 0 and t -> 1
-                         (value 1)
-                         (t 0))
+             (push (if (and (integerp value) (> 3 value 0)) value 0)
                    soptions))
             (t (push value soptions)))
           (push key soptions)))

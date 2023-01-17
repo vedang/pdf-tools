@@ -118,13 +118,13 @@ This should be a cons \(FOREGROUND . BACKGROUND\) of colors."
   :type '(cons (color :tag "Foreground")
                (color :tag "Background")))
 
-(defcustom pdf-view-midnight-invert nil
+(defcustom pdf-view-midnight-invert t
   "In midnight mode invert the image color lightness maintaining hue.
 
 This is particularly useful if you are viewing documents with
 color coded data in plots.  This will maintain the colors such
-that 'blue' and 'red' will remain these colors in the inverted
-rendering.  This inversion is non-trivial.  This makes use of the
+that blue and red will remain these colors in the inverted
+rendering. This inversion is non-trivial. This makes use of the
 OKLab color space which is well calibrated to have equal
 perceptual brightness across hue, but not all colors are within
 the RGB gamut after inversion, causing some colors to saturate.
@@ -1281,6 +1281,14 @@ The colors are determined by the variable
   (pdf-cache-clear-images)
   (pdf-view-redisplay t))
 
+(defun pdf-view-set-theme-background ()
+  "Set the buffer's color filter to correspond to the current Emacs theme."
+  (pdf-util-assert-pdf-buffer)
+  (pdf-info-setoptions
+   :render/foreground (face-foreground 'default nil)
+   :render/background (face-background 'default nil)
+   :render/usecolors 1))
+
 (defun pdf-view-refresh-themed-buffer (&optional get-theme)
   "Refresh the current buffer to activate applied colors.
 
@@ -1291,14 +1299,6 @@ current theme's colors."
   (when get-theme
 	(pdf-view-set-theme-background))
   (pdf-view-redisplay t))
-
-(defun pdf-view-set-theme-background ()
-  "Set the buffer's color filter to correspond to the current Emacs theme."
-  (pdf-util-assert-pdf-buffer)
-  (pdf-info-setoptions
-   :render/foreground (face-foreground 'default nil)
-   :render/background (face-background 'default nil)
-   :render/usecolors t))
 
 (define-minor-mode pdf-view-themed-minor-mode
   "Synchronize color filter with the present Emacs theme.
@@ -1315,7 +1315,7 @@ The colors are determined by the `face-foreground' and
    (t
     (remove-hook 'after-save-hook #'pdf-view-set-theme-background t)
     (remove-hook 'after-revert-hook #'pdf-view-set-theme-background t)
-    (pdf-info-setoptions :render/usecolors nil)))
+    (pdf-info-setoptions :render/usecolors 0)))
   (pdf-view-refresh-themed-buffer pdf-view-themed-minor-mode))
 
 (when pdf-view-use-unicode-ligther

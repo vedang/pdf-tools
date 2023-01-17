@@ -8,6 +8,9 @@
 - Track rotation of pages and add a command to make rotation of pages easy @vizs #165
   + The new command is bound to =R= in `pdf-view-mode-map`.
 
+- Add support for maintaining hue in `pdf-view-midnight-minor-mode` using the OKLab color space @smithzvk #69
+  + This inversion method is now enabled by default and can be controlled by the `pdf-view-midnight-invert` variable. Check out the images in the PR for how beautiful the colors look in midnight mode now.
+
 ** Functionality fixes and improvements
 - Fix: Saving a PDF when ~buffer-file-name~ is missing will now prompt for a filename (eg: in EWW) @akater #178
 
