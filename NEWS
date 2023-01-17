@@ -1,6 +1,14 @@
 -*- org -*-
+* Version 1.1.0 (Under Development)
+** Improve overall user experience
+- Make ~selection-style~ configurable when selecting text, via ~pdf-view-selection-style~ @hrdl-github #73
+  + This feature enabled us to change the default ~selection-style~ used in ~pdf-tools~ from =GLYPH= to =WORD=.
+  + The change makes highlighting / selecting text *much* snappier. If you want to go back to the old behaviour of selecting by glyph instead of word, or if you want to select a whole line instead, customize ~pdf-view-selection-style~
 
-* Version 1.0.0 (Under Development)
+** Functionality fixes and improvements
+- Fix: Saving a PDF when ~buffer-file-name~ is missing will now prompt for a filename (eg: in EWW) @akater #178
+
+* Version 1.0.0
 From this version onward, we will follow Semantic Versioning for new ~pdf-tools~ releases.
 
 ** Breaking changes:

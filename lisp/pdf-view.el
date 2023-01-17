@@ -188,7 +188,7 @@ Issue a warning, if one of them is active in a PDF buffer."
   :group 'pdf-view
   :type '(repeat symbol))
 
-(defcustom pdf-view-selection-style 'glyph
+(defcustom pdf-view-selection-style 'word
   "The current default selection style.
 
 Must be one of `glyph', `word', or `line'."
