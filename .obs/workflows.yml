@@ -1,0 +1,40 @@
+testbuild:
+  steps:
+    - link_package:
+        source_project: home:Thaodan:emacs:unstable
+        source_package: emacs-pdf-tools
+        target_project: home:Thaodan:emacs:unstable:ci
+    - configure_repositories:
+        project: home:Thaodan:emacs:unstable:ci
+        repositories:
+          - name: openSUSE_Tumbleweed
+            paths:
+              - target_project: home:Thaodan:emacs:unstable
+                target_repository: openSUSE_Tumbleweed
+            architectures:
+              - x86_64
+              - i586
+              - aarch64
+  filters:
+    event: pull_request
+
+build_release:
+  steps:
+    - trigger_services:
+        project: home:Thaodan:emacs
+        package: emacs-pdf-tools
+  filters:
+    event: tag_push
+    branches:
+      only:
+        - master
+rebuild_master:
+  steps:
+    - trigger_services:
+        project: home:Thaodan:emacs:unstable
+        package: emacs-pdf-tools
+  filters:
+    event: push
+    branches:
+      only:
+        - master
