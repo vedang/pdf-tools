@@ -1656,28 +1656,28 @@ The optional, boolean args exclude certain attributes."
   "The bookmark handler-function interface for bookmark BMK.
 
 See also `pdf-view-bookmark-make-record'."
-  (let ((page (bookmark-prop-get bmk 'page))
-        (slice (bookmark-prop-get bmk 'slice))
-        (size (bookmark-prop-get bmk 'size))
-        (origin (bookmark-prop-get bmk 'origin))
-        (file (bookmark-prop-get bmk 'filename))
-        (show-fn-sym (make-symbol "pdf-view-bookmark-after-jump-hook")))
+  (let* ((page (bookmark-prop-get bmk 'page))
+         (slice (bookmark-prop-get bmk 'slice))
+         (size (bookmark-prop-get bmk 'size))
+         (origin (bookmark-prop-get bmk 'origin))
+         (file (bookmark-prop-get bmk 'filename))
+         (buf (or (find-buffer-visiting file)
+                  (find-file-noselect file)))
+         (show-fn-sym (make-symbol "pdf-show-buffer-function")))
     (fset show-fn-sym
-          (lambda ()
-            (remove-hook 'bookmark-after-jump-hook show-fn-sym)
-            (unless (derived-mode-p 'pdf-view-mode)
-              (pdf-view-mode))
-            (with-selected-window
-                (or (get-buffer-window (current-buffer) 0)
-                    (selected-window))
+          (lambda (win)
+            (with-current-buffer buf
+              (remove-hook 'window-buffer-change-functions show-fn-sym t)
+              (unless (derived-mode-p 'pdf-view-mode)
+                (pdf-view-mode))
               (when size
                 (setq-local pdf-view-display-size size))
               (when slice
                 (apply 'pdf-view-set-slice slice))
               (when (numberp page)
-                (pdf-view-goto-page page))
+                (pdf-view-goto-page page win))
               (when origin
-                (let ((size (pdf-view-image-size t)))
+                (let ((size (pdf-view-image-size t win)))
                   (image-set-window-hscroll
                    (round (/ (* (car origin) (car size))
                              (frame-char-width))))
@@ -1686,9 +1686,8 @@ See also `pdf-view-bookmark-make-record'."
                              (if pdf-view-have-image-mode-pixel-vscroll
                                  1
                                (frame-char-height))))))))))
-    (add-hook 'bookmark-after-jump-hook show-fn-sym)
-    (set-buffer (or (find-buffer-visiting file)
-                    (find-file-noselect file)))))
+    (set-buffer buf)
+    (add-hook 'window-buffer-change-functions show-fn-sym nil t)))
 
 (defun pdf-view-bookmark-jump (bmk)
   "Switch to bookmark BMK.
