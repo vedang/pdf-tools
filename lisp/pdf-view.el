@@ -1663,31 +1663,39 @@ See also `pdf-view-bookmark-make-record'."
          (file (bookmark-prop-get bmk 'filename))
          (buf (or (find-buffer-visiting file)
                   (find-file-noselect file)))
+         (buf-chg-fns-p (boundp 'window-buffer-change-functions))
+         (hook (if buf-chg-fns-p
+                   'window-buffer-change-functions
+                 'bookmark-after-jump-hook))
          (show-fn-sym (make-symbol "pdf-show-buffer-function")))
     (fset show-fn-sym
-          (lambda (win)
-            (with-current-buffer buf
-              (remove-hook 'window-buffer-change-functions show-fn-sym t)
-              (unless (derived-mode-p 'pdf-view-mode)
-                (pdf-view-mode))
-              (when size
-                (setq-local pdf-view-display-size size))
-              (when slice
-                (apply 'pdf-view-set-slice slice))
-              (when (numberp page)
-                (pdf-view-goto-page page win))
-              (when origin
-                (let ((size (pdf-view-image-size t win)))
-                  (image-set-window-hscroll
-                   (round (/ (* (car origin) (car size))
-                             (frame-char-width))))
-                  (image-set-window-vscroll
-                   (round (/ (* (cdr origin) (cdr size))
-                             (if pdf-view-have-image-mode-pixel-vscroll
-                                 1
-                               (frame-char-height))))))))))
+          (lambda (&optional win)
+            (when (eq buf (current-buffer))
+              (with-selected-window
+                  (or win
+                      (get-buffer-window buf 0)
+                      (selected-window))
+                (remove-hook hook show-fn-sym buf-chg-fns-p)
+                (unless (derived-mode-p 'pdf-view-mode)
+                  (pdf-view-mode))
+                (when size
+                  (setq-local pdf-view-display-size size))
+                (when slice
+                  (apply 'pdf-view-set-slice slice))
+                (when (numberp page)
+                  (pdf-view-goto-page page win))
+                (when origin
+                  (let ((size (pdf-view-image-size t win)))
+                    (image-set-window-hscroll
+                     (round (/ (* (car origin) (car size))
+                               (frame-char-width))))
+                    (image-set-window-vscroll
+                     (round (/ (* (cdr origin) (cdr size))
+                               (if pdf-view-have-image-mode-pixel-vscroll
+                                   1
+                                 (frame-char-height)))))))))))
     (set-buffer buf)
-    (add-hook 'window-buffer-change-functions show-fn-sym nil t)))
+    (add-hook hook show-fn-sym nil buf-chg-fns-p)))
 
 (defun pdf-view-bookmark-jump (bmk)
   "Switch to bookmark BMK.
