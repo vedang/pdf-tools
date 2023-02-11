@@ -1053,9 +1053,12 @@ Return the new annotation."
              (> (length edges) 1))
     (error "Edges argument should be a single edge-list for text annotations"))
   (let* ((selection-style pdf-view-selection-style)
+         (non-markup (pcase type
+                       ('text t)
+                       ('highlight pdf-view--have-rectangle-region)))
          (a (apply #'pdf-info-addannot
                    page
-                   (if (eq type 'text)
+                   (if non-markup
                        (car edges)
                      (apply #'pdf-util-edges-union
                             (apply #'append
@@ -1066,7 +1069,7 @@ Return the new annotation."
                    type
                    selection-style
                    nil
-                   (if (not (eq type 'text)) edges)))
+                   (unless non-markup edges)))
          (id (pdf-annot-get-id a)))
     (when property-alist
       (condition-case err
