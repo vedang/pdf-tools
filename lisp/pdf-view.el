@@ -1624,6 +1624,20 @@ the `convert' program is used."
       (dolist (f (cons result images))
         (when (file-exists-p f)
           (delete-file f))))))
+
+(defun pdf-view-set-selection-style (&optional style)
+  "Set `pdf-view-selection-style' to STYLE in the current buffer.
+
+When called interactively or without an argument, cycle between
+the selection styles."
+  (interactive)
+  (unless style
+    (setq style (or (cadr (memq pdf-view-selection-style '(glyph word line)))
+                    'glyph))
+    (message "Setting selection style to `%s'." style))
+  (pdf-view-deactivate-region)
+  (setq-local pdf-view-selection-style style))
+
 
 ;; * ================================================================== *
 ;; * Bookmark + Register Integration

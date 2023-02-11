@@ -143,6 +143,19 @@
     ["Copy region" pdf-view-kill-ring-save
      :keys "\\[kill-ring-save]"
      :active (pdf-view-active-region-p)]
+    ("Selection style"
+     ["Glyph" (pdf-view-set-selection-style 'glyph)
+      :style radio
+      :selected (eq pdf-view-selection-style 'glyph)
+      :help "When dragging the mouse, select individual characters."]
+     ["Word" (pdf-view-set-selection-style 'word)
+      :style radio
+      :selected (eq pdf-view-selection-style 'word)
+      :help "When dragging the mouse, select entire words."]
+     ["Line" (pdf-view-set-selection-style 'line)
+      :style radio
+      :selected (eq pdf-view-selection-style 'line)
+      :help "When dragging the mouse, select entire lines."])
     "--"
     ["Isearch document" isearch-forward
      :visible (bound-and-true-p pdf-isearch-minor-mode)]
