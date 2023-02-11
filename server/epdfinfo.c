@@ -1607,6 +1607,21 @@ annotation_new (const epdfinfo_t *ctx, document_t *doc, PopplerPage *page,
 #ifdef HAVE_POPPLER_ANNOT_MARKUP
   garray = g_array_new (FALSE, FALSE, sizeof (PopplerQuadrilateral));
   poppler_page_get_size (page, &width, &height);
+  if (nargs == 0)
+    {
+      PopplerQuadrilateral q;
+
+      q.p1.x = r->x1;
+      q.p1.y = r->y1;
+      q.p2.x = r->x2;
+      q.p2.y = r->y1;
+      q.p4.x = r->x2;
+      q.p4.y = r->y2;
+      q.p3.x = r->x1;
+      q.p3.y = r->y2;
+
+      g_array_append_val (garray, q);
+    }
   for (i = 0; i < nargs; ++i)
     {
       PopplerRectangle *rr = &carg.value.rectangle;
