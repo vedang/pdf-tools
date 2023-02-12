@@ -1453,9 +1453,9 @@ annotation's contents and otherwise `org-mode'."
   "Active when editing the contents of annotations."
   :group 'pdf-annot
   (when pdf-annot-edit-contents-minor-mode
-    (message "%s"
-             (substitute-command-keys
-              "Press \\[pdf-annot-edit-contents-commit] to commit your changes, \\[pdf-annot-edit-contents-abort] to abandon them."))))
+    (setq-local header-line-format
+                (substitute-command-keys "\
+Press \\[pdf-annot-edit-contents-commit] to commit your changes, \\[pdf-annot-edit-contents-abort] to abandon them."))))
 
 (put 'pdf-annot-edit-contents-minor-mode 'permanent-local t)
 
@@ -1510,11 +1510,8 @@ At any given point of time, only one annotation can be in edit mode."
         (pdf-annot-edit-contents-finalize 'ask)))
     (unless (buffer-live-p pdf-annot-edit-contents--buffer)
       (setq pdf-annot-edit-contents--buffer
-            (with-current-buffer (get-buffer-create
-                                  (format "*Edit Annotation %s*"
-                                          (buffer-name)))
-              (pdf-annot-edit-contents-minor-mode 1)
-              (current-buffer))))
+            (get-buffer-create
+             (format "*Edit Annotation %s*" (buffer-name)))))
     (with-current-buffer pdf-annot-edit-contents--buffer
       (let ((inhibit-read-only t))
         (erase-buffer)
@@ -1522,6 +1519,7 @@ At any given point of time, only one annotation can be in edit mode."
         (set-buffer-modified-p nil))
       (setq pdf-annot-edit-contents--annotation a)
       (funcall pdf-annot-edit-contents-setup-function a)
+      (pdf-annot-edit-contents-minor-mode 1)
       (current-buffer))))
 
 (defun pdf-annot-edit-contents (a)
