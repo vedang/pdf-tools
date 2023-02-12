@@ -1447,6 +1447,7 @@ annotation's contents and otherwise `org-mode'."
     (set-keymap-parent kmap text-mode-map)
     (define-key kmap (kbd "C-c C-c") #'pdf-annot-edit-contents-commit)
     (define-key kmap (kbd "C-c C-q") #'pdf-annot-edit-contents-abort)
+    (define-key kmap (kbd "C-c C-k") #'pdf-annot-edit-contents-abort)
     kmap))
 
 (define-minor-mode pdf-annot-edit-contents-minor-mode
