@@ -347,7 +347,7 @@ PNG images in Emacs buffers."
 
   ;; Setup other local variables.
   (setq-local mode-line-position
-              '(" P" (:eval (number-to-string (pdf-view-current-page)))
+              '("P" (:eval (number-to-string (pdf-view-current-page)))
                 ;; Avoid errors during redisplay.
                 "/" (:eval (or (ignore-errors
                                  (number-to-string (pdf-cache-number-of-pages)))
