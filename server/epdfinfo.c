@@ -508,6 +508,9 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
     .g = rgb_bg.g - rgb_fg.g,
     .b = rgb_bg.b - rgb_fg.b
   };
+  const double fg_l = a[0] * rgb_fg.r + a[1] * rgb_fg.g + a[2] * rgb_fg.b;
+  const double bg_l = a[0] * rgb_bg.r + a[1] * rgb_bg.g + a[2] * rgb_bg.b;
+  const double diff_l = fg_l - bg_l;
 
   /* The Oklab transform is expensive, precompute white->black and have a single
      entry cache to speed up computation */
@@ -576,8 +579,8 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
                      * 'feel' too dark and fonts too thin otherwise. */
                     oklab.l = pow(oklab.l, 1.8);
 
-                    /* Invert the perceived lightness */
-                    oklab.l = 1.0 - oklab.l;
+                    /* Invert the perceived lightness, and scales it */
+                    oklab.l = bg_l + diff_l * (1.0 - oklab.l);
 
                     rgb = oklab2rgb(oklab);
 
