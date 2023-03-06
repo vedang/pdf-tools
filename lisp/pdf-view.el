@@ -1664,7 +1664,7 @@ See also `pdf-view-bookmark-make-record'."
          (buf (or (find-buffer-visiting file)
                   (find-file-noselect file)))
          (buf-chg-fns-p (boundp 'window-buffer-change-functions))
-         (hook (if buf-chg-fns-p
+         (hook (if (and buf-chg-fns-p (not (get-buffer-window buf)))
                    'window-buffer-change-functions
                  'bookmark-after-jump-hook))
          (show-fn-sym (make-symbol "pdf-show-buffer-function")))
