@@ -434,7 +434,8 @@ os_void() {
               poppler-glib-devel
               zlib-devel
               make
-              pkgconf"
+              pkgconf
+              cairo-devel"
     PKGCMD=xbps-install
     PKGARGS="-Sy"
     export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:/usr/lib/pkgconfig"
