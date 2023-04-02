@@ -365,6 +365,8 @@ PNG images in Emacs buffers."
   ;; Disable pixel-scroll-precision-mode locally if enabled
   (if (bound-and-true-p pixel-scroll-precision-mode)
       (set (make-local-variable 'pixel-scroll-precision-mode) nil))
+  (if (boundp 'mwheel-coalesce-scroll-events)
+      (setq-local mwheel-coalesce-scroll-events t))
 
   ;; Clearing overlays
   (add-hook 'change-major-mode-hook
