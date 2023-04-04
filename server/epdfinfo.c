@@ -473,15 +473,19 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
 {
   /* Performs one of two kinds of image recoloring depending on the value of usecolors:
 
-     1 -> uses a representation of a rgb color as follows:
-          - a lightness scalar (between 0,1), which is a weighted average of r, g, b,
-          - a hue vector, which indicates a radian direction from the grey axis,
-            inside the equal lightness plane.
-          - a saturation scalar between 0,1. It is 0 when grey, 1 when the color is
-            in the boundary of the rgb cube.
+     1 -> Bg-Fg Interpolation: maps source document colors to colors
+          interpolated between the background and foreground values in
+          pdf-view-midnight-colors via the lightness of the source color.  This
+          discards hue information but allows you to fit your color theme
+          perfectly.
 
-     2 -> Invert the perceived lightness in the image while maintaining hue.
-   */
+     2 -> Hue-Preserving interpolation: same as above, similar to above, but
+          attempts to preserve hue while still respecting the background and
+          foreground colors.  This is done by matching source document white and
+          black to the specified background and foreground as above, but mixes
+          hue/saturation with the background color.  This preserves hue but is
+          more expensive.
+  */
 
   const unsigned int page_width = cairo_image_surface_get_width (surface);
   const unsigned int page_height = cairo_image_surface_get_height (surface);
@@ -508,41 +512,28 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
     .g = rgb_bg.g - rgb_fg.g,
     .b = rgb_bg.b - rgb_fg.b
   };
-  const double fg_l = a[0] * rgb_fg.r + a[1] * rgb_fg.g + a[2] * rgb_fg.b;
-  const double bg_l = a[0] * rgb_bg.r + a[1] * rgb_bg.g + a[2] * rgb_bg.b;
-  const double diff_l = fg_l - bg_l;
 
-  /* The Oklab transform is expensive, precompute white->black and have a single
-     entry cache to speed up computation */
-  struct color white = {.r = 1.0, .g = 1.0, .b = 1.0};
-  struct color black = {.r = 0.0, .g = 0.0, .b = 0.0};
-  struct color precomputed_rgb = white;
-  struct color precomputed_inv_rgb = black;
-
-  unsigned int y;
-  for (y = 0; y < page_height * rowstride; y += rowstride)
+  switch (usecolors)
     {
-      unsigned char *data = image + y;
+    case 0:
+      break;
+    case 1:
+      {
+        unsigned int y;
+        for (y = 0; y < page_height * rowstride; y += rowstride)
+          {
+            unsigned char *data = image + y;
 
-      unsigned int x;
-      for (x = 0; x < page_width; x++, data += 4)
-        {
-          /* Careful. data color components blue, green, red. */
-          struct color rgb = {
-            .r = (double) data[2] / 256.,
-            .g = (double) data[1] / 256.,
-            .b = (double) data[0] / 256.
-          };
-
-          switch (usecolors)
-            {
-            case 0:
-              /* No image recoloring requested.  Do nothing in this case.
-                 Should never be called as we should never call with unless
-                 usecolors != 0. */
-              break;
-            case 1:
+            unsigned int x;
+            for (x = 0; x < page_width; x++, data += 4)
               {
+                /* Careful. data color components blue, green, red. */
+                struct color rgb = {
+                  .r = (double) data[2] / 256.,
+                  .g = (double) data[1] / 256.,
+                  .b = (double) data[0] / 256.
+                };
+
                 /* Linear interpolation between bg and fg based on the
                    perceptual lightness measure l */
                 /* compute h, s, l data   */
@@ -557,14 +548,44 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
                 data[0] =
                   (unsigned char) round (255. * (l * rgb_diff.b + rgb_fg.b));
               }
-              break;
-            case 2:
+          }
+      }
+      break;
+    case 2:
+      {
+        /* If using the Oklab transform, it is relatively expensive.  Precompute
+           white->background and black->foreground and have a single entry cache to
+           speed up computation */
+        const struct color white = {.r = 1.0, .g = 1.0, .b = 1.0};
+        struct color precomputed_rgb = white;
+        struct color precomputed_inv_rgb = rgb_bg;
+
+        /* Must match the transformation of colors below. */
+        struct color oklab_fg = rgb2oklab(rgb_fg);
+        struct color oklab_bg = rgb2oklab(rgb_bg);
+
+        const double oklab_diff_l = oklab_fg.l - oklab_bg.l;
+
+        unsigned int y;
+        for (y = 0; y < page_height * rowstride; y += rowstride)
+          {
+            unsigned char *data = image + y;
+
+            unsigned int x;
+            for (x = 0; x < page_width; x++, data += 4)
               {
+                /* Careful. data color components blue, green, red. */
+                struct color rgb = {
+                  .r = (double) data[2] / 256.,
+                  .g = (double) data[1] / 256.,
+                  .b = (double) data[0] / 256.
+                };
+
                 /* Convert to Oklab coordinates, invert perceived lightness,
                    convert back to RGB. */
                 if (color_equal(white, rgb))
                   {
-                    rgb = black;
+                    rgb = rgb_bg;
                   }
                 else if (color_equal(precomputed_rgb, rgb))
                   {
@@ -575,12 +596,16 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
                     struct color oklab = rgb2oklab(rgb);
                     precomputed_rgb = rgb;
 
-                    /* Gamma correction.  Shouldn't be necessary, but colors
-                     * 'feel' too dark and fonts too thin otherwise. */
-                    oklab.l = pow(oklab.l, 1.8);
-
                     /* Invert the perceived lightness, and scales it */
-                    oklab.l = bg_l + diff_l * (1.0 - oklab.l);
+                    double l = oklab.l;
+                    double inv_l = 1.0 - l;
+                    oklab.l = oklab_bg.l + oklab_diff_l * inv_l;
+
+                    /* Have a and b parameters (which encode hue and saturation)
+                       start at the background value and interpolate up to  to background
+                       at zero lightness */
+                    oklab.a = (oklab.a + oklab_bg.a * l + oklab_fg.a * inv_l);
+                    oklab.b = (oklab.b + oklab_bg.b * l + oklab_fg.b * inv_l);
 
                     rgb = oklab2rgb(oklab);
 
@@ -591,11 +616,11 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
                 data[1] = (unsigned char) round(255. * rgb.g);
                 data[0] = (unsigned char) round(255. * rgb.b);
               }
-              break;
-            default:
-              internal_error ("image_recolor switch fell through");
-            }
-        }
+          }
+      }
+      break;
+    default:
+      internal_error ("image_recolor switch fell through");
     }
 }
 
