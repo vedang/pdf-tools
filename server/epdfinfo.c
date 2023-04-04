@@ -602,8 +602,8 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
                     oklab.l = oklab_bg.l + oklab_diff_l * inv_l;
 
                     /* Have a and b parameters (which encode hue and saturation)
-                       start at the background value and interpolate up to  to background
-                       at zero lightness */
+                       start at the background value and interpolate up to
+                       foreground */
                     oklab.a = (oklab.a + oklab_bg.a * l + oklab_fg.a * inv_l);
                     oklab.b = (oklab.b + oklab_bg.b * l + oklab_fg.b * inv_l);
 
