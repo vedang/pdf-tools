@@ -1722,16 +1722,19 @@ pretty-printed output."
 \\{pdf-annot-list-mode-map}"
   (interactive)
   (pdf-util-assert-pdf-buffer)
-  (let ((buffer (current-buffer)))
-    (with-current-buffer (get-buffer-create
-                          (format "*%s's annots*"
-                                  (file-name-sans-extension
-                                   (buffer-name))))
+  (let* ((buffer (current-buffer))
+         (name (format "*%s's annots*"
+                       (file-name-sans-extension
+                        (buffer-name))))
+         (annots-existed (and (get-buffer name)
+                              pdf-annot-list-buffer)))
+    (with-current-buffer (get-buffer-create name)
       (delay-mode-hooks
         (unless (derived-mode-p 'pdf-annot-list-mode)
           (pdf-annot-list-mode))
         (setq pdf-annot-list-document-buffer buffer)
-        (tabulated-list-print)
+        (unless annots-existed
+          (tabulated-list-print))
         (setq tablist-context-window-function
               (lambda (id) (pdf-annot-list-context-function id buffer))
               tablist-operations-function #'pdf-annot-list-operation-function)
