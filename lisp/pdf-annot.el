@@ -1724,7 +1724,8 @@ pretty-printed output."
          (name (format "*%s's annots*"
                        (file-name-sans-extension
                         (buffer-name))))
-         (annots-existed (get-buffer name)))
+         (annots-existed (and (get-buffer name)
+                              pdf-annot-list-buffer)))
     (with-current-buffer (get-buffer-create name)
       (delay-mode-hooks
         (unless (derived-mode-p 'pdf-annot-list-mode)
