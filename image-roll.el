@@ -244,7 +244,7 @@ with a space. It size is determined from the image its
                    :debug "*image-roll-debug-log*")
   (let* ((o (image-roll-page-overlay page))
          (d (overlay-get o 'display))
-         (im (if pdf-view-auto-slice-minor-mode
+         (im (if (bound-and-true-p pdf-view-auto-slice-minor-mode)
                  (nth 1 d)
                d))
          (s (image-size im t))
@@ -305,7 +305,7 @@ overlays."
   (setf (image-roll-current-page (car winprops))
         (or (image-roll-current-page (car winprops)) 1)))
 
-(defun image-roll-redisplay (&optional window no-relative-vscroll)
+(defun image-roll-redisplay (&optional _window _no-relative-vscroll)
   "Redisplay the scroll.
 Besides that this function can be called directly, it should also
 be added to the `window-configuration-change-hook'.
@@ -326,12 +326,9 @@ is a substitute for the `pdf-view-redisplay' function)."
   ;; by doc-view to display the image in a new window).
   (image-mode-winprops nil t)
 
-  (let* ((pages image-roll-last-page)
-         (page-sizes (if image-roll-page-sizes-function
-                         (funcall image-roll-page-sizes-function)
-                       (make-list pages (if (functionp image-roll-demo-page-size)
-                                            (funcall image-roll-demo-page-size)
-                                          image-roll-demo-page-size))))
+  (let* ((image-roll-last-page)
+         (page-sizes (when image-roll-page-sizes-function
+                         (funcall image-roll-page-sizes-function)))
          (n 0))
 
     (dolist (page-size page-sizes)
@@ -356,7 +353,7 @@ is a substitute for the `pdf-view-redisplay' function)."
              p
              (when (eq image-roll-display-page-function
                        'doc-view-insert-image)
-               `(:width ,doc-view-image-width)))
+               `(:width ,(bound-and-true-p doc-view-image-width))))
       (push p displayed))
     ;; store displayed images for determining which images to update when update
     ;; is triggered
@@ -395,7 +392,7 @@ is a substitute for the `pdf-view-redisplay' function)."
              p
              (when (eq image-roll-display-page-function
                        'doc-view-insert-image)
-               `(:width ,doc-view-image-width)))
+               `(:width ,(bound-and-true-p doc-view-image-width))))
       (image-mode-window-put 'displayed-pages (setq old (append old (list p)))))
     ;; update also visible-range
     (image-mode-window-put 'visible-pages-vscroll-limit
@@ -462,10 +459,9 @@ When SCREEN is non-nil, scroll by window height."
   (interactive)
   (let* ((current-page (image-roll-current-page))
          (new-page current-page)
-         (current-overlay-height (image-roll-overlay-height current-page))
          (visible-pages-vscroll-limit (image-mode-window-get 'visible-pages-vscroll-limit))
          (step-size (if screen
-                        (window-text-height nil t)
+                        (/ (window-text-height nil t) 2)
                       image-roll-step-size))
 
          ;; determine number of pages to forward/backward (e.g. when scrolling a
@@ -559,7 +555,7 @@ When SCREEN is non-nil, scroll by window height."
 
 (defun image-roll-quick-scroll ()
   (interactive)
-  (dotimes (i 200)
+  (dotimes (_i 200)
     (image-roll-scroll-forward)
     (sit-for 0.0001)))
 
