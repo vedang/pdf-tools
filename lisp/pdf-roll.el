@@ -51,7 +51,7 @@ continuous scrolling."
 
                      image-roll-center t)
 
-         (add-hook 'window-configuration-change-hook 'image-roll-redisplay nil t)
+         (add-hook 'window-size-change-functions 'image-roll-redisplay nil t)
 
          (remove-hook 'image-mode-new-window-functions
 	                    #'pdf-view-new-window-function t)
@@ -68,7 +68,7 @@ continuous scrolling."
          (define-key pdf-view-mode-map (kbd "<mouse-5>") 'pdf-view-next-line-or-next-page)
          (define-key pdf-view-mode-map (kbd "<mouse-4>") 'pdf-view-previous-line-or-previous-page))
         (t
-         (remove-hook 'window-configuration-change-hook 'image-roll-redisplay t)
+         (remove-hook 'window-size-change-functions 'image-roll-redisplay t)
 
          (remove-hook 'image-mode-new-window-functions 'image-roll-new-window-function t)
          (add-hook 'image-mode-new-window-functions

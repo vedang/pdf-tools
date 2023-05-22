@@ -39,6 +39,14 @@
 
 (declare-function cua-copy-region "cua-base")
 (declare-function pdf-tools-pdf-buffer-p "pdf-tools")
+
+(declare-function image-roll-scroll-forward "image-roll")
+(declare-function image-roll-scroll-backward "image-roll")
+(declare-function image-roll-next-page "image-roll")
+(declare-function image-roll-redisplay "image-roll")
+
+(defvar pdf-view-roll-minor-mode)
+
 
 ;; * ================================================================== *
 ;; * Customizations
