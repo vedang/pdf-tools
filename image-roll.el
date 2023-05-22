@@ -6,6 +6,7 @@
 ;; Version: 1.0
 ;; Keywords: files, pdf
 ;; URL: https://github.com/dalanicolai/image-roll.el
+;; Package-Requires: ((emacs "26.1"))
 
 
 ;;; Commentary:
@@ -70,6 +71,7 @@
 ;; I don't know what causes the bug, but this is what I have noticed from
 ;; inspecting it.
 
+;;; Code:
 
 (require 'image-mode)
 (require 'svg)
@@ -190,7 +192,7 @@ Implemented as macro to make it setf'able."
                 ,prop))
 
 (defmacro image-roll-current-page (&optional window)
-  "Return the page number of the currently displayed page.
+  "Return the page number of the currently displayed page in WINDOW.
 The current page is the page that overlaps with the window
 start (this choice was made in order to simplify the scrolling
 logic)"
@@ -244,9 +246,9 @@ with a space. It size is determined from the image its
                    :debug "*image-roll-debug-log*")
   (let* ((o (image-roll-page-overlay page))
          (d (overlay-get o 'display))
-         (im (if (bound-and-true-p pdf-view-auto-slice-minor-mode)
-                 (nth 1 d)
-               d))
+         (im (if (imagep d)
+                d
+               (nth 1 d)))
          (s (image-size im t))
          (w (car s))
          (h (cdr s)))
@@ -305,7 +307,7 @@ overlays."
   (setf (image-roll-current-page (car winprops))
         (or (image-roll-current-page (car winprops)) 1)))
 
-(defun image-roll-redisplay (&optional _window _no-relative-vscroll)
+(defun image-roll-redisplay (&optional window _no-relative-vscroll)
   "Redisplay the scroll.
 Besides that this function can be called directly, it should also
 be added to the `window-configuration-change-hook'.
@@ -313,9 +315,6 @@ be added to the `window-configuration-change-hook'.
 The argument WINDOW is not used in the body, but it exists to
 make the function compatible with `pdf-tools' (in which case it
 is a substitute for the `pdf-view-redisplay' function)."
-  (display-warning '(image-roll)
-                   (format "redisplay %s" (car (image-mode-winprops)))
-                   :debug "*image-roll-debug-log*")
 
   ;; NOTE the `(when (listp image-mode-winprops-alist)' from
   ;; `image-mode-reapply-winprops' was removed here (but in the end might turn
@@ -324,76 +323,72 @@ is a substitute for the `pdf-view-redisplay' function)."
   ;; Beware: this call to image-mode-winprops can't be optimized away, because
   ;; it not only gets the winprops data but sets it up if needed (e.g. it's used
   ;; by doc-view to display the image in a new window).
-  (image-mode-winprops nil t)
+  (setq window (if (window-live-p window) window (selected-window)))
+  (when (ignore-errors (image-mode-winprops window t))
+    (with-selected-window window
+      (let* ((page-sizes (when image-roll-page-sizes-function
+                           (funcall image-roll-page-sizes-function)))
+             (overlays (image-roll-overlays)))
 
-  (let* ((image-roll-last-page)
-         (page-sizes (when image-roll-page-sizes-function
-                         (funcall image-roll-page-sizes-function)))
-         (n 0))
+        (dolist (page-size page-sizes)
+          (let* ((page-width (car page-size))
+                 (overley-height (+ (cdr page-size) (* 2 image-roll-vertical-margin)))
+                 (o (pop overlays)))
+            (when image-roll-center
+              (overlay-put o 'before-string
+                           (when (> (window-pixel-width) page-width)
+                             (propertize " " 'display
+                                         `(space :align-to
+                                           (,(floor (/ (- (window-pixel-width) page-width) 2))))))))
+            (overlay-put o 'display `(space . (:width (,page-width) :height (,overley-height))))
+            (overlay-put o 'face `(:background ,image-roll-overlay-face-bg-color))
+            (overlay-put o 'overlay-size page-size))))
+      ;; Determine to display pages and display. Undisplay pages is not necessary as
+      ;; this is taken care off by `image-roll-update-displayed-pages'.
+      (let (displayed)
+        (dolist (p (image-roll-visible-overlays))
+          (apply image-roll-display-page-function
+                 p
+                 (when (eq image-roll-display-page-function
+                           'doc-view-insert-image)
+                   `(:width ,(bound-and-true-p doc-view-image-width))))
+          (push p displayed))
+        ;; store displayed images for determining which images to update when update
+        ;; is triggered
+        (image-mode-window-put 'displayed-pages (nreverse displayed))
+        ;; store the height of the visible pages for determining when to update
+        ;; images, namely when some part of the roll outside this range becomes
+        ;; visible
+        (image-mode-window-put 'visible-pages-vscroll-limit
+                               (- (apply #'+ (mapcar #'image-roll-overlay-height displayed))
+                                  (window-text-height nil t))))
+      ;; we only need to jump to the right page, the vscroll is conserved and if
+      ;; required can be set to 0 before the redisplay
+      (when-let (p (image-roll-current-page))
+        (set-window-start nil
+                          (goto-char (overlay-start (nth (1- p) (image-roll-overlays))))
+                          t)
+        ;; (redisplay)
+        ;; TODO implement in redisplay, `fractional vscroll' (in page units)
+        (image-set-window-vscroll (or (image-mode-window-get 'vscroll)
+                                      image-roll-vertical-margin))
 
-    (dolist (page-size page-sizes)
-      (let* ((page-width (car page-size))
-             (overley-heigth (+ (cdr page-size) (* 2 image-roll-vertical-margin)))
-             (o (nth n (image-roll-overlays))))
-        (when image-roll-center
-          (overlay-put o 'before-string
-                       (when (> (window-pixel-width) page-width)
-                         (propertize " " 'display
-                                     `(space :align-to
-                                             (,(floor (/ (- (window-pixel-width) page-width) 2))))))))
-        (overlay-put o 'display `(space . (:width (,page-width) :height (,overley-heigth))))
-        (overlay-put o 'face `(:background ,image-roll-overlay-face-bg-color))
-        (overlay-put o 'overlay-size page-size)
-        (setq n (1+ n)))))
-  ;; Determine to display pages and display. Undisplay pages is not necessary as
-  ;; this is taken care off by `image-roll-update-displayed-pages'.
-  (let (displayed)
-    (dolist (p (image-roll-visible-overlays))
-      (apply image-roll-display-page-function
-             p
-             (when (eq image-roll-display-page-function
-                       'doc-view-insert-image)
-               `(:width ,(bound-and-true-p doc-view-image-width))))
-      (push p displayed))
-    ;; store displayed images for determining which images to update when update
-    ;; is triggered
-    (image-mode-window-put 'displayed-pages (reverse displayed))
-    ;; store the height of the visible pages for determining when to update
-    ;; images, namely when some part of the roll outside this range becomes
-    ;; visible
-    (image-mode-window-put 'visible-pages-vscroll-limit
-                           (- (apply #'+ (mapcar #'image-roll-overlay-height displayed))
-                              (window-text-height nil t))))
-  ;; we only need to jump to the right page, the vscroll is conserved and if
-  ;; required can be set to 0 before the redisplay
-  (when-let (p (image-roll-current-page))
-    (goto-char (overlay-start (nth (1- p) (image-roll-overlays))))
-    ;; (redisplay)
-    ;; TODO implement in redisplay, `fractional vscroll' (in page units)
-    (image-set-window-vscroll (or (image-mode-window-get 'vscroll)
-                                  image-roll-vertical-margin))
-
-    (image-set-window-hscroll (or
-                               (image-mode-window-get 'hscroll)
-                               0))))
+        (image-set-window-hscroll (or
+                                   (image-mode-window-get 'hscroll)
+                                   0))))))
 
 (defun image-roll-update-displayed-pages ()
-  (let ((old (print (image-mode-window-get 'displayed-pages) #'external-debugging-output))
-        (new (print (image-roll-visible-overlays) #'external-debugging-output)))
+  (let ((old (image-mode-window-get 'displayed-pages))
+        (new (image-roll-visible-overlays)))
     ;; dolist because if images/pages are small enough (or after jumps), there
     ;; might be multiple image that need to get updated
-    (dolist (p (cl-set-difference old new))
-      (image-roll-undisplay-page p)
-      (image-mode-window-put 'displayed-pages
-                             (setq old (delete p old)))) ; important to update/setq old before
+    (dolist (p old)
+      (image-roll-undisplay-page p))
+    (image-mode-window-put 'displayed-pages nil)
     ;; setting/appending new below
-    (dolist (p (cl-set-difference new old))
-      (apply image-roll-display-page-function
-             p
-             (when (eq image-roll-display-page-function
-                       'doc-view-insert-image)
-               `(:width ,(bound-and-true-p doc-view-image-width))))
-      (image-mode-window-put 'displayed-pages (setq old (append old (list p)))))
+    (dolist (p new)
+      (funcall image-roll-display-page-function p))
+    (image-mode-window-put 'displayed-pages new)
     ;; update also visible-range
     (image-mode-window-put 'visible-pages-vscroll-limit
                            (- (apply #'+ (mapcar #'image-roll-overlay-height new))
@@ -461,7 +456,7 @@ When SCREEN is non-nil, scroll by window height."
          (new-page current-page)
          (visible-pages-vscroll-limit (image-mode-window-get 'visible-pages-vscroll-limit))
          (step-size (if screen
-                        (/ (window-text-height nil t) 2)
+                        (* (window-text-height nil t) 0.9)
                       image-roll-step-size))
 
          ;; determine number of pages to forward/backward (e.g. when scrolling a
@@ -484,8 +479,6 @@ When SCREEN is non-nil, scroll by window height."
              (setq new-page (1- new-page)) ; allow new-page become < 1
              (cl-decf available-height (image-roll-overlay-height new-page))))
           (t
-           ;; (cl-decf available-height (- (image-roll-overlay-height current-page)
-           ;;                              (window-vscroll nil t)))
            (cl-decf available-height (- (image-roll-overlay-height current-page)
                                         (window-vscroll nil t)))
            (while (and (< new-page (1+ image-roll-last-page)) (> available-height 0))
@@ -493,53 +486,31 @@ When SCREEN is non-nil, scroll by window height."
              (setq new-page (1+ new-page)) ; allow new-page > last-page
              (cl-decf available-height (image-roll-overlay-height new-page)))))
 
+    (when (< new-page 1)
+      (message "Beginning of document")
+      (setq new-page 1))
+
+    (when (> new-page image-roll-last-page)
+      (message "End of document")
+      (setq new-page image-roll-last-page))
+
     (when backward
-      (setq step-size (- step-size)))
+      (cl-callf - step-size)
+      (cl-callf2 - (image-roll-overlay-height new-page) remaining-height))
 
-    (when (= new-page current-page)
-      (setq new-vscroll (+ (window-vscroll nil t) step-size)))
-
-
-    (if (cond ((< new-page current-page)
-               (when (>= new-page 1)
-		             (run-hooks 'image-roll-before-change-page-hook))
-               (setf (image-roll-current-page) (max new-page 1))
-               (when (>= new-page 1)
-		             (run-hooks 'image-roll-change-page-hook))
-               (goto-char (image-roll-page-to-pos new-page))
-               (prog1
-                   (image-set-window-vscroll
-		                (if (< new-page 1)
-                        (user-error "Beginning of document")
-
-                      (- (image-roll-overlay-height (image-roll-current-page))
-                         remaining-height)))
-                 (when (>= new-page 1)
-		               (run-hooks 'image-roll-after-change-page-hook))))
-              ((> new-page current-page)
-               ;; (print "hier")
-               (when (<= new-page image-roll-last-page)
-		             (run-hooks 'image-roll-before-change-page-hook))
-               (setf (image-roll-current-page) (min new-page image-roll-last-page))
-               (when (<= new-page image-roll-last-page)
-		             (run-hooks 'image-roll-change-page-hook))
-               (goto-char (image-roll-page-to-pos new-page))
-               (prog1
-                   (if (> new-page image-roll-last-page)
-                       (user-error "End of document")
-		                 (image-set-window-vscroll
-                      remaining-height))
-                 (when (<= new-page image-roll-last-page)
-		               (run-hooks 'image-roll-after-change-page-hook))))
-              ((> new-vscroll
-                  visible-pages-vscroll-limit)
-               (image-set-window-vscroll (if (< new-page image-roll-last-page)
-                                             new-vscroll
-                                           (user-error "End of document")))))
-	      ;; (- visible-pages-vscroll-limit
-	      ;;    image-roll-vertical-margin)
-	      (image-roll-update-displayed-pages)
-      (image-set-window-vscroll new-vscroll))))
+    (cond ((= new-page current-page)
+           (setq new-vscroll (+ (window-vscroll nil t) step-size))
+           (image-set-window-vscroll new-vscroll)
+           (when (> new-vscroll visible-pages-vscroll-limit)
+             (image-roll-update-displayed-pages)))
+          (t
+           (run-hooks 'image-roll-before-change-page-hook)
+           (setf (image-roll-current-page) new-page)
+           (run-hooks 'image-roll-change-page-hook)
+           (set-window-start nil (goto-char (image-roll-page-to-pos new-page)) t)
+           (image-set-window-vscroll remaining-height)
+           (run-hooks 'image-roll-after-change-page-hook)
+           (image-roll-update-displayed-pages)))))
 
 (defun image-roll-scroll-backward ()
   (interactive)
@@ -590,7 +561,7 @@ This function is used for the image-roll-demo."
   ;; reapplies the vscroll, so we simply initialize the
   ;; `image-mode-winprops-alist' here, and add lines from
   ;; `image-mode-reapply-winprops' at the start of `image-roll-redisplay'.
-  (add-hook 'window-configuration-change-hook 'image-roll-redisplay nil t)
+  (add-hook 'window-size-change-functions 'image-roll-redisplay nil t)
   (add-hook 'image-mode-new-window-functions 'image-roll-new-window-function nil t)
   (unless (listp image-mode-winprops-alist)
     (setq image-mode-winprops-alist nil)))
