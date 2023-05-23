@@ -382,11 +382,10 @@ is a substitute for the `pdf-view-redisplay' function)."
         (new (image-roll-visible-overlays)))
     ;; dolist because if images/pages are small enough (or after jumps), there
     ;; might be multiple image that need to get updated
-    (dolist (p old)
+    (dolist (p (cl-set-difference old new))
       (image-roll-undisplay-page p))
-    (image-mode-window-put 'displayed-pages nil)
     ;; setting/appending new below
-    (dolist (p new)
+    (dolist (p (cl-set-difference new old))
       (funcall image-roll-display-page-function p))
     (image-mode-window-put 'displayed-pages new)
     ;; update also visible-range
