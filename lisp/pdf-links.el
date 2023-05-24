@@ -28,6 +28,7 @@
 (require 'pdf-isearch)
 (require 'let-alist)
 (require 'org)
+(eval-when-compile (require 'image-roll nil t))
 
 ;;; Code:
 
@@ -235,45 +236,39 @@ scroll the current page."
 See `pdf-links-action-perform' for the interface."
 
   (pdf-util-assert-pdf-window)
-  (let* ((links (pdf-cache-pagelinks
-                 (pdf-view-current-page)))
+  (let* ((pages (if pdf-view-roll-minor-mode
+                    (nreverse (image-roll-displayed-pages))
+                  (list (pdf-view-current-page))))
+         (links (mapcar #'pdf-cache-pagelinks pages))
          (keys (pdf-links-read-link-action--create-keys
-                (length links)))
-         (key-strings (mapcar (apply-partially 'apply 'string)
-                              keys))
-         (alist (cl-mapcar 'cons keys links))
-         (size (pdf-view-image-size))
+                (apply #'+ (mapcar #'length links))))
+         (alist (cl-mapcar 'cons keys (apply #'append links)))
          (colors (pdf-util-face-colors
-                  'pdf-links-read-link pdf-view-dark-minor-mode))
-         (args (list
-                :foreground (car colors)
-                :background (cdr colors)
-                :formats
-                 `((?c . ,(lambda (_edges) (pop key-strings)))
-                   (?P . ,(number-to-string
-                           (max 1 (* (cdr size)
-                                     pdf-links-convert-pointsize-scale)))))
-                 :commands pdf-links-read-link-convert-commands
-                 :apply (pdf-util-scale-relative-to-pixel
-                         (mapcar (lambda (l) (cdr (assq 'edges l)))
-                                 links)))))
-    (unless links
-      (error "No links on this page"))
-    (unwind-protect
-        (let ((image-data
-               (pdf-cache-get-image
-                (pdf-view-current-page)
-                (car size) (car size) 'pdf-links-read-link-action)))
-          (unless image-data
-            (setq image-data (apply 'pdf-util-convert-page args ))
-            (pdf-cache-put-image
-             (pdf-view-current-page)
-             (car size) image-data 'pdf-links-read-link-action))
-          (pdf-view-display-image
-           (create-image image-data (pdf-view-image-type) t)
-           (when pdf-view-roll-minor-mode (pdf-view-current-page)))
-          (pdf-links-read-link-action--read-chars prompt alist))
-      (pdf-view-redisplay))))
+                  'pdf-links-read-link pdf-view-dark-minor-mode)))
+    (if (not links)
+        (error "No links on displayed pages")
+      (unwind-protect
+          (progn
+            (dolist (page pages)
+              (pdf-view-display-image
+               (create-image (pdf-util-convert-image
+                              (or (overlay-get (image-roll-page-overlay page) 'display)
+                                  (pdf-view-current-image))
+                              :foreground (car colors)
+                              :background (cdr colors)
+                              :formats
+                              `((?c . ,(lambda (_edges) (apply #'string (pop keys))))
+                                (?P . ,(number-to-string
+                                        (max 1 (* (cdr (pdf-view-desired-image-size page))
+                                                  pdf-links-convert-pointsize-scale)))))
+                              :commands pdf-links-read-link-convert-commands
+                              :apply (pdf-util-scale-relative-to-pixel
+                                      (mapcar (lambda (l) (cdr (assq 'edges l)))
+                                              (pop links))))
+                             (pdf-view-image-type) t)
+               page))
+            (pdf-links-read-link-action--read-chars prompt alist))
+        (pdf-view-redisplay)))))
 
 (defun pdf-links-read-link-action--read-chars (prompt alist)
   (catch 'done

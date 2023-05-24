@@ -1045,8 +1045,8 @@ Returns the convert process."
         (set-process-sentinel proc callback))
       proc)))
 
-(defun pdf-util-convert-page (&rest specs)
-  "Convert image of current page according to SPECS.
+(defun pdf-util-convert-image (image &rest specs)
+  "Convert IMAGE page according to SPECS.
 
 Return the converted PNG image as a string.  See also
 `pdf-util-convert'."
@@ -1056,7 +1056,7 @@ Return the converted PNG image as a string.  See also
         (out-file (make-temp-file "pdf-util-convert" nil ".png")))
     (unwind-protect
         (let ((image-data
-               (plist-get (cdr (pdf-view-current-image)) :data)))
+               (plist-get (cdr image) :data)))
           (with-temp-file in-file
             (set-buffer-multibyte nil)
             (set-buffer-file-coding-system 'binary)
@@ -1069,6 +1069,14 @@ Return the converted PNG image as a string.  See also
       (when (file-exists-p out-file)
         (delete-file out-file)))))
 
+(defun pdf-util-convert-page (&rest specs)
+  "Convert image of current page according to SPECS.
+
+Return the converted PNG image as a string.  See also
+`pdf-util-convert'."
+
+  (pdf-util-assert-pdf-window)
+  (apply #'pdf-util-convert-image (pdf-view-current-image) specs))
 
 (defun pdf-util-convert--create-commands (spec)
   (let ((fg "red")
