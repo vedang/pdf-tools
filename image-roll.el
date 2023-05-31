@@ -324,12 +324,13 @@ is a substitute for the `pdf-view-redisplay' function)."
   ;; it not only gets the winprops data but sets it up if needed (e.g. it's used
   ;; by doc-view to display the image in a new window).
   (setq window (if (window-live-p window) window (selected-window)))
-  (when (ignore-errors (image-mode-winprops window t))
+  (when (and (memq 'image-roll-new-window-function image-mode-new-window-functions)
+             (eq (current-buffer) (window-buffer window)))
+    (image-mode-winprops window t)
     (with-selected-window window
       (let* ((page-sizes (when image-roll-page-sizes-function
                            (funcall image-roll-page-sizes-function)))
              (overlays (image-roll-overlays)))
-
         (dolist (page-size page-sizes)
           (let* ((page-width (car page-size))
                  (overley-height (+ (cdr page-size) (* 2 image-roll-vertical-margin)))
@@ -373,9 +374,8 @@ is a substitute for the `pdf-view-redisplay' function)."
         (image-set-window-vscroll (or (image-mode-window-get 'vscroll)
                                       image-roll-vertical-margin))
 
-        (image-set-window-hscroll (or
-                                   (image-mode-window-get 'hscroll)
-                                   0))))))
+        (image-set-window-hscroll (or (image-mode-window-get 'hscroll)
+                                      0))))))
 
 (defun image-roll-update-displayed-pages ()
   (let ((old (image-mode-window-get 'displayed-pages))
