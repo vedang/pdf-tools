@@ -225,7 +225,7 @@ This also applies when updating via MELPA / NonGNU ELPA (except for running the 
 + Follow :: Click on highlighted links, moving to some part of a different page, some external file, a website or any other URI. Links may also be followed by keyboard commands.
 + Annotations :: Display and list text and markup annotations (like underline), edit their contents and attributes (e.g. color), move them around, delete them or create new ones and then save the modifications back to the PDF file. [[id:5fff6471-a933-46d7-8ae9-b2fa4a9de952][More information here]].
 + Attachments :: Save files attached to the PDF-file or list them in a dired buffer.
-+ Outline :: Use ~imenu~ or a special buffer (~M-x pdf-outline~) to examine and navigate the PDF's outline.
++ Outline :: Use ~imenu~ or a special buffer (=M-x pdf-outline=) to examine and navigate the PDF's outline.
 + SyncTeX :: Jump from a position on a page directly to the TeX source and vice versa.
 + Virtual :: Use a collection of documents as if it were one, big single PDF.
 + Misc ::
@@ -370,7 +370,7 @@ Note that ~pdf-tools~ renders the PDF as images inside Emacs. This means that al
   M-x pdf-tools-help RET
 #+end_src
 
-Run ~M-x pdf-tools-help~ inside Emacs, as shown above. It will list all the features provided by ~pdf-tools~ as well as the key-bindings for these features.
+Run =M-x pdf-tools-help= inside Emacs, as shown above. It will list all the features provided by ~pdf-tools~ as well as the key-bindings for these features.
 
 ** Configuring PDF Tools features
 :PROPERTIES:
@@ -529,12 +529,12 @@ A clear and concise description of what you expected to happen.
 Please complete the following information:
 
 - OS: [eg: MacOS Catalina]
-- Emacs Version: [This should be the output of ~M-x emacs-version~ ]
+- Emacs Version: [This should be the output of =M-x emacs-version= ]
 - Poppler Version: [eg: output of ~brew info poppler~ and similarly for other OSs]
 
 *** Your pdf-tools install
 Please complete the following information:
-- ~pdf-tools~ Version: [ ~M-x package-list-packages~ -> Search for ~pdf-tools~ -> Hit Enter and copy all the details that pop up in the Help buffer]
+- ~pdf-tools~ Version: [ =M-x package-list-packages= -> Search for ~pdf-tools~ -> Hit Enter and copy all the details that pop up in the Help buffer]
 - ~pdf-tools~ customization / configuration that you use:
 
 *** Additional context
@@ -548,6 +548,13 @@ Please complete the following information:
 :CREATED:  [2021-12-30 Thu 22:04]
 :ID:       3be6abe7-163e-4c3e-a7df-28e8470fe37f
 :END:
+** Epdfinfo has stopped working!
+:PROPERTIES:
+:CREATED:  [2023-06-10 Sat 23:25]
+:ID:       9B5F797F-9BB3-45D9-B364-D4E5F13222BF
+:END:
+Have you upgraded ~poppler~ recently? This can cause ~epdfinfo~ to stop working, since it was compiled with the previous version of ~poppler~. Just run =M-x pdf-tools-install= and this should be fixed.
+
 ** PDFs are not rendering well!
 :PROPERTIES:
 :CREATED:  [2021-12-30 Thu 22:04]
@@ -567,6 +574,7 @@ to scale the images correctly when rendering them.
 :ID:       f44c66e6-402d-4154-b806-6bb4180a0a5b
 :END:
 ~pdf-tools~ supports the 3 latest versions of Emacs major releases. At the moment of this writing, this means that the minimum supported Emacs version is ~26.3~.
+
 ** I want to add support for pdf-tools on "My Fav OS". How do I do that?
 :PROPERTIES:
 :CREATED:  [2022-04-25 Mon 21:50]
@@ -590,7 +598,7 @@ When you make your changes, please be sure to test [[id:1CBE7325-A5A1-479B-9A98-
 :CREATED:  [2022-05-09 Mon 20:29]
 :ID:       96D389D8-DD23-4FB0-996C-2D6F70A76BB2
 :END:
-There have been a number of issues around ~pdf-tools~ installation problems on M1. ~M-x pdf-tools-install~ throws the following stack trace:
+There have been a number of issues around ~pdf-tools~ installation problems on M1. =M-x pdf-tools-install= throws the following stack trace:
 #+begin_example
   1 warning generated.
   ld: warning: ignoring file /opt/homebrew/opt/gettext/lib/libintl.dylib, building for macOS-x86_64 but attempting to link with file built for macOS-arm64
