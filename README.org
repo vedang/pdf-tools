@@ -309,27 +309,30 @@ Note that ~pdf-tools~ renders the PDF as images inside Emacs. This means that al
 :CREATED:  [2021-12-30 Thu 17:08]
 :ID:       243b3843-b912-430b-884a-641304755b92
 :END:
-| Annotations                          |                                                   |
-|--------------------------------------+---------------------------------------------------|
-| List Annotations                     | ~C-c C-a l~                                       |
-| Jump to Annotations from List        | ~SPACE~                                           |
-| Mark Annotation for Deletion         | ~d~                                               |
-| Delete Marked Annotations            | ~x~                                               |
-| Unmark Annotations                   | ~u~                                               |
-| Close Annotation List                | ~q~                                               |
-| Enable/Disable Following Annotations | ~C-c C-f~                                         |
-|--------------------------------------+---------------------------------------------------|
-| Add and Edit Annotations             | Select region via Mouse selection.                |
-|                                      | Then left-click context menu OR keybindings below |
-|--------------------------------------+---------------------------------------------------|
-| Add a Markup Annotation              | ~C-c C-a m~                                       |
-| Add a Highlight Markup Annotation    | ~C-c C-a h~                                       |
-| Add a Strikeout Markup Annotation    | ~C-c C-a o~                                       |
-| Add a Squiggly Markup Annotation     | ~C-c C-a s~                                       |
-| Add an Underline Markup Annotation   | ~C-c C-a u~                                       |
-| Add a Text Annotation                | ~C-c C-a t~                                       |
-|--------------------------------------+---------------------------------------------------|
-|                                      |                                                   |
+| Annotations                          |                                                    |
+|--------------------------------------+----------------------------------------------------|
+| List Annotations                     | ~C-c C-a l~                                        |
+| Jump to Annotations from List        | ~SPACE~                                            |
+| Mark Annotation for Deletion         | ~d~                                                |
+| Delete Marked Annotations            | ~x~                                                |
+| Unmark Annotations                   | ~u~                                                |
+| Close Annotation List                | ~q~                                                |
+| Enable/Disable Following Annotations | ~C-c C-f~                                          |
+|--------------------------------------+----------------------------------------------------|
+| Add and Edit Annotations             | Select region via Mouse selection.                 |
+|                                      | Then left-click context menu OR keybindings below  |
+|--------------------------------------+----------------------------------------------------|
+| Add a Markup Annotation              | ~C-c C-a m~                                        |
+| Add a Highlight Markup Annotation    | ~C-c C-a h~                                        |
+| Add a Strikeout Markup Annotation    | ~C-c C-a o~                                        |
+| Add a Squiggly Markup Annotation     | ~C-c C-a s~                                        |
+| Add an Underline Markup Annotation   | ~C-c C-a u~                                        |
+| Add a Text Annotation                | ~C-c C-a t~                                        |
+|--------------------------------------+----------------------------------------------------|
+| Highlight an arbitrary region        | Section region with Mouse Drag (Hold down Meta and |
+|                                      | drag). Then ~C-c C-a h~ to highlight that region.  |
+|--------------------------------------+----------------------------------------------------|
+|                                      |                                                    |
 
 ** Working with AUCTeX
 :PROPERTIES:

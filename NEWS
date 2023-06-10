@@ -1,7 +1,17 @@
 -*- org -*-
 * Version 1.2.0 (Under Development)
+** New functionality to improve overall user experience
+- Allow creation of markup annotations without a text selection @astoff #191
+  + This means that you can now highlight an exact region, for example on OCR PDFs! Just select the region by holding down the Meta key and dragging the mouse. Then invoke ~pdf-annot-add-highlight-markup-annotation~ (with ~C-c C-a h~) and voila!
+  + Please note that *only the highlight markup annotation* is supported on rectangular regions.
+
+** Functionality improvements and fixes
+- Allow setting ~selection-style~ via the Easy Menu @astoff #190
+- Improve the experience of editing Annotations @astoff #192
+- Enable ~pdf-view-dark-minor-mode~ automatically if the current Emacs theme is dark #166
+
 * Version 1.1.0
-** Improve overall user experience
+** New functionality to improve overall user experience
 - Make ~selection-style~ configurable when selecting text, via ~pdf-view-selection-style~ @hrdl-github #73
   + This feature enabled us to change the default ~selection-style~ used in ~pdf-tools~ from =GLYPH= to =WORD=.
   + The change makes highlighting / selecting text *much* snappier. If you want to go back to the old behaviour of selecting by glyph instead of word, or if you want to select a whole line instead, customize ~pdf-view-selection-style~
@@ -13,11 +23,11 @@
   + This inversion method is now enabled by default and can be controlled by the ~pdf-view-midnight-invert~ variable. Check out the images in the PR for how beautiful the colors look in midnight mode now.
   + Also thanks to @Atreyagaurav for pushing fixes which improved this feature.
 
-** Functionality fixes and improvements
+** Functionality improvements and fixes
 - Fix: Saving a PDF when ~buffer-file-name~ is missing will now prompt for a filename (eg: in EWW) @akater #178
 - Fix: Ensure ~pixel-scroll-precision-mode~ is deactivated correctly @mssdvd #206
 
-** Installation and Platform Compatibility improvements
+** Installation and platform compatibility improvements
 Please note: as of this release, users are not expected to manually set anything on their machines during installation. (for example: ~$PKG_CONFIG_PATH~). The installation should *just work*. If it does not, please open a ticket so that we can track it.
 
 - Add ~cairo-devel~ to Void Linux package list @crzjp #203
