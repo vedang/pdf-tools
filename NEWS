@@ -1,18 +1,26 @@
 -*- org -*-
-* Version 1.1.0 (Under Development)
+* Version 1.2.0 (Under Development)
+* Version 1.1.0
 ** Improve overall user experience
 - Make ~selection-style~ configurable when selecting text, via ~pdf-view-selection-style~ @hrdl-github #73
   + This feature enabled us to change the default ~selection-style~ used in ~pdf-tools~ from =GLYPH= to =WORD=.
   + The change makes highlighting / selecting text *much* snappier. If you want to go back to the old behaviour of selecting by glyph instead of word, or if you want to select a whole line instead, customize ~pdf-view-selection-style~
 
 - Track rotation of pages and add a command to make rotation of pages easy @vizs #165
-  + The new command is bound to =R= in `pdf-view-mode-map`.
+  + The new command is bound to =R= in ~pdf-view-mode-map~.
 
-- Add support for maintaining hue in `pdf-view-midnight-minor-mode` using the OKLab color space @smithzvk #69
-  + This inversion method is now enabled by default and can be controlled by the `pdf-view-midnight-invert` variable. Check out the images in the PR for how beautiful the colors look in midnight mode now.
+- Add support for maintaining hue in ~pdf-view-midnight-minor-mode~ using the OKLab color space @smithzvk #69 #197
+  + This inversion method is now enabled by default and can be controlled by the ~pdf-view-midnight-invert~ variable. Check out the images in the PR for how beautiful the colors look in midnight mode now.
+  + Also thanks to @Atreyagaurav for pushing fixes which improved this feature.
 
 ** Functionality fixes and improvements
 - Fix: Saving a PDF when ~buffer-file-name~ is missing will now prompt for a filename (eg: in EWW) @akater #178
+- Fix: Ensure ~pixel-scroll-precision-mode~ is deactivated correctly @mssdvd #206
+
+** Installation and Platform Compatibility improvements
+Please note: as of this release, users are not expected to manually set anything on their machines during installation. (for example: ~$PKG_CONFIG_PATH~). The installation should *just work*. If it does not, please open a ticket so that we can track it.
+
+- Add ~cairo-devel~ to Void Linux package list @crzjp #203
 
 * Version 1.0.0
 From this version onward, we will follow Semantic Versioning for new ~pdf-tools~ releases.
