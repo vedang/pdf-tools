@@ -195,7 +195,8 @@ loaded."
 
 (defcustom pdf-view-incompatible-modes
   '(linum-mode linum-relative-mode helm-linum-relative-mode
-	       nlinum-mode nlinum-hl-mode nlinum-relative-mode yalinum-mode)
+	           nlinum-mode nlinum-hl-mode nlinum-relative-mode yalinum-mode
+               display-line-numbers-mode)
   "A list of modes incompatible with `pdf-view-mode'.
 
 Issue a warning, if one of them is active in a PDF buffer."
