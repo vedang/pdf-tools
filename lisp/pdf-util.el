@@ -607,12 +607,18 @@ string."
 ;; requires us :-(
 (defvar pdf-view-midnight-colors)
 
+(when (and (> emacs-major-version 28)
+           (not (boundp 'x-gtk-use-system-tooltips)))
+  ;; The x-gtk prefix has been dropped Emacs 29
+  (defvaralias 'x-gtk-use-system-tooltips 'use-system-tooltips))
+
 (defun pdf-util-tooltip-arrow (image-top &optional timeout)
   (pdf-util-assert-pdf-window)
   (when (floatp image-top)
     (setq image-top
           (round (* image-top (cdr (pdf-view-image-size))))))
-  (let* (x-gtk-use-system-tooltips ;allow for display property in tooltip
+  (let* ((x-gtk-use-system-tooltips nil)
+         ;; ^ allow for display text property in tooltip
          (dx (+ (or (car (window-margins)) 0)
                 (car (window-fringes))))
          (dy image-top)

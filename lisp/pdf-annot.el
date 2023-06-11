@@ -26,6 +26,7 @@
 (require 'pdf-info)
 (require 'pdf-cache)
 (require 'pdf-misc)
+(require 'pdf-util)
 (require 'facemenu) ;; list-colors-duplicates
 (require 'faces) ;; color-values
 (require 'org)   ;; org-create-formula-image
