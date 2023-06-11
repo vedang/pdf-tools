@@ -134,25 +134,18 @@ In order to customize dark and light colors use
     pdf-virtual-global-minor-mode))
 
 (defcustom pdf-tools-enabled-modes
-  (append '(pdf-history-minor-mode
-            pdf-isearch-minor-mode
-            pdf-links-minor-mode
-            pdf-misc-minor-mode
-            pdf-outline-minor-mode
-            pdf-misc-size-indication-minor-mode
-            pdf-misc-menu-bar-minor-mode
-            pdf-annot-minor-mode
-            pdf-sync-minor-mode
-            pdf-misc-context-menu-minor-mode
-            pdf-cache-prefetch-minor-mode
-            pdf-occur-global-minor-mode)
-          ;; See an interesting discussion at:
-          ;; https://github.com/vedang/pdf-tools/issues/166 about how
-          ;; this avoids a segfault crash in MacOS Ventura. IF you
-          ;; know why this happens, please get in touch via the linked
-          ;; issue.
-          (when (eq 'dark (frame-parameter nil 'background-mode))
-            '(pdf-view-dark-minor-mode)))
+  '(pdf-history-minor-mode
+    pdf-isearch-minor-mode
+    pdf-links-minor-mode
+    pdf-misc-minor-mode
+    pdf-outline-minor-mode
+    pdf-misc-size-indication-minor-mode
+    pdf-misc-menu-bar-minor-mode
+    pdf-annot-minor-mode
+    pdf-sync-minor-mode
+    pdf-misc-context-menu-minor-mode
+    pdf-cache-prefetch-minor-mode
+    pdf-occur-global-minor-mode)
   "A list of automatically enabled minor-modes.
 
 PDF Tools is build as a series of minor-modes.  This variable and

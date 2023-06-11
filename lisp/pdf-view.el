@@ -332,6 +332,7 @@ regarding display of the region in the later function.")
     map)
   "Keymap used by `pdf-view-mode' when displaying a doc as a set of images.")
 
+(defvar pdf-tools-enabled-modes)
 (define-derived-mode pdf-view-mode special-mode "PDFView"
   "Major mode in PDF buffers.
 
@@ -367,6 +368,15 @@ PNG images in Emacs buffers."
       (set (make-local-variable 'pixel-scroll-precision-mode) nil))
   (if (boundp 'mwheel-coalesce-scroll-events)
       (setq-local mwheel-coalesce-scroll-events t))
+
+  ;; If the Emacs theme is dark, add `pdf-view-dark-minor-mode' to the
+  ;; list of `pdf-tools-enabled-modes'. See an interesting discussion
+  ;; at: https://github.com/vedang/pdf-tools/issues/166 about how this
+  ;; avoids a segfault crash in MacOS Ventura. IF you know why this
+  ;; happens, please get in touch via the linked issue.
+
+  (when (eq 'dark (frame-parameter nil 'background-mode))
+    (add-to-list 'pdf-tools-enabled-modes 'pdf-view-dark-minor-mode))
 
   ;; Clearing overlays
   (add-hook 'change-major-mode-hook
