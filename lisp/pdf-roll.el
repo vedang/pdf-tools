@@ -22,6 +22,7 @@
 ;;
 
 (require 'image-roll)
+(require 'pdf-view)
 
 (eval-when-compile
   (require 'pdf-view))
@@ -48,8 +49,9 @@ continuous scrolling."
                      image-roll-display-page-function 'pdf-view-display-page
                      image-roll-page-sizes-function 'pdf-roll-page-sizes
                      image-roll-set-redisplay-flag-function 'pdf-roll-set-redisplay-flag-function
-
-                     image-roll-center t)
+                     image-roll-center t
+                     mwheel-scroll-up-function #'image-roll-scroll-forward
+                     mwheel-scroll-down-function #'image-roll-scroll-backward)
 
          (add-hook 'window-size-change-functions 'image-roll-redisplay nil t)
 
@@ -68,6 +70,8 @@ continuous scrolling."
          (define-key pdf-view-mode-map (kbd "<mouse-5>") 'pdf-view-next-line-or-next-page)
          (define-key pdf-view-mode-map (kbd "<mouse-4>") 'pdf-view-previous-line-or-previous-page))
         (t
+         (setq-local mwheel-scroll-up-function #'pdf-view-scroll-up-or-next-page
+                     mwheel-scroll-down-function #'pdf-view-scroll-down-or-previous-page)
          (remove-hook 'window-size-change-functions 'image-roll-redisplay t)
 
          (remove-hook 'image-mode-new-window-functions 'image-roll-new-window-function t)
@@ -82,9 +86,7 @@ continuous scrolling."
            (remove-overlays)
            (insert-file-contents-literally (buffer-file-name))
            (pdf-view-new-window-function (list (selected-window)))
-           (set-buffer-modified-p nil))
-         (define-key pdf-view-mode-map (kbd "<mouse-5>") 'mwheel-scroll)
-         (define-key pdf-view-mode-map (kbd "<mouse-4>") 'mwheel-scroll))))
+           (set-buffer-modified-p nil)))))
 
 (provide 'pdf-roll)
 
