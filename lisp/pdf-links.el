@@ -30,6 +30,8 @@
 (require 'org)
 (eval-when-compile (require 'image-roll nil t))
 
+
+(defvar pdf-view-roll-minor-mode)
 ;;; Code:
 
 
@@ -104,7 +106,7 @@ do something with it."
 
 ;;;###autoload
 (define-minor-mode pdf-links-minor-mode
-  "Handle links in PDF documents.\\<pdf-links-minor-mode-map>
+  "Handle links in PDF documents.
 
 If this mode is enabled, most links in the document may be
 activated by clicking on them or by pressing \\[pdf-links-action-perform] and selecting
@@ -152,7 +154,7 @@ links via \\[pdf-links-isearch-link].
     (nreverse hotspots)))
 
 (defun pdf-links-action-to-string (link)
-  "Return a string representation of ACTION."
+  "Return a string representation of action for LINK."
   (let-alist link
     (concat
      (cl-case .type
