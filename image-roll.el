@@ -326,7 +326,9 @@ is a substitute for the `pdf-view-redisplay' function)."
   (setq window (if (window-live-p window) window (selected-window)))
   (when (and (memq 'image-roll-new-window-function image-mode-new-window-functions)
              (eq (current-buffer) (window-buffer window)))
-    (image-mode-winprops window t)
+    (if (equal (buffer-substring (point-min) (1+ (point-min))) "%")
+        (image-roll-new-window-function `(,(selected-window)))
+      (image-mode-winprops window t))
     (with-selected-window window
       (let* ((page-sizes (when image-roll-page-sizes-function
                            (funcall image-roll-page-sizes-function)))
@@ -369,11 +371,9 @@ is a substitute for the `pdf-view-redisplay' function)."
         (set-window-start nil
                           (goto-char (overlay-start (nth (1- p) (image-roll-overlays))))
                           t)
-        ;; (redisplay)
         ;; TODO implement in redisplay, `fractional vscroll' (in page units)
         (image-set-window-vscroll (or (image-mode-window-get 'vscroll)
                                       image-roll-vertical-margin))
-
         (image-set-window-hscroll (or (image-mode-window-get 'hscroll)
                                       0))))))
 
