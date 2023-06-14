@@ -35,7 +35,13 @@
 (require 'pdf-info)
 (require 'pdf-util)
 
-(declare-function pdf-view-mode "pdf-view.el")
+;; quiet byte-compiler warning
+(eval-when-compile
+  (defvar pdf-view-mode-map)
+  (declare-function pdf-view-goto-page "pdf-view.el")
+  (declare-function image-mode-window-get "image-mode.el")
+  (declare-function pdf-view-mode "pdf-view.el"))
+
 
 ;; * ================================================================== *
 ;; * Variables

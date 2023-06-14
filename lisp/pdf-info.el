@@ -51,6 +51,12 @@
 (require 'tq)
 (require 'cl-lib)
 
+(eval-when-compile
+  (declare pdf-util-frame-scale-factor "pdf-util")
+  (declare pdf-util-hexcolor "pdf-util")
+  (declare pdf-util-munch-file "pdf-util")
+  (declare pdf-util-highlight-regexp-in-string "pdf-util")
+  (declare pdf-view-buffer-file-name "pdf-view"))
 
 
 ;; * ================================================================== *

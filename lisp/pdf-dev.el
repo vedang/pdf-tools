@@ -25,6 +25,12 @@
 
 ;;; Code:
 
+(eval-when-compile
+  (defvar pdf-info-epdfinfo-program)
+  (defvar pdf-info-restart-process-p)
+  (declare-function pdf-info-process-assert-running "pdf-info")
+  (declare-function pdf-info-quit "pdf-info"))
+
 (defvar pdf-dev-root-directory
   (file-name-directory
    (directory-file-name

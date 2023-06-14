@@ -27,6 +27,11 @@
 (require 'pdf-info)
 (require 'pdf-util)
 
+(eval-when-compile
+  (declare-function pdf-view-desired-image-size "pdf-view")
+  (declare-function pdf-view-create-page "pdf-view")
+  (declare-function image-mode-window-get "image-mode"))
+
 
 ;; * ================================================================== *
 ;; * Customiazations
