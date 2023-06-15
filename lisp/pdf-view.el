@@ -1155,8 +1155,13 @@ If DISPLAYED-P is non-nil, return the size of the displayed
 image.  These values may be different, if slicing is used."
   (if displayed-p
       (with-selected-window (or window (selected-window))
-        (image-display-size
-         (image-get-display-property) t))
+        (let ((display-prop (image-get-display-property)))
+          (if (eq (car display-prop) 'space)
+              (progn (cl-callf cdr display-prop)
+                     (cons (car (plist-get display-prop :width))
+                           (car (plist-get display-prop :height))))
+            (image-display-size
+             (image-get-display-property) t))))
     (image-size (pdf-view-current-image window) t)))
 
 (defun pdf-view-image-offset (&optional window)

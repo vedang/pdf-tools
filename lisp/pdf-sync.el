@@ -277,15 +277,18 @@ Has no effect if `pdf-sync-backward-use-heuristic' is nil."
          (xy (posn-object-x-y posn)))
     (unless image
       (error "Outside of image area"))
-    (pdf-sync-backward-search (car xy) (cdr xy))))
+    (pdf-sync-backward-search
+     (car xy) (cdr xy)
+     (and (bound-and-true-p pdf-view-roll-minor-mode)
+          (/ (1+ (posn-point posn)) 2)))))
 
-(defun pdf-sync-backward-search (x y)
-  "Go to the source corresponding to image coordinates X, Y.
+(defun pdf-sync-backward-search (x y &optional page)
+  "Go to the source corresponding to image coordinates X, Y on PAGE.
 
 Try to find the exact position, if
 `pdf-sync-backward-use-heuristic' is non-nil."
   (cl-destructuring-bind (source finder)
-      (pdf-sync-backward-correlate x y)
+      (pdf-sync-backward-correlate x y page)
     (pop-to-buffer (or (find-buffer-visiting source)
                        (find-file-noselect source))
                    pdf-sync-backward-display-action)
@@ -293,8 +296,8 @@ Try to find the exact position, if
     (funcall finder)
     (run-hooks 'pdf-sync-backward-hook)))
 
-(defun pdf-sync-backward-correlate (x y)
-  "Find the source corresponding to image coordinates X, Y.
+(defun pdf-sync-backward-correlate (x y &optional page)
+  "Find the source corresponding to image coordinates X, Y on PAGE.
 
 Returns a list \(SOURCE FINDER\), where SOURCE is the name of the
 TeX file and FINDER a function of zero arguments which, when
@@ -303,7 +306,7 @@ point to the correct position."
 
   (pdf-util-assert-pdf-window)
   (let ((size (pdf-view-image-size))
-        (page (pdf-view-current-page)))
+        (page (or page (pdf-view-current-page))))
     (setq x (/ x (float (car size)))
           y (/ y (float (cdr size))))
     (let-alist (pdf-info-synctex-backward-search page x y)
