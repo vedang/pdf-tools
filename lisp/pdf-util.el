@@ -28,6 +28,7 @@
 (require 'pdf-macs)
 (require 'cl-lib)
 (require 'format-spec)
+(require 'image-mode)
 (require 'faces)
 
 ;; These functions are only used after a PdfView window was asserted,
@@ -40,6 +41,7 @@
 (declare-function image-set-window-vscroll "image-mode")
 (declare-function image-set-window-hscroll "image-mode")
 
+(defvar pdf-view-roll-minor-mode)
 
 
 ;; * ================================================================== *
@@ -642,10 +644,9 @@ string."
                        (cdr (pdf-view-image-offset))
                        (window-vscroll nil t)
                        (frame-char-height))))
-    (when (overlay-get (pdf-view-current-overlay) 'before-string)
-      (let* ((e (window-inside-pixel-edges))
-             (xw (pdf-util-with-edges (e) e-width)))
-        (cl-incf dx (/ (- xw (car (pdf-view-image-size t))) 2))))
+    (let* ((e (window-inside-pixel-edges))
+           (xw (pdf-util-with-edges (e) e-width)))
+      (cl-incf dx (/ (- xw (car (pdf-view-image-size t))) 2)))
     (pdf-util-tooltip-in-window
      (propertize
       " " 'display (propertize
