@@ -1139,9 +1139,6 @@ See also `pdf-view-use-imagemagick'."
          (hotspots (pdf-view-apply-hotspot-functions
                     window page size)))
     (pdf-view-create-image data
-      :margin (cons 0 (if pdf-view-roll-minor-mode
-                          image-roll-vertical-margin
-                        0))
       :width (car size)
       :rotation (or pdf-view--current-rotation 0)
       :map hotspots
@@ -1210,8 +1207,8 @@ It is equal to \(LEFT . TOP\) of the current slice in pixel."
                               displayed-width)
                        (propertize " " 'display
                                    `(space :align-to
-                                           ,(/ (- (window-width window)
-                                                  displayed-width) 2)))))
+                                     ,(/ (- (window-width window)
+                                            displayed-width) 2)))))
         (overlay-put ol 'display
                      (if slice
                          (list (cons 'slice
@@ -1449,7 +1446,7 @@ current theme's colors."
   (pdf-util-assert-pdf-buffer)
   (pdf-cache-clear-images)
   (when get-theme
-	(pdf-view-set-theme-background))
+    (pdf-view-set-theme-background))
   (pdf-view-redisplay t))
 
 (define-minor-mode pdf-view-themed-minor-mode

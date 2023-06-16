@@ -263,10 +263,7 @@ See `pdf-links-action-perform' for the interface."
                               :apply (pdf-util-scale-relative-to-pixel
                                       (mapcar (lambda (l) (cdr (assq 'edges l)))
                                               (pop links))))
-                             (pdf-view-image-type) t
-                             :margin (cons 0 (if pdf-view-roll-minor-mode
-                                                 image-roll-vertical-margin
-                                               0)))
+                             (pdf-view-image-type) t)
                page))
             (pdf-links-read-link-action--read-chars prompt alist))
         (pdf-view-redisplay)))))

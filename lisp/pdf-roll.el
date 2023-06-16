@@ -56,6 +56,7 @@ continuous scrolling."
                      image-roll-page-sizes-function 'pdf-roll-page-sizes
                      image-roll-set-redisplay-flag-function 'pdf-roll-set-redisplay-flag-function
                      image-roll-center t
+                     line-spacing image-roll-vertical-margin
                      mwheel-scroll-up-function #'image-roll-scroll-forward
                      mwheel-scroll-down-function #'image-roll-scroll-backward)
 
