@@ -37,14 +37,14 @@
   (setf (pdf-view-window-needs-redisplay) t))
 
 (define-minor-mode pdf-view-roll-minor-mode
-  "If enabled display document on a virtual scroll providing
-continuous scrolling."
+  "If enabled display document on a virtual scroll providing continuous scrolling."
   :lighter " Continuous"
   :keymap (let ((map (make-sparse-keymap)))
             (define-key map [remap pdf-view-previous-line-or-previous-page] 'image-roll-scroll-backward)
             (define-key map [remap pdf-view-next-line-or-next-page] 'image-roll-scroll-forward)
-            (define-key map "<wheel-down>" 'image-roll-scroll-mouse-wheel)
-            (define-key map "<wheel-up>" 'image-roll-scroll-mouse-wheel)
+            (define-key map [remap mouse-set-point] 'ignore)
+            (define-key map (kbd "<wheel-down>") 'image-roll-scroll-mouse-wheel)
+            (define-key map (kbd "<wheel-up>") 'image-roll-scroll-mouse-wheel)
             (define-key map (kbd "S-<next>") 'image-roll-scroll-screen-forward)
             (define-key map (kbd "S-<prior>") 'image-roll-scroll-screen-backward)
             map)
@@ -60,7 +60,8 @@ continuous scrolling."
                      mwheel-scroll-up-function #'image-roll-scroll-forward
                      mwheel-scroll-down-function #'image-roll-scroll-backward)
 
-         (add-hook 'window-size-change-functions 'image-roll-redisplay nil t)
+         (add-hook 'window-size-change-functions 'image-roll-window-size-change-function nil t)
+         (add-hook 'window-configuration-change-hook 'image-roll-window-configuration-change-hook nil t)
 
          (remove-hook 'image-mode-new-window-functions
                       #'pdf-view-new-window-function t)
@@ -79,14 +80,16 @@ continuous scrolling."
         (t
          (setq-local mwheel-scroll-up-function #'pdf-view-scroll-up-or-next-page
                      mwheel-scroll-down-function #'pdf-view-scroll-down-or-previous-page)
-         (remove-hook 'window-size-change-functions 'image-roll-redisplay t)
+
+         (remove-hook 'window-size-change-functions 'image-roll-window-size-change-function t)
+         (remove-hook 'window-configuration-change-hook 'image-roll-window-configuration-change-hook)
 
          (remove-hook 'image-mode-new-window-functions 'image-roll-new-window-function t)
          (add-hook 'image-mode-new-window-functions
                    #'pdf-view-new-window-function nil t)
 
-         (remove-hook 'pdf-view-after-change-page-hook
-                      #'pdf-history-before-change-page-hook t)
+         (remove-hook 'image-roll-after-change-page-hook
+                      'pdf-history-before-change-page-hook t)
 
          (let ((inhibit-read-only t))
            (erase-buffer)

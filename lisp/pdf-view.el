@@ -43,7 +43,7 @@
 (declare-function image-roll-scroll-forward "image-roll")
 (declare-function image-roll-scroll-backward "image-roll")
 (declare-function image-roll-next-page "image-roll")
-(declare-function image-roll-redisplay "image-roll")
+(declare-function image-roll-window-size-change-function "image-roll")
 
 (defvar pdf-view-roll-minor-mode)
 
@@ -1247,7 +1247,7 @@ If WINDOW is t, redisplay pages in all windows."
 
 (defun pdf-view-redisplay (&optional window)
   (if pdf-view-roll-minor-mode
-      (image-roll-redisplay window)
+      (image-roll-window-size-change-function window)
     (pdf-view--redisplay window)))
 
 (defun pdf-view-redisplay-pages (&rest pages)
