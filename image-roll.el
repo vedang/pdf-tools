@@ -159,6 +159,10 @@ start (this choice was made in order to simplify the scrolling
 logic)"
   `(image-mode-window-get 'page ,window))
 
+(defmacro image-roll-displayed-pages (&optional window)
+  "Return list of pages currently displayed in WINDOW."
+  `(image-mode-window-get 'displayed-pages ,window))
+
 (defsubst image-roll-page-to-pos (page)
   "Get the buffer position displaing PAGE."
   (1- (* 2 page)))
@@ -175,10 +179,6 @@ logic)"
   (if (cl-oddp (point))
       (/ (1+ (point)) 2)
     (error "No page is displayed at current position")))
-
-(defmacro image-roll-displayed-pages (&optional window)
-  "Return list of pages currently displayed in WINDOW."
-  `(image-mode-window-get 'displayed-pages ,window))
 
 (defsubst image-roll-overlay-height (page &optional window)
   "Get the height of overlay displaying PAGE on WINDOW."
@@ -283,9 +283,9 @@ overlays."
   (image-mode-window-put 'hscroll hscroll win)
   (set-window-hscroll win hscroll))
 
-(defun image-roll-window-state-change-function (win)
+(defun image-roll-window-configuration-change-hook (&optional win)
   "Handle state change for window WIN.
-It should be added to `window-state-change-functions' buffer locally."
+It should be added to `window-configuration-change-hook' buffer locally."
   (when-let (((memq 'image-roll-new-window-function image-mode-new-window-functions))
              (p (image-mode-window-get 'page win)))
     (set-window-start win (goto-char (1- (* 2 p))) t)
@@ -304,18 +304,11 @@ It should be added to `window-state-change-functions' buffer locally."
                            (- sumheights (window-text-height nil t)))
                          window))
 
-(defun image-roll-redisplay (&optional window _no-relative-vscroll)
-  "Redisplay the scroll.
+(defun image-roll-window-size-change-function (&optional window _no-relative-vscroll)
+  "Redisplay the scroll in WINDOW.
 Besides that this function can be called directly, it should also
-be added to the `window-configuration-change-hook'.
-
-The argument WINDOW is not used in the body, but it exists to
-make the function compatible with `pdf-tools' (in which case it
-is a substitute for the `pdf-view-redisplay' function)."
-
-  ;; NOTE the `(when (listp image-mode-winprops-alist)' from
-  ;; `image-mode-reapply-winprops' was removed here (but in the end might turn
-  ;; out to be required)
+be added to the `window-size-change-function'. It is a substitute for the
+`pdf-view-redisplay' function."
 
   ;; Beware: this call to image-mode-winprops can't be optimized away, because
   ;; it not only gets the winprops data but sets it up if needed (e.g. it's used
@@ -361,7 +354,7 @@ is a substitute for the `pdf-view-redisplay' function)."
       (image-roll-update-vscroll-limit displayed window))
     ;; we only need to jump to the right page, the vscroll is conserved and if
     ;; required can be set to 0 before the redisplay
-    (image-roll-window-state-change-function window)))
+    (image-roll-window-configuration-change-hook window)))
 
 (defun image-roll-update-displayed-pages (&optional window)
   "Update the pages displayed in WINDOW."
@@ -546,7 +539,7 @@ This function is used for the image-roll-demo."
   ;; reapplies the vscroll, so we simply initialize the
   ;; `image-mode-winprops-alist' here, and add lines from
   ;; `image-mode-reapply-winprops' at the start of `image-roll-redisplay'.
-  (add-hook 'window-size-change-functions 'image-roll-redisplay nil t)
+  (add-hook 'window-size-change-functions 'image-roll-window-size-change-function nil t)
   (add-hook 'image-mode-new-window-functions 'image-roll-new-window-function nil t)
   (unless (listp image-mode-winprops-alist)
     (setq image-mode-winprops-alist nil)))
