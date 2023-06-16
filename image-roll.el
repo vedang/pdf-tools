@@ -523,6 +523,16 @@ When SCREEN is non-nil, scroll by window height."
   (interactive)
   (image-roll-scroll-forward t t))
 
+(defun image-roll-scroll-mouse-wheel (event)
+  "Scroll according to mouse wheel EVENT."
+  (interactive "e")
+  (with-selected-window (posn-window (event-start event))
+    (image-roll-scroll-forward
+     (pcase (event-basic-type event)
+       ('wheel-down nil)
+       ('wheel-up t)
+       (_ (error "Event must be wheel down or wheel up event"))))))
+
 (defun image-roll-quick-scroll ()
   (interactive)
   (dotimes (_i 200)
@@ -574,6 +584,8 @@ This function is used for the image-roll-demo."
         (define-key map (kbd "<down>") 'image-roll-scroll-forward)
         (define-key map (kbd "C-p") 'image-roll-scroll-backward)
         (define-key map (kbd "<up>") 'image-roll-scroll-backward)
+        (define-key map (kbd "<wheel-up>") 'image-roll-scroll-mouse-wheel)
+        (define-key map (kbd "<wheel-down>") 'image-roll-scroll-mouse-wheel)
         (define-key map (kbd "<mouse-5>") 'image-roll-scroll-forward)
         (define-key map (kbd "<mouse-4>") 'image-roll-scroll-backward)
         (define-key map "n" 'image-roll-next-page)
