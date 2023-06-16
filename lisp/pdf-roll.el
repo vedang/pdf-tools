@@ -40,8 +40,14 @@
   "If enabled display document on a virtual scroll providing
 continuous scrolling."
   :lighter " Continuous"
-  :keymap `((,(kbd "S-<next>") . image-roll-scroll-screen-forward)
-            (,(kbd "S-<prior>") . image-roll-scroll-screen-backward))
+  :keymap (let ((map (make-sparse-keymap)))
+            (define-key map [remap pdf-view-previous-line-or-previous-page] 'image-roll-scroll-backward)
+            (define-key map [remap pdf-view-next-line-or-next-page] 'image-roll-scroll-forward)
+            (define-key map "<wheel-down>" 'image-roll-scroll-mouse-wheel)
+            (define-key map "<wheel-up>" 'image-roll-scroll-mouse-wheel)
+            (define-key map (kbd "S-<next>") 'image-roll-scroll-screen-forward)
+            (define-key map (kbd "S-<prior>") 'image-roll-scroll-screen-backward)
+            map)
   :version 28.1
 
   (cond (pdf-view-roll-minor-mode
@@ -56,7 +62,7 @@ continuous scrolling."
          (add-hook 'window-size-change-functions 'image-roll-redisplay nil t)
 
          (remove-hook 'image-mode-new-window-functions
-	                    #'pdf-view-new-window-function t)
+                      #'pdf-view-new-window-function t)
          (add-hook 'image-mode-new-window-functions 'image-roll-new-window-function nil t)
 
          (add-hook 'image-roll-after-change-page-hook 'pdf-history-before-change-page-hook nil t)
@@ -76,7 +82,7 @@ continuous scrolling."
 
          (remove-hook 'image-mode-new-window-functions 'image-roll-new-window-function t)
          (add-hook 'image-mode-new-window-functions
-	                    #'pdf-view-new-window-function nil t)
+                   #'pdf-view-new-window-function nil t)
 
          (remove-hook 'pdf-view-after-change-page-hook
                       #'pdf-history-before-change-page-hook t)
