@@ -240,38 +240,35 @@ WINPROPS are the initial window properties.
 This function should be added to image-roll (continuous scroll)
 minor mode commands, after erasing the buffer to create the
 overlays."
-  (let ((win (or (car winprops) (selected-window))))
-    (with-current-buffer (window-buffer win)
-      (if (not (overlays-at 1))
-          (let (overlays
-                (pages image-roll-last-page)
-                (inhibit-read-only t))
+  (let ((win (or (and (windowp (car winprops)) (car winprops)) (selected-window))))
+    (if (not (overlays-at 1))
+        (let ((pages image-roll-last-page)
+              (inhibit-read-only t))
 
-            (erase-buffer)
+          (erase-buffer)
 
-            ;; here we only add the 'page' and 'window' overlay-properties, we add
-            ;; more properties/information as soon as it becomes available in the
-            ;; 'image-roll-redisplay' function
-            (dotimes (i pages)
-              (insert " ")
-              (let ((o (make-overlay (1- (point)) (point))))
-                (overlay-put o 'page  (1+ i))
-                (overlay-put o 'window win)
-                (push o overlays))
-              (insert "\n"))
-            (delete-char -1)
-            (set-buffer-modified-p nil)
+          ;; here we only add the 'page' and 'window' overlay-properties, we add
+          ;; more properties/information as soon as it becomes available in the
+          ;; 'image-roll-redisplay' function
+          (dotimes (i pages)
+            (insert " ")
+            (let ((o (make-overlay (1- (point)) (point))))
+              (overlay-put o 'page  (1+ i))
+              (overlay-put o 'window win))
+            (insert "\n"))
+          (delete-char -1)
+          (set-buffer-modified-p nil)
 
-            ;; required to make `pdf-view-redisplay-some-windows' call `pdf-view-redisplay'
-            (when-let (fun image-roll-set-redisplay-flag-function)
-              (funcall fun)))
-        (dotimes (i (/ (point-max) 2))
-          (overlay-put (copy-overlay (car (overlays-at (1+ (* 2 i)))))
-                       'window (car winprops))))
+          ;; required to make `pdf-view-redisplay-some-windows' call `pdf-view-redisplay'
+          (when-let (fun image-roll-set-redisplay-flag-function)
+            (funcall fun)))
+      (dotimes (i (/ (point-max) 2))
+        (overlay-put (copy-overlay (car (overlays-at (1+ (* 2 i)))))
+                     'window (car winprops))))
 
-      ;; initial `image-roll-redisplay' needs to know which page(s) to display
-      (setf (image-roll-current-page (car winprops))
-            (or (image-roll-current-page (car winprops)) 1)))))
+    ;; initial `image-roll-redisplay' needs to know which page(s) to display
+    (setf (image-roll-current-page (car winprops))
+          (or (image-roll-current-page (car winprops)) 1))))
 
 (defun image-roll-set-vscroll (vscroll win)
   "Set vscroll to VSCROLL in window WIN."
@@ -307,7 +304,7 @@ It should be added to `window-configuration-change-hook' buffer locally."
 (defun image-roll-window-size-change-function (&optional window _no-relative-vscroll)
   "Redisplay the scroll in WINDOW.
 Besides that this function can be called directly, it should also
-be added to the `window-size-change-function'. It is a substitute for the
+be added to the `window-size-change-functions'. It is a substitute for the
 `pdf-view-redisplay' function."
 
   ;; Beware: this call to image-mode-winprops can't be optimized away, because
@@ -316,7 +313,7 @@ be added to the `window-size-change-function'. It is a substitute for the
   (setq window (if (window-live-p window) window (selected-window)))
   (when (and (memq 'image-roll-new-window-function image-mode-new-window-functions)
              (eq (current-buffer) (window-buffer window)))
-    (if (equal (buffer-substring (point-min) (1+ (point-min))) "%")
+    (if (and (> (point-max) 1) (equal (buffer-substring (point-min) (1+ (point-min))) "%"))
         (image-roll-new-window-function `(,window))
       (image-mode-winprops window t))
     (let* ((page-sizes (when image-roll-page-sizes-function
