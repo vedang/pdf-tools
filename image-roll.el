@@ -405,17 +405,15 @@ be added to the `window-size-change-functions'. It is a substitute for the
   (image-roll-next-page (- n)))
 
 
-(defun image-roll-scroll-forward (&optional backward screen window)
-  "Scroll image forward by `image-roll-step-size' in WINDOW.
-When BACKWARD is non-nil, scroll backward instead.
-When SCREEN is non-nil, scroll by window height."
+(defun image-roll-scroll-forward (&optional backward step-size window)
+  "Scroll image forward by STEP-SIZE in WINDOW.
+By default STEP SIZE is `image-roll-step-size'. When BACKWARD is non-nil,
+scroll backward instead."
   (interactive)
   (let* ((current-page (image-roll-current-page window))
          (new-page current-page)
          (visible-pages-vscroll-limit (image-mode-window-get 'visible-pages-vscroll-limit window))
-         (step-size (if screen
-                        (* (window-text-height window t) 0.9)
-                      image-roll-step-size))
+         (step-size (or step-size image-roll-step-size))
 
          ;; determine number of pages to forward/backward (e.g. when scrolling a
          ;; full screen the images/pages are small). We subtract, from the step
@@ -470,17 +468,22 @@ When SCREEN is non-nil, scroll by window height."
            (run-hooks 'image-roll-after-change-page-hook)
            (image-roll-update-displayed-pages window)))))
 
-(defun image-roll-scroll-backward ()
+(defun image-roll-scroll-backward (&optional step-size)
+  "Scroll backward by STEP-SIZE."
   (interactive)
-  (image-roll-scroll-forward t))
+  (image-roll-scroll-forward t step-size))
 
-(defun image-roll-scroll-screen-forward ()
+(defun image-roll-scroll-screen-forward (&optional backward)
+  "Scroll forward by almost a full screen.
+Id BACKWARD is non-nil scroll backward instead."
   (interactive)
-  (image-roll-scroll-forward nil t))
+  (image-roll-scroll-forward
+   backward (* (window-text-height nil t) 0.9)))
 
 (defun image-roll-scroll-screen-backward ()
+  "SCROLL backward by almost a full screen."
   (interactive)
-  (image-roll-scroll-forward t t))
+  (image-roll-scroll-screen-forward t))
 
 (defun image-roll-scroll-mouse-wheel (event)
   "Scroll according to mouse wheel EVENT."
