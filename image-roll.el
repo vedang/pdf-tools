@@ -82,9 +82,7 @@
   :version "28.1")
 
 (defcustom image-roll-vertical-margin 2
-  "Vertical margin around image (pixels), i.e. page separation height.
-Because the margin is added to both sides of each page, the page
-separation height is twice this value."
+  "Vertical margin between images in pixels, i.e. page separation height."
   :type 'integer)
 
 (defcustom image-roll-overlay-face-bg-color "gray"
@@ -93,7 +91,7 @@ separation height is twice this value."
 
 (defcustom image-roll-step-size 50
   "Scroll step size in pixels units."
-  :type '(choice function integer float))
+  :type 'integer)
 
 (defcustom image-roll-center nil
   "When non-nil, center the roll horizontally in the window."
@@ -285,12 +283,9 @@ overlays."
 It should be added to `window-configuration-change-hook' buffer locally."
   (when-let (((memq 'image-roll-new-window-function image-mode-new-window-functions))
              (p (image-mode-window-get 'page win)))
-    (goto-char (1- (* 2 p))) t
-    (image-roll-set-vscroll (or (image-mode-window-get 'vscroll win)
-                                image-roll-vertical-margin)
-                            win)
-    (image-roll-set-hscroll (or (image-mode-window-get 'hscroll) 0)
-                            win)))
+    (goto-char (1- (* 2 p)))
+    (image-roll-set-vscroll (or (image-mode-window-get 'vscroll win) 0) win)
+    (image-roll-set-hscroll (or (image-mode-window-get 'hscroll) 0) win)))
 
 (defun image-roll-update-vscroll-limit (displayed &optional window)
   "Update the total available vscroll from DISPLAYED pages on WINDOW."
@@ -298,7 +293,7 @@ It should be added to `window-configuration-change-hook' buffer locally."
                          (let ((sumheights 0))
                            (dolist (page displayed)
                              (cl-incf sumheights (image-roll-overlay-height page window)))
-                           (- sumheights (window-text-height nil t)))
+                           (- sumheights (window-text-height window t)))
                          window))
 
 (defun image-roll-window-size-change-function (&optional window _no-relative-vscroll)
