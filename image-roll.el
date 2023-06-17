@@ -285,7 +285,7 @@ overlays."
 It should be added to `window-configuration-change-hook' buffer locally."
   (when-let (((memq 'image-roll-new-window-function image-mode-new-window-functions))
              (p (image-mode-window-get 'page win)))
-    (set-window-start win (goto-char (1- (* 2 p))) t)
+    (goto-char (1- (* 2 p))) t
     (image-roll-set-vscroll (or (image-mode-window-get 'vscroll win)
                                 image-roll-vertical-margin)
                             win)
