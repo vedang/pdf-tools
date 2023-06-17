@@ -21,6 +21,7 @@
 ;;; Commentary:
 ;;
 
+;;; Code:
 (require 'image-roll)
 (require 'pdf-view)
 
@@ -29,11 +30,14 @@
 
 
 (defun pdf-roll-page-sizes ()
+  "Return a list of (WIDTH . HEIGHT) cons cells for all pages."
   (let (s)
-    (dotimes (i (pdf-info-number-of-pages) (nreverse s))
-      (push (pdf-view-desired-image-size (1+ i)) s))))
+    (dotimes (i (pdf-info-number-of-pages))
+      (push (pdf-view-desired-image-size (1+ i)) s))
+    (nreverse s)))
 
 (defun pdf-roll-set-redisplay-flag-function ()
+  "Set redisplay flag for pdf."
   (setf (pdf-view-window-needs-redisplay) t))
 
 (define-minor-mode pdf-view-roll-minor-mode
@@ -62,9 +66,10 @@
 
          (add-hook 'window-size-change-functions 'image-roll-window-size-change-function nil t)
          (add-hook 'window-configuration-change-hook 'image-roll-window-configuration-change-hook nil t)
+         (remove-hook 'window-configuration-change-hook 'image-mode-reapply-winprops t)
+         (remove-hook 'window-configuration-change-hook 'pdf-view-redisplay-some-windows t)
 
-         (remove-hook 'image-mode-new-window-functions
-                      #'pdf-view-new-window-function t)
+         (remove-hook 'image-mode-new-window-functions#'pdf-view-new-window-function t)
          (add-hook 'image-mode-new-window-functions 'image-roll-new-window-function nil t)
 
          (add-hook 'image-roll-after-change-page-hook 'pdf-history-before-change-page-hook nil t)
@@ -81,6 +86,8 @@
          (setq-local mwheel-scroll-up-function #'pdf-view-scroll-up-or-next-page
                      mwheel-scroll-down-function #'pdf-view-scroll-down-or-previous-page)
 
+         (add-hook 'window-configuration-change-hook 'image-mode-reapply-winprops nil t)
+         (add-hook 'window-configuration-change-hook 'pdf-view-redisplay-some-windows nil t)
          (remove-hook 'window-size-change-functions 'image-roll-window-size-change-function t)
          (remove-hook 'window-configuration-change-hook 'image-roll-window-configuration-change-hook)
 
