@@ -490,14 +490,12 @@ When SCREEN is non-nil, scroll by window height."
 (defun image-roll-scroll-mouse-wheel (event)
   "Scroll according to mouse wheel EVENT."
   (interactive "e")
-  (let ((win (posn-window (event-start event))))
-    (with-current-buffer (window-buffer win)
-      (image-roll-scroll-forward
-       (pcase (event-basic-type event)
-         ('wheel-down nil)
-         ('wheel-up t)
-         (_ (error "Event must be wheel down or wheel up event")))
-       nil win))))
+  (with-selected-window (posn-window (event-start event))
+    (image-roll-scroll-forward
+     (pcase (event-basic-type event)
+       ('wheel-down nil)
+       ('wheel-up t)
+       (_ (error "Event must be wheel down or wheel up event"))))))
 
 (defun image-roll-quick-scroll ()
   (interactive)
