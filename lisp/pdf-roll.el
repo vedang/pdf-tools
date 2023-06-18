@@ -29,17 +29,6 @@
   (require 'pdf-view))
 
 
-(defun pdf-roll-page-sizes ()
-  "Return a list of (WIDTH . HEIGHT) cons cells for all pages."
-  (let (s)
-    (dotimes (i (pdf-info-number-of-pages))
-      (push (pdf-view-desired-image-size (1+ i)) s))
-    (nreverse s)))
-
-(defun pdf-roll-set-redisplay-flag-function ()
-  "Set redisplay flag for pdf."
-  (setf (pdf-view-window-needs-redisplay) t))
-
 (define-minor-mode pdf-view-roll-minor-mode
   "If enabled display document on a virtual scroll providing continuous scrolling."
   :lighter " Continuous"
@@ -57,8 +46,6 @@
   (cond (pdf-view-roll-minor-mode
          (setq-local image-roll-last-page (pdf-cache-number-of-pages)
                      image-roll-display-page-function 'pdf-view-display-page
-                     image-roll-page-sizes-function 'pdf-roll-page-sizes
-                     image-roll-set-redisplay-flag-function 'pdf-roll-set-redisplay-flag-function
                      image-roll-center t
                      line-spacing image-roll-vertical-margin
                      mwheel-scroll-up-function #'image-roll-scroll-forward
