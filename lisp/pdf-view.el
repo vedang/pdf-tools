@@ -747,6 +747,7 @@ windows."
         (setf (pdf-view-current-page window) page)
         (run-hooks 'pdf-view-change-page-hook))
       (when (window-live-p window)
+        (image-set-window-vscroll 0)
         (pdf-view-redisplay window))
       (when changing-p
         (pdf-view-deactivate-region)
@@ -1156,9 +1157,12 @@ image.  These values may be different, if slicing is used."
       (with-selected-window (or window (selected-window))
         (image-display-size
          (if pdf-view-roll-minor-mode
-             (overlay-get
-              (image-roll-page-overlay (image-roll-page-at-current-pos) window)
-              'display)
+             (progn (unless (memq (pdf-view-current-page)
+                                  (image-mode-window-get 'displayed-pages window))
+                      (pdf-view-display-page (pdf-view-current-page) window))
+                    (overlay-get
+                     (image-roll-page-overlay (image-roll-page-at-current-pos) window)
+                     'display))
            (image-get-display-property))
          t))
     (image-size (pdf-view-current-image window) t)))
@@ -1188,7 +1192,7 @@ It is equal to \(LEFT . TOP\) of the current slice in pixel."
 (defun pdf-view-display-image (image page &optional window inhibit-slice-p)
   ;; TODO: write documentation!
   (let ((ol (if pdf-view-roll-minor-mode
-                (image-roll-page-overlay page)
+                (image-roll-page-overlay page window)
               (pdf-view-current-overlay window))))
     (when (window-live-p (overlay-get ol 'window))
       (let* ((size (image-size image t))
@@ -1249,7 +1253,7 @@ If WINDOW is t, redisplay pages in all windows."
 
 (defun pdf-view-redisplay (&optional window)
   (if pdf-view-roll-minor-mode
-      (image-roll-redisplay)
+      (image-roll-redisplay window)
     (pdf-view--redisplay window)))
 
 (defun pdf-view-redisplay-pages (&rest pages)
