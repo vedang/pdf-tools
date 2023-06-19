@@ -632,7 +632,9 @@ string."
          (dy image-top)
          (pos (list dx dy dx (+ dy (* 2 (frame-char-height)))))
          (vscroll
-          (pdf-util-required-vscroll pos))
+          (if pdf-view-roll-minor-mode
+            image-top
+            (pdf-util-required-vscroll pos)))
          (tooltip-frame-parameters
           `((border-width . 0)
             (internal-border-width . 0)
