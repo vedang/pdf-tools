@@ -114,6 +114,10 @@ argument (PAGE). The function should use `(image-roll-page-overlay
 PAGE)' to add the image of the page as the overlay's
 display-property.")
 
+;;; Other Variables
+(defvar-local image-roll--last-state nil
+  "Local variable that tracks window, point and vscroll to handle changes.")
+
 ;;; Utility Macros and inline functions
 (defmacro image-roll-current-page (&optional window)
   "Return the page number of the currently displayed page in WINDOW.
@@ -194,7 +198,10 @@ overlays."
             (overlay-put (copy-overlay (car (overlays-at (1+ (* 2 i)))))
                          'window win))))
     ;; initial `image-roll-redisplay' needs to know which page(s) to display
-    (cl-callf or (image-roll-current-page win) 1)))
+    (unless image-roll--last-state
+      (setq image-roll--last-state (list t)))
+    (cl-callf or (image-roll-current-page win) 1)
+    (image-roll-redisplay)))
 
 (defun image-roll-set-vscroll (vscroll win)
   "Set vscroll to VSCROLL in window WIN."
@@ -231,28 +238,21 @@ If FORCE is non-nill redisplay a page even if it is already displayed."
 
 (defun image-roll-redisplay (&optional window)
   "Analogue of `pdf-view-redisplay' for WINDOW."
-  (let* ((destination (image-roll-page-to-pos (image-roll-current-page window)))
-         (no-jumpp (eq destination (point)))
-         (vscroll (image-mode-window-get 'vscroll window)))
-    (goto-char destination)
-    (image-roll--goto-point (if no-jumpp vscroll 0) window t no-jumpp)))
+  (goto-char (image-roll-page-to-pos (image-roll-current-page window))))
 
-(defun image-roll-window-size-change-function (&optional window)
-  "Redisplay the scroll in WINDOW.
-Besides that this function can be called directly, it should also
-be added to the `window-size-change-functions'. It is a substitute for the
-`pdf-view-redisplay' function."
-
-  ;; Beware: this call to image-mode-winprops can't be optimized away, because
-  ;; it not only gets the winprops data but sets it up if needed (e.g. it's used
-  ;; by doc-view to display the image in a new window).
-  (setq window (if (window-live-p window) window (selected-window)))
-  (when (and (memq 'image-roll-new-window-function image-mode-new-window-functions)
-             (eq (current-buffer) (window-buffer window)))
-    (if (and (> (point-max) 1) (equal (buffer-substring (point-min) (1+ (point-min))) "%"))
-        (image-roll-new-window-function `(,window))
-      (image-mode-winprops window t))
-    (image-roll-redisplay window)))
+(defun image-roll-pre-redisplay (win)
+  "Handle modifications to the state in window WIN.
+It should be added to `pre-redisplay-functions' buffer locally."
+  (when image-roll--last-state
+    (let* ((state (alist-get win image-roll--last-state))
+           (size-changed (not (and (eq (window-pixel-height win) (nth 1 state))
+                                   (eq (window-pixel-width win) (nth 2 state)))))
+           (point-changed (not (eq (point) (nth 0 state))))
+           (vscroll (image-mode-window-get 'vscroll win)))
+      (when (or size-changed point-changed)
+        (setf (alist-get win image-roll--last-state)
+              `(,(point) ,(window-pixel-height win) ,(window-pixel-width win)))
+        (image-roll--goto-point vscroll win size-changed point-changed)))))
 
 (defun image-roll-update-displayed-pages (&optional window force)
   "Update the pages displayed in WINDOW.
