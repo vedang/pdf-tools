@@ -1812,7 +1812,7 @@ The optional, boolean args exclude certain attributes."
                                              (pdf-view-current-slice))))
                         ,(unless no-size
                            (cons 'size pdf-view-display-size))
-                        ,(unless (or no-origin pdf-view-roll-minor-mode)
+                        ,(unless no-origin
                            (cons 'origin
                                  (and displayed-p
                                       (let ((edges (pdf-util-image-displayed-edges nil t)))
@@ -1856,7 +1856,6 @@ See also `pdf-view-bookmark-make-record'."
                 (when-let ((origin (bookmark-prop-get
                                     pdf-view--bookmark-to-restore 'origin))
                            (size (pdf-view-image-size t win)))
-
                   (image-set-window-hscroll
                    (round (/ (* (car origin) (car size))
                              (frame-char-width))))

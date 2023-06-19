@@ -47,39 +47,27 @@
                      mwheel-scroll-up-function #'image-roll-scroll-forward
                      mwheel-scroll-down-function #'image-roll-scroll-backward)
 
-         (add-hook 'window-size-change-functions 'image-roll-window-size-change-function nil t)
-         (add-hook 'window-configuration-change-hook 'image-roll-window-configuration-change-hook nil t)
          (remove-hook 'window-configuration-change-hook 'image-mode-reapply-winprops t)
          (remove-hook 'window-configuration-change-hook 'pdf-view-redisplay-some-windows t)
-
          (remove-hook 'image-mode-new-window-functions#'pdf-view-new-window-function t)
-         (add-hook 'image-mode-new-window-functions 'image-roll-new-window-function nil t)
 
+         (add-hook 'pre-redisplay-functions 'image-roll-pre-redisplay nil t)
          (add-hook 'image-roll-after-change-page-hook 'pdf-history-before-change-page-hook nil t)
 
          (let ((inhibit-read-only t))
            (erase-buffer)
-           (remove-overlays)
-           (image-roll-new-window-function (list (selected-window))))
-         (pdf-view-redisplay)
-
-         (define-key pdf-view-mode-map (kbd "<mouse-5>") 'pdf-view-next-line-or-next-page)
-         (define-key pdf-view-mode-map (kbd "<mouse-4>") 'pdf-view-previous-line-or-previous-page))
+           (remove-overlays))
+         (image-roll-new-window-function))
         (t
          (setq-local mwheel-scroll-up-function #'pdf-view-scroll-up-or-next-page
                      mwheel-scroll-down-function #'pdf-view-scroll-down-or-previous-page)
 
          (add-hook 'window-configuration-change-hook 'image-mode-reapply-winprops nil t)
          (add-hook 'window-configuration-change-hook 'pdf-view-redisplay-some-windows nil t)
-         (remove-hook 'window-size-change-functions 'image-roll-window-size-change-function t)
-         (remove-hook 'window-configuration-change-hook 'image-roll-window-configuration-change-hook)
+         (add-hook 'image-mode-new-window-functions #'pdf-view-new-window-function nil t)
 
-         (remove-hook 'image-mode-new-window-functions 'image-roll-new-window-function t)
-         (add-hook 'image-mode-new-window-functions
-                   #'pdf-view-new-window-function nil t)
-
-         (remove-hook 'image-roll-after-change-page-hook
-                      'pdf-history-before-change-page-hook t)
+         (remove-hook 'pre-redisplay-functions 'image-roll-pre-redisplay t)
+         (remove-hook 'image-roll-after-change-page-hook 'pdf-history-before-change-page-hook t)
 
          (let ((inhibit-read-only t))
            (erase-buffer)
