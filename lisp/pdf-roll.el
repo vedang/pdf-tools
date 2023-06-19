@@ -25,10 +25,6 @@
 (require 'image-roll)
 (require 'pdf-view)
 
-(eval-when-compile
-  (require 'pdf-view))
-
-
 (define-minor-mode pdf-view-roll-minor-mode
   "If enabled display document on a virtual scroll providing continuous scrolling."
   :lighter " Continuous"

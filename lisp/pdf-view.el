@@ -43,7 +43,9 @@
 (declare-function image-roll-scroll-forward "image-roll")
 (declare-function image-roll-scroll-backward "image-roll")
 (declare-function image-roll-next-page "image-roll")
-(declare-function image-roll-window-size-change-function "image-roll")
+(declare-function image-roll-redisplay "image-roll")
+(declare-function image-roll-page-overlay "image-roll")
+(declare-function image-roll-page-at-current-pos "image-roll")
 
 (defvar pdf-view-roll-minor-mode)
 
@@ -1152,13 +1154,13 @@ If DISPLAYED-P is non-nil, return the size of the displayed
 image.  These values may be different, if slicing is used."
   (if displayed-p
       (with-selected-window (or window (selected-window))
-        (let ((display-prop (image-get-display-property)))
-          (if (eq (car display-prop) 'space)
-              (progn (cl-callf cdr display-prop)
-                     (cons (car (plist-get display-prop :width))
-                           (car (plist-get display-prop :height))))
-            (image-display-size
-             (image-get-display-property) t))))
+        (image-display-size
+         (if pdf-view-roll-minor-mode
+             (overlay-get
+              (image-roll-page-overlay (image-roll-page-at-current-pos) window)
+              'display)
+           (image-get-display-property))
+         t))
     (image-size (pdf-view-current-image window) t)))
 
 (defun pdf-view-image-offset (&optional window)
@@ -1247,7 +1249,7 @@ If WINDOW is t, redisplay pages in all windows."
 
 (defun pdf-view-redisplay (&optional window)
   (if pdf-view-roll-minor-mode
-      (image-roll-window-size-change-function window)
+      (image-roll-redisplay)
     (pdf-view--redisplay window)))
 
 (defun pdf-view-redisplay-pages (&rest pages)
