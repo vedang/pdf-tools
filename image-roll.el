@@ -175,13 +175,13 @@ WINPROPS are the initial window properties.
 This function should be added to image-roll (continuous scroll)
 minor mode commands, after erasing the buffer to create the
 overlays."
-  (let ((win (or (and (windowp (car winprops)) (car winprops)) (selected-window))))
+  (let ((win (or (and (windowp winprops) winprops) (selected-window))))
     (if (not (overlays-at 1))
         (let ((pages image-roll-last-page)
               (inhibit-read-only t))
 
           (erase-buffer)
-
+          (setq image-roll--last-state (list t))
           ;; here we only add the 'page' and 'window' overlay-properties, we add
           ;; more properties/information as soon as it becomes available in the
           ;; 'image-roll-redisplay' function
@@ -198,10 +198,9 @@ overlays."
             (overlay-put (copy-overlay (car (overlays-at (1+ (* 2 i)))))
                          'window win))))
     ;; initial `image-roll-redisplay' needs to know which page(s) to display
-    (unless image-roll--last-state
-      (setq image-roll--last-state (list t)))
     (cl-callf or (image-roll-current-page win) 1)
-    (image-roll-redisplay)))
+    (cl-callf or (image-mode-window-get 'vscroll win) 0)
+    (image-roll-redisplay win)))
 
 (defun image-roll-set-vscroll (vscroll win)
   "Set vscroll to VSCROLL in window WIN."
@@ -238,21 +237,29 @@ If FORCE is non-nill redisplay a page even if it is already displayed."
 
 (defun image-roll-redisplay (&optional window)
   "Analogue of `pdf-view-redisplay' for WINDOW."
-  (goto-char (image-roll-page-to-pos (image-roll-current-page window))))
+  (setq window (if (windowp window) window (selected-window)))
+  (goto-char (image-roll-page-to-pos (image-roll-current-page window)))
+  (image-roll-update-displayed-pages window t))
 
 (defun image-roll-pre-redisplay (win)
   "Handle modifications to the state in window WIN.
 It should be added to `pre-redisplay-functions' buffer locally."
-  (when image-roll--last-state
-    (let* ((state (alist-get win image-roll--last-state))
-           (size-changed (not (and (eq (window-pixel-height win) (nth 1 state))
-                                   (eq (window-pixel-width win) (nth 2 state)))))
-           (point-changed (not (eq (point) (nth 0 state))))
-           (vscroll (image-mode-window-get 'vscroll win)))
-      (when (or size-changed point-changed)
-        (setf (alist-get win image-roll--last-state)
-              `(,(point) ,(window-pixel-height win) ,(window-pixel-width win)))
-        (image-roll--goto-point vscroll win size-changed point-changed)))))
+  (with-demoted-errors "Error in image roll pre-display: %S"
+    (when image-roll--last-state
+      (image-roll-set-vscroll (image-mode-window-get 'vscroll win) win)
+      (let* ((state (alist-get win image-roll--last-state))
+             (size-changed (not (and (eq (window-pixel-height win) (nth 1 state))
+                                     (eq (window-pixel-width win) (nth 2 state)))))
+             (point-changed (not (eq (point) (nth 0 state))))
+             (vscroll-changed (not (eq (window-vscroll nil t) (nth 3 state)))))
+        (setq disable-point-adjustment t)
+        (unless (and state (overlays-at 1)) (image-roll-new-window-function win))
+        (when (or size-changed point-changed vscroll-changed)
+          (setf (alist-get win image-roll--last-state)
+                `(,(point) ,(window-pixel-height win) ,(window-pixel-width win)))
+          (set-window-start win (point) t)
+          (image-roll-update-displayed-pages win size-changed)
+          (when point-changed (run-hooks 'image-roll-after-change-page-hook)))))))
 
 (defun image-roll-update-displayed-pages (&optional window force)
   "Update the pages displayed in WINDOW.
@@ -266,17 +273,7 @@ When FORCE is non-nil redisplay even the already displayed pages."
     ;; setting/appending new below
     (setf (image-roll-current-page window) (image-roll-page-at-current-pos))
     (image-mode-window-put 'displayed-pages new window)
-    new))
-
-(defun image-roll--goto-point (vscroll &optional window force no-run-hooks)
-  "Make page at point the current page with VSCROLL in WINDOW.
-When FORCE is non-nil redisplay even the already displayed pages.
-If NO-RUN-HOOKS is non-nil don't run `image-roll-after-change-page-hook'."
-  (set-window-start window (point) t)
-  (when vscroll (image-roll-set-vscroll vscroll window))
-  (image-roll-update-displayed-pages window force)
-  (unless no-run-hooks (run-hooks 'image-roll-after-change-page-hook))
-  (set-window-start window (point) t))
+    (cl-set-difference new old)))
 
 ;;; Page navigation commands
 (defun image-roll-goto-page-start ()
@@ -294,10 +291,8 @@ If NO-RUN-HOOKS is non-nil don't run `image-roll-after-change-page-hook'."
   (unless (and (>= page 1)
                (<= page image-roll-last-page))
     (error "No such page: %d" page))
-  (if (eq page (image-roll-page-at-current-pos))
-      (image-roll-set-vscroll 0 window)
-    (goto-char (image-roll-page-to-pos page))
-    (image-roll--goto-point 0 window)))
+  (goto-char (image-roll-page-to-pos page))
+  (image-roll-set-vscroll 0 window))
 
 (defun image-roll-next-page (&optional n)
   "Go to next page or next Nth page."
@@ -335,10 +330,9 @@ With a prefix arg PIXELS is the numeric value times `image-roll-step-size'."
                     (cl-decf pixels occupied-pixels))))
       (forward-char 2))
     (if (eq pos (point))
-        (progn (image-roll-set-vscroll (+ (window-vscroll window t) pixels)
-                                       window)
-               (image-roll-update-displayed-pages window))
-      (image-roll--goto-point pixels window))))
+        (image-roll-set-vscroll (+ (window-vscroll window t) pixels)
+                                window)
+      (image-roll-set-vscroll pixels window))))
 
 (defun image-roll-scroll-backward (&optional pixels window)
   "Scroll image PIXELS backwards in WINDOW.
@@ -352,9 +346,8 @@ With a prefix arg PIXELS is the numeric value times `image-roll-step-size'."
   (let* ((data (pos-visible-in-window-p (point) window t))
          (pixels-top (if (nth 2 data) (nth 2 data) 0)))
     (if (< pixels pixels-top)
-        (progn (image-roll-set-vscroll (- (window-vscroll window t) pixels)
+        (image-roll-set-vscroll (- (window-vscroll window t) pixels)
                                 window)
-               (image-roll-update-displayed-pages window))
       (cl-decf pixels pixels-top)
       (while (and (if (bobp)
                       (prog1 nil (message "Beginning of buffer."))
@@ -364,7 +357,7 @@ With a prefix arg PIXELS is the numeric value times `image-roll-step-size'."
                                   (image-roll-page-at-current-pos) window)
                          (cl-decf pixels (line-pixel-height)))
                   (> pixels 0)))
-      (image-roll--goto-point (- pixels) window))))
+      (image-roll-set-vscroll (- pixels) window))))
 
 (defun image-roll-scroll-screen-forward (&optional arg)
   "Scroll forward by (almost) ARG many full screens."
