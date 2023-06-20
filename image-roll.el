@@ -188,9 +188,14 @@ overlays."
           (delete-char -1)
           (set-buffer-modified-p nil))
       (unless (image-roll-page-overlay 1 win)
-          (dotimes (i (/ (point-max) 2))
-            (overlay-put (copy-overlay (car (overlays-at (1+ (* 2 i)))))
-                         'window win))))
+        (dotimes (i (/ (point-max) 2))
+          (overlay-put (copy-overlay (car (overlays-at (1+ (* 2 i)))))
+                       'window win))
+        (dolist (win-st image-roll--last-state)
+          (when-let ((win-old (car-safe win-st))
+                     ((not (window-live-p win-old))))
+            (remove-overlays (point-min) (point-max) 'window win-old)))
+        (cl-callf2 cl-delete-if-not #'window-live-p image-roll--last-state :key #'car-safe)))
     ;; initial `image-roll-redisplay' needs to know which page(s) to display
     (cl-callf or (image-roll-current-page win) 1)
     (cl-callf or (image-mode-window-get 'vscroll win) 0)
@@ -233,7 +238,7 @@ If FORCE is non-nill redisplay a page even if it is already displayed."
   "Handle modifications to the state in window WIN.
 It should be added to `pre-redisplay-functions' buffer locally."
   (with-demoted-errors "Error in image roll pre-display: %S"
-    (when image-roll--last-state
+    (when (eq win (get-buffer-window))
       (image-roll-set-vscroll (image-mode-window-get 'vscroll win) win)
       (let* ((state (alist-get win image-roll--last-state))
              (size-changed (not (and (eq (window-pixel-height win) (nth 1 state))
@@ -258,7 +263,7 @@ When FORCE is non-nil redisplay even the already displayed pages."
         (new (image-roll-display-pages window force)))
     ;; If images/pages are small enough (or after jumps), there
     ;; might be multiple image that need to get updated
-    (image-roll-undisplay-pages (cl-set-difference old new))
+    (image-roll-undisplay-pages (cl-set-difference old new) window)
     (setf (image-roll-current-page window) (image-roll-page-at-current-pos))
     (image-mode-window-put 'displayed-pages new window)
     (cl-set-difference new old)))
