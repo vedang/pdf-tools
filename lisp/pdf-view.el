@@ -1148,24 +1148,22 @@ See also `pdf-view-use-imagemagick'."
       :pointer 'arrow)))
 
 (defun pdf-view-image-size (&optional displayed-p window)
-  ;; TODO: add WINDOW to docstring.
-  "Return the size in pixel of the current image.
+  "Return the size in pixel of the current image in WINDOW.
 
 If DISPLAYED-P is non-nil, return the size of the displayed
 image.  These values may be different, if slicing is used."
-  (if displayed-p
-      (with-selected-window (or window (selected-window))
-        (image-display-size
-         (if pdf-view-roll-minor-mode
-             (progn (unless (memq (pdf-view-current-page)
-                                  (image-mode-window-get 'displayed-pages window))
-                      (pdf-view-display-page (pdf-view-current-page) window))
-                    (overlay-get
-                     (image-roll-page-overlay (image-roll-page-at-current-pos) window)
-                     'display))
-           (image-get-display-property))
-         t))
-    (image-size (pdf-view-current-image window) t)))
+  (let ((display-prop (if pdf-view-roll-minor-mode
+                          (progn (setq window (if (windowp window) window (selected-window)))
+                                 (unless (memq (pdf-view-current-page window)
+                                               (image-mode-window-get 'displayed-pages window))
+                                   (pdf-view-display-page (pdf-view-current-page window) window))
+                                 (overlay-get (image-roll-page-overlay
+                                               (image-roll-page-at-current-pos) window)
+                                              'display))
+                        (image-get-display-property))))
+    (if displayed-p
+        (image-display-size display-prop t)
+      (image-size display-prop t))))
 
 (defun pdf-view-image-offset (&optional window)
   ;; TODO: add WINDOW to docstring.
