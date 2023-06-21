@@ -152,8 +152,8 @@ logic)"
   "Undisplay PAGES from WINDOW.
 Replaces the display property of the overlay holding a page with a space."
   (dolist (page pages)
-   (overlay-put (image-roll-page-overlay page window)
-               'display (get 'image-roll 'display))))
+    (overlay-put (image-roll-page-overlay page window)
+                 'display (get 'image-roll 'display))))
 
 (defun image-roll-new-window-function (&optional winprops)
   "Setup image roll in a new window.
@@ -229,32 +229,32 @@ If FORCE is non-nill redisplay a page even if it is already displayed."
 
 (defun image-roll-redisplay (&optional window)
   "Analogue of `pdf-view-redisplay' for WINDOW."
+  (setq window (if (windowp window) window (selected-window)))
   (when (image-roll-page-overlay 1 window)
-    (setq window (if (windowp window) window (selected-window)))
     (goto-char (image-roll-page-to-pos (image-roll-current-page window)))
-    (image-roll-update-displayed-pages window t)))
+    (setf (nth 1 (alist-get window image-roll--last-state)) nil)
+    (force-window-update window)))
 
 (defun image-roll-pre-redisplay (win)
   "Handle modifications to the state in window WIN.
 It should be added to `pre-redisplay-functions' buffer locally."
   (with-demoted-errors "Error in image roll pre-display: %S"
-    (when (eq win (get-buffer-window))
-      (image-roll-set-vscroll (image-mode-window-get 'vscroll win) win)
-      (let* ((state (alist-get win image-roll--last-state))
-             (size-changed (not (and (eq (window-pixel-height win) (nth 1 state))
-                                     (eq (window-pixel-width win) (nth 2 state)))))
-             (point-changed (not (eq (point) (nth 0 state))))
-             (vscroll-changed (not (eq (window-vscroll nil t) (nth 3 state)))))
-        (setq disable-point-adjustment t)
-        (unless (image-roll-page-overlay 1 win)
-          (image-roll-new-window-function win))
-        (when (or size-changed point-changed vscroll-changed)
-          (setf (alist-get win image-roll--last-state)
-                `(,(point) ,(window-pixel-height win) ,(window-pixel-width win)
-                  ,(window-vscroll nil t)))
-          (set-window-start win (point) t)
-          (image-roll-update-displayed-pages win size-changed)
-          (when point-changed (run-hooks 'image-roll-after-change-page-hook)))))))
+    (image-roll-set-vscroll (image-mode-window-get 'vscroll win) win)
+    (let* ((state (alist-get win image-roll--last-state))
+           (size-changed (not (and (eq (window-pixel-height win) (nth 1 state))
+                                   (eq (window-pixel-width win) (nth 2 state)))))
+           (point-changed (not (eq (point) (nth 0 state))))
+           (vscroll-changed (not (eq (window-vscroll win t) (nth 3 state)))))
+      (setq disable-point-adjustment t)
+      (unless (image-roll-page-overlay 1 win)
+        (image-roll-new-window-function win))
+      (when (or size-changed point-changed vscroll-changed)
+        (setf (alist-get win image-roll--last-state)
+              `(,(point) ,(window-pixel-height win) ,(window-pixel-width win)
+                ,(window-vscroll win t)))
+        (set-window-start win (point) t)
+        (image-roll-update-displayed-pages win size-changed)
+        (when point-changed (run-hooks 'image-roll-after-change-page-hook))))))
 
 (defun image-roll-update-displayed-pages (&optional window force)
   "Update the pages displayed in WINDOW.
@@ -315,7 +315,7 @@ With a prefix arg PIXELS is the numeric value times `image-roll-step-size'."
                                          (t (funcall image-roll-display-page-function
                                                      (image-roll-page-at-current-pos) window)
                                             (line-pixel-height)))))
-             (and (> pixels occupied-pixels)
+             (and (>= pixels occupied-pixels)
                   (if (eq (point) (1- (point-max)))
                       (prog1 nil
                         (setq pixels (- occupied-pixels 10))
