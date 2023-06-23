@@ -564,7 +564,8 @@ PNG images in Emacs buffers."
 This may be different from variable `buffer-file-name' when
 operating on a local copy of a remote file."
   (or pdf-view--buffer-file-name
-      (buffer-file-name)))
+      (buffer-file-name)
+      (buffer-file-name (buffer-base-buffer))))
 
 (defun pdf-view--write-contents-function ()
   "Function for `write-contents-functions' to save the buffer."
