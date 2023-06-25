@@ -76,21 +76,24 @@
 
 (put 'image-roll 'display '(space :width 25 :height 1000))
 (put 'image-roll 'evaporate t)
+(put 'image-roll-margin 'evaporate t)
 
 ;;; Custom Variables
 (defgroup image-roll nil
   "Image roll configurations."
-  :group 'applications
-  :version "28.1")
+  :group 'applications)
+
+(defface image-roll-default `((t :font ,(font-spec :family "monospace" :size 1)))
+  "Default face for image roll documents.")
 
 (defcustom image-roll-vertical-margin 2
   "Vertical margin between images in pixels, i.e. page separation height."
   :type 'integer)
 
-(defcustom image-roll-overlay-face-bg-color "gray"
+(defcustom image-roll-margin-color "gray"
   "Background color of overlay, i.e. page separation color."
   :type 'color
-  :set (lambda (_ color) (put 'image-roll 'face `(:background ,color))))
+  :set (lambda (_ color) (put 'image-roll-margin 'face `(:background ,color))))
 
 (defcustom image-roll-step-size 50
   "Scroll step size in pixels units."
@@ -107,18 +110,16 @@
 ;;; Local variables to be set by implementations
 (defvar-local image-roll-last-page 0)
 
-(defvar-local image-roll-display-page-function nil
-  "Function that sets the overlay's display property.
-The function receives the page number as a single
-argument (PAGE). The function should use `(image-roll-page-overlay
-PAGE)' to add the image of the page as the overlay's
-display-property.")
+(defvar-local image-roll-page-image-function nil
+  "Function of two arguments that retrieves the image for a page.
+The first argument is the page number and the second argument is the window in
+which the page will be displayed. There return value is an image spec.")
 
 ;;; Other Variables
-(defvar-local image-roll--last-state nil
+(defvar-local image-roll--state nil
   "Local variable that tracks window, point and vscroll to handle changes.")
 
-;;; Utility Macros and inline functions
+;;; Utility Macros and functions
 (defmacro image-roll-current-page (&optional window)
   "Return the page number of the currently displayed page in WINDOW.
 The current page is the page that overlaps with the window
@@ -126,37 +127,82 @@ start (this choice was made in order to simplify the scrolling
 logic)"
   `(image-mode-window-get 'page ,window))
 
-(defmacro image-roll-displayed-pages (&optional window)
-  "Return list of pages currently displayed in WINDOW."
-  `(image-mode-window-get 'displayed-pages ,window))
-
 (defsubst image-roll-page-to-pos (page)
   "Get the buffer position displaing PAGE."
-  (1- (* 2 page)))
+  (- (* 4 page) 3))
+
+(defun image-roll--pos-overlay (pos window)
+  "Return an overlay for WINDOW at POS."
+  (cl-find window (overlays-at pos) :key (lambda (ov) (overlay-get ov 'window))))
 
 (defun image-roll-page-overlay (&optional page window)
   "Return overlay displaying PAGE in WINDOW."
-  (cl-find (or window (selected-window))
-           (overlays-at (image-roll-page-to-pos
-                         (or page (image-roll-page-at-current-pos))))
-           :key (lambda (ov) (overlay-get ov 'window))))
+  (image-roll--pos-overlay
+   (image-roll-page-to-pos (or page (image-roll-page-at-current-pos)))
+   (or window (selected-window))))
 
 (defun image-roll-page-at-current-pos ()
   "Page at point."
   (if (cl-oddp (point))
-      (/ (1+ (point)) 2)
+      (/ (+ (point) 3) 4)
     (error "No page is displayed at current position (%s)" (point))))
 
-;;; Helper functions
+(defun image-roll-set-vscroll (vscroll win)
+  "Set vscroll to VSCROLL in window WIN."
+  (image-mode-window-put 'vscroll vscroll win)
+  (set-window-vscroll win vscroll t t))
+
+;;; Displaying/Undisplaying pages
+(defun image-roll-display-image (image page window)
+  "Display IMAGE for PAGE in WINDOW."
+  (let* ((size (image-display-size image t))
+         (overlay (image-roll-page-overlay page window))
+         (margin-pos (+ (image-roll-page-to-pos page) 2))
+         (margin-overlay (image-roll--pos-overlay margin-pos window))
+         (align-to (when (> (window-width window t) (car size))
+                     (/ (- (window-width window t) (car size)) 2)))
+         (before-string (when align-to (propertize " " 'display `(space :align-to (,align-to))))))
+    (overlay-put overlay 'display image)
+    (overlay-put overlay 'before-string before-string)
+    (overlay-put margin-overlay 'display `(space :width (,(car size)) :height (,image-roll-vertical-margin)))
+    (overlay-put margin-overlay 'before-string before-string)
+    (cdr size)))
+
+(defun image-roll-display-page (page window &optional force)
+  "Display PAGE in WINDOW.
+With FORCE non-nil display fetch page again even if it is already displayed."
+  (if-let ((display (overlay-get (image-roll-page-overlay page window) 'display))
+           ((or force (eq (car display) 'space))))
+      (image-roll-display-image (funcall image-roll-page-image-function page window)
+                                page window)
+    (cdr (image-display-size display t))))
+
+(defun image-roll-display-pages (&optional window force)
+  "Display pages to fill the WINDOW.
+If FORCE is non-nill redisplay a page even if it is already displayed."
+  (let (displayed
+        (page (image-roll-page-at-current-pos)))
+    (image-roll-set-vscroll (min (image-mode-window-get 'vscroll window)
+                                 (1- (image-roll-display-page page window force)))
+                            window)
+    (push page displayed)
+    (while (pos-visible-in-window-p (image-roll-page-to-pos (cl-incf page)) window t)
+      (image-roll-display-page page window force)
+      (push page displayed))
+    ;; store displayed images for determining which images to update when update
+    ;; is triggered
+    (cl-callf cl-union (image-mode-window-get 'displayed-pages window) displayed)
+    displayed))
+
 (defun image-roll-undisplay-pages (pages &optional window)
   "Undisplay PAGES from WINDOW.
 Replaces the display property of the overlay holding a page with a space."
   (dolist (page pages)
     (overlay-put (image-roll-page-overlay page window)
                  'display (get 'image-roll 'display))))
-
-(defun image-roll-new-window-function (&optional winprops)
-  "Setup image roll in a new window.
+;;; State Management
+(defun image-roll-new-window-function (&optional win)
+  "Setup image roll in a new window WIN.
 If the buffer is newly created, then it does not contain any
 overlay and this function erases the buffer contents, after which
 it inserts empty spaces that each hold a overlay. If the buffer
@@ -164,109 +210,79 @@ already has overlays (i.e. a second or subsequent window is
 created), the function simply copies the overlays and adds the
 new window as window overlay-property to each overlay.
 
-WINPROPS are the initial window properties.
-
 This function should be added to image-roll (continuous scroll)
 minor mode commands, after erasing the buffer to create the
 overlays."
-  (let ((win (or (and (windowp winprops) winprops) (selected-window))))
-    (if (not (overlays-at 1))
-        (let ((pages image-roll-last-page)
-              (inhibit-read-only t))
-
-          (erase-buffer)
-          (setq image-roll--last-state (list t))
-          ;; here we only add the 'page' and 'window' overlay-properties, we add
-          ;; more properties/information as soon as it becomes available in the
-          ;; 'image-roll-redisplay' function
-          (dotimes (_ pages)
-            (insert " ")
-            (let ((o (make-overlay (1- (point)) (point))))
-              (overlay-put o 'category 'image-roll)
-              (overlay-put o 'window win))
-            (insert "\n"))
-          (delete-char -1)
-          (set-buffer-modified-p nil))
-      (unless (image-roll-page-overlay 1 win)
-        (dotimes (i (/ (point-max) 2))
-          (overlay-put (copy-overlay (car (overlays-at (1+ (* 2 i)))))
-                       'window win))
-        (dolist (win-st image-roll--last-state)
-          (when-let ((win-old (car-safe win-st))
-                     ((not (window-live-p win-old))))
-            (remove-overlays (point-min) (point-max) 'window win-old)))
-        (cl-callf2 cl-delete-if-not #'window-live-p image-roll--last-state :key #'car-safe)))
-    ;; initial `image-roll-redisplay' needs to know which page(s) to display
-    (cl-callf or (image-roll-current-page win) 1)
-    (cl-callf or (image-mode-window-get 'vscroll win) 0)
-    (goto-char (image-roll-page-to-pos (image-roll-current-page win)))))
-
-(defun image-roll-set-vscroll (vscroll win)
-  "Set vscroll to VSCROLL in window WIN."
-  (image-mode-window-put 'vscroll vscroll win)
-  (set-window-vscroll win vscroll t t))
-
-(defun image-roll-set-hscroll (hscroll win)
-  "Set hscroll to HSCROLL in window WIN."
-  (image-mode-window-put 'hscroll hscroll win)
-  (set-window-hscroll win hscroll))
-
-(defun image-roll-display-pages (&optional window force)
-  "Display pages to fill the WINDOW.
-If FORCE is non-nill redisplay a page even if it is already displayed."
-  (let (displayed
-        (page (image-roll-page-at-current-pos)))
-    (while (pos-visible-in-window-p (image-roll-page-to-pos page) window t)
-      (when (or force (eq (car (overlay-get (image-roll-page-overlay page window) 'display))
-                          'space))
-        (funcall image-roll-display-page-function page window))
-      (push page displayed)
-      (cl-incf page))
-    ;; store displayed images for determining which images to update when update
-    ;; is triggered
-    (cl-callf cl-union (image-mode-window-get 'displayed-pages window) displayed)
-    displayed))
+  (setq win (or (and (windowp win) win) (selected-window)))
+  (if (not (overlays-at 1))
+      (let ((pages image-roll-last-page)
+            (inhibit-read-only t))
+        (erase-buffer)
+        (setq image-roll--state (list t))
+        (dotimes (i (* 2 pages))
+          (insert " ")
+          (let ((o (make-overlay (1- (point)) (point))))
+            (overlay-put o 'category (if (eq 0 (mod i 2)) 'image-roll 'image-roll-margin))
+            (overlay-put o 'window win))
+          (insert "\n"))
+        (delete-char -1)
+        (set-buffer-modified-p nil))
+    (unless (image-roll-page-overlay 1 win)
+      (dotimes (i (/ (point-max) 2))
+        (overlay-put (copy-overlay (car (overlays-at (1+ (* 2 i)))))
+                     'window win))
+      (dolist (win-st image-roll--state)
+        (when-let ((win-old (car-safe win-st))
+                   ((not (window-live-p win-old))))
+          (remove-overlays (point-min) (point-max) 'window win-old)))
+      (cl-callf2 cl-delete-if-not #'window-live-p image-roll--state :key #'car-safe)))
+  ;; initial `image-roll-redisplay' needs to know which page(s) to display
+  (cl-callf or (image-roll-current-page win) 1)
+  (cl-callf or (image-mode-window-get 'vscroll win) 0))
 
 (defun image-roll-redisplay (&optional window)
   "Analogue of `pdf-view-redisplay' for WINDOW."
   (setq window (if (windowp window) window (selected-window)))
   (when (image-roll-page-overlay 1 window)
-    (goto-char (image-roll-page-to-pos (image-roll-current-page window)))
-    (setf (nth 1 (alist-get window image-roll--last-state)) nil)
+    (setf (alist-get window image-roll--state) nil)
+    (set-window-start window (goto-char (image-roll-page-to-pos
+                                         (image-roll-current-page window))) t)
     (force-window-update window)))
 
 (defun image-roll-pre-redisplay (win)
   "Handle modifications to the state in window WIN.
 It should be added to `pre-redisplay-functions' buffer locally."
-  (with-demoted-errors "Error in image roll pre-display: %S"
-    (image-roll-set-vscroll (image-mode-window-get 'vscroll win) win)
-    (let* ((state (alist-get win image-roll--last-state))
-           (size-changed (not (and (eq (window-pixel-height win) (nth 1 state))
+  (with-demoted-errors "Error in image roll pre-redisplay: %S"
+    (let* ((state (alist-get win image-roll--state))
+           (height (window-pixel-height win))
+           (page (image-roll-current-page win))
+           (vscroll (image-mode-window-get 'vscroll win))
+           (size-changed (not (and (eq height (nth 1 state))
                                    (eq (window-pixel-width win) (nth 2 state)))))
-           (point-changed (not (eq (point) (nth 0 state))))
-           (vscroll-changed (not (eq (window-vscroll win t) (nth 3 state)))))
+           (page-changed (not (eq page (nth 0 state))))
+           (vscroll-changed (not (eq vscroll (nth 3 state)))))
+      (when size-changed
+        (let ((page-pos (pos-visible-in-window-p (image-roll-page-to-pos page) win t)))
+          (when (and (nth 2 page-pos) (nth 1 state))
+            (setq vscroll (min (max 1 (- vscroll (- height (nth 1 state))))
+                               (1- (+ (nth 2 page-pos) (nth 4 page-pos))))))))
+      (image-roll-set-vscroll vscroll win)
       (setq disable-point-adjustment t)
       (unless (image-roll-page-overlay 1 win)
         (image-roll-new-window-function win))
-      (when (or size-changed point-changed vscroll-changed)
-        (setf (alist-get win image-roll--last-state)
-              `(,(point) ,(window-pixel-height win) ,(window-pixel-width win)
-                ,(window-vscroll win t)))
-        (set-window-start win (point) t)
-        (image-roll-update-displayed-pages win size-changed)
-        (when point-changed (run-hooks 'image-roll-after-change-page-hook))))))
-
-(defun image-roll-update-displayed-pages (&optional window force)
-  "Update the pages displayed in WINDOW.
-When FORCE is non-nil redisplay even the already displayed pages."
-  (let ((old (image-mode-window-get 'displayed-pages window))
-        (new (image-roll-display-pages window force)))
-    ;; If images/pages are small enough (or after jumps), there
-    ;; might be multiple image that need to get updated
-    (image-roll-undisplay-pages (cl-set-difference old new) window)
-    (setf (image-roll-current-page window) (image-roll-page-at-current-pos))
-    (image-mode-window-put 'displayed-pages new window)
-    (cl-set-difference new old)))
+      (when (or size-changed page-changed vscroll-changed)
+        (setf (alist-get win image-roll--state)
+              `(,page ,height ,(window-pixel-width win) ,vscroll))
+        (set-window-start win (goto-char (image-roll-page-to-pos page)) t)
+        (let ((old (image-mode-window-get 'displayed-pages win))
+              (new (image-roll-display-pages win size-changed)))
+          ;; If images/pages are small enough (or after jumps), there
+          ;; might be multiple image that need to get updated
+          (image-roll-undisplay-pages (cl-set-difference old new) win)
+          (image-mode-window-put 'displayed-pages new win)
+          (when (> (length new) 1)
+            (forward-char 2)))
+        (when page-changed (run-hooks 'image-roll-after-change-page-hook))))))
 
 ;;; Page navigation commands
 (defun image-roll-goto-page-start ()
@@ -274,7 +290,6 @@ When FORCE is non-nil redisplay even the already displayed pages."
   (interactive)
   (image-roll-set-vscroll 0 nil))
 
-;; NOTE code based on (taken from) `pdf-view-goto-page'.
 (defun image-roll-goto-page (page &optional window)
   "Go to PAGE in WINDOW."
   (interactive
@@ -284,13 +299,12 @@ When FORCE is non-nil redisplay even the already displayed pages."
   (unless (and (>= page 1)
                (<= page image-roll-last-page))
     (error "No such page: %d" page))
-  (goto-char (image-roll-page-to-pos page))
+  (setf (image-roll-current-page window) page)
   (image-roll-set-vscroll 0 window))
 
 (defun image-roll-next-page (&optional n)
   "Go to next page or next Nth page."
   (interactive "p")
-  (set-window-start nil (+ (point) (* 2 n)) t)
   (image-roll-goto-page (+ (image-roll-page-at-current-pos) n)))
 
 (defun image-roll-previous-page (&optional n)
@@ -307,21 +321,22 @@ backward instead.
 With a prefix arg PIXELS is the numeric value times `image-roll-step-size'."
   (interactive (list (* (prefix-numeric-value current-prefix-arg) image-roll-step-size)))
   (setq pixels (or pixels image-roll-step-size))
+  (setq window (or window (selected-window)))
   (when (> 0 pixels) (image-roll-scroll-backward (- pixels) window))
-  (let ((pos (point)))
+  (let ((pos (goto-char (window-start window))))
     (while (let* ((data (pos-visible-in-window-p (point) window t))
                   (occupied-pixels (cond ((nth 2 data) (nth 4 data))
                                          (data (line-pixel-height))
-                                         (t (funcall image-roll-display-page-function
-                                                     (image-roll-page-at-current-pos) window)
-                                            (line-pixel-height)))))
+                                         (t (image-roll-display-page
+                                             (image-roll-page-at-current-pos) window)))))
              (and (>= pixels occupied-pixels)
                   (if (eq (point) (1- (point-max)))
                       (prog1 nil
                         (setq pixels (- occupied-pixels 10))
                         (message "End of buffer"))
                     (cl-decf pixels occupied-pixels))))
-      (forward-char 2))
+      (forward-char 4))
+    (setf (image-roll-current-page window) (image-roll-page-at-current-pos))
     (image-roll-set-vscroll (+ (if (eq pos (point)) (window-vscroll window t) 0) pixels)
                             window)))
 
@@ -333,7 +348,9 @@ forward instead.
 With a prefix arg PIXELS is the numeric value times `image-roll-step-size'."
   (interactive (list (* (prefix-numeric-value current-prefix-arg) image-roll-step-size)))
   (setq pixels (or pixels image-roll-step-size))
+  (setq window (or window (selected-window)))
   (when (> 0 pixels) (image-roll-scroll-backward (- pixels) window))
+  (goto-char (window-start window))
   (let* ((data (pos-visible-in-window-p (point) window t))
          (pixels-top (if (nth 2 data) (nth 2 data) 0)))
     (if (< pixels pixels-top)
@@ -343,12 +360,13 @@ With a prefix arg PIXELS is the numeric value times `image-roll-step-size'."
       (while (and (if (bobp)
                       (prog1 nil (message "Beginning of buffer."))
                     t)
-                  (progn (forward-char -2)
-                         (funcall image-roll-display-page-function
-                                  (image-roll-page-at-current-pos) window)
+                  (progn (forward-char -4)
+                         (image-roll-display-page
+                          (image-roll-page-at-current-pos) window)
                          (cl-decf pixels (line-pixel-height)))
                   (> pixels 0)))
-      (image-roll-set-vscroll (- pixels) window))))
+      (image-roll-set-vscroll (- pixels) window)))
+  (setf (image-roll-current-page window) (image-roll-page-at-current-pos)))
 
 (defun image-roll-scroll-screen-forward (&optional arg)
   "Scroll forward by (almost) ARG many full screens."
@@ -372,5 +390,4 @@ With a prefix arg PIXELS is the numeric value times `image-roll-step-size'."
       (_ (error "Event must be wheel down or wheel up event")))))
 
 (provide 'image-roll)
-
 ;;; image-roll.el ends here
