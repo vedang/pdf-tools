@@ -25,6 +25,15 @@
 (require 'image-roll)
 (require 'pdf-view)
 
+(defun pdf-roll-page-image (page window)
+  "Function to retrieve image of the PAGE in WINDOW."
+  (let ((image (pdf-view-create-page page window)))
+    (if-let ((slice (pdf-view-current-slice window)))
+        (list (cons 'slice
+                    (pdf-util-scale slice (image-size image t) 'round))
+              image)
+      image)))
+
 (define-minor-mode pdf-view-roll-minor-mode
   "If enabled display document on a virtual scroll providing continuous scrolling."
   :lighter " Continuous"
@@ -41,9 +50,9 @@
 
   (cond (pdf-view-roll-minor-mode
          (setq-local image-roll-last-page (pdf-cache-number-of-pages)
-                     image-roll-display-page-function 'pdf-view-display-page
+                     image-roll-page-image-function 'pdf-roll-page-image
                      image-roll-center t
-                     line-spacing image-roll-vertical-margin
+                     face-remapping-alist '((default . image-roll-default))
                      mwheel-scroll-up-function #'image-roll-scroll-forward
                      mwheel-scroll-down-function #'image-roll-scroll-backward)
 

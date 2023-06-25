@@ -280,7 +280,7 @@ Has no effect if `pdf-sync-backward-use-heuristic' is nil."
     (pdf-sync-backward-search
      (car xy) (cdr xy)
      (and (bound-and-true-p pdf-view-roll-minor-mode)
-          (/ (1+ (posn-point posn)) 2)))))
+          (/ (+ (posn-point posn) 3) 4)))))
 
 (defun pdf-sync-backward-search (x y &optional page)
   "Go to the source corresponding to image coordinates X, Y on PAGE.
@@ -659,7 +659,7 @@ Needs to have `pdf-sync-backward-debug-minor-mode' enabled."
                              buffer pdf-sync-forward-display-action)
         (pdf-util-assert-pdf-window)
         (when page
-	  (pdf-view-goto-page page)
+	  (pdf-view-goto-page page (selected-window))
 	  (when y1
 	    (let ((top (* y1 (cdr (pdf-view-image-size)))))
 	      (pdf-util-tooltip-arrow (round top))))))

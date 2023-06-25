@@ -28,10 +28,12 @@
 (require 'pdf-isearch)
 (require 'let-alist)
 (require 'org)
-(eval-when-compile (require 'image-roll nil t))
+
 
 
 (defvar pdf-view-roll-minor-mode)
+(declare-function image-roll-page-overlay "image-roll")
+(declare-function image-roll-displayed-pages "image-roll")
 ;;; Code:
 
 
@@ -211,7 +213,7 @@ scroll the current page."
          (with-selected-window window
            (when (derived-mode-p 'pdf-view-mode)
              (when (> .page 0)
-               (pdf-view-goto-page .page))
+               (pdf-view-goto-page .page window))
              (when .top
                (when (derived-mode-p 'pdf-view-mode)
                  (pdf-util-tooltip-arrow .top)))))))
@@ -227,8 +229,9 @@ scroll the current page."
 See `pdf-links-action-perform' for the interface."
 
   (pdf-util-assert-pdf-window)
-  (let* ((pages (if pdf-view-roll-minor-mode
-                    (nreverse (image-roll-displayed-pages))
+  (let* ((win (selected-window))
+         (pages (if pdf-view-roll-minor-mode
+                    (reverse (image-mode-window-get 'displayed-pages win))
                   (list (pdf-view-current-page))))
          (links (mapcar #'pdf-cache-pagelinks pages))
          (keys (pdf-links-read-link-action--create-keys
@@ -243,21 +246,22 @@ See `pdf-links-action-perform' for the interface."
             (dolist (page pages)
               (pdf-view-display-image
                (create-image (pdf-util-convert-image
-                              (or (overlay-get (image-roll-page-overlay page) 'display)
+                              (or (overlay-get (image-roll-page-overlay page win) 'display)
                                   (pdf-view-current-image))
                               :foreground (car colors)
                               :background (cdr colors)
                               :formats
                               `((?c . ,(lambda (_edges) (apply #'string (pop keys))))
                                 (?P . ,(number-to-string
-                                        (max 1 (* (cdr (pdf-view-desired-image-size page))
+                                        (max 1 (* (cdr (pdf-view-desired-image-size page win))
                                                   pdf-links-convert-pointsize-scale)))))
                               :commands pdf-links-read-link-convert-commands
                               :apply (pdf-util-scale-relative-to-pixel
                                       (mapcar (lambda (l) (cdr (assq 'edges l)))
-                                              (pop links))))
+                                              (pop links))
+                                      nil nil win))
                              (pdf-view-image-type) t)
-               page))
+               page win))
             (pdf-links-read-link-action--read-chars prompt alist))
         (pdf-view-redisplay)))))
 

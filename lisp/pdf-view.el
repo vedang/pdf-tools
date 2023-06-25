@@ -34,9 +34,6 @@
 (require 'password-cache)
 (require 'cl-macs)
 
-(eval-when-compile
-  (require 'image-roll))
-
 (declare-function cua-copy-region "cua-base")
 (declare-function pdf-tools-pdf-buffer-p "pdf-tools")
 
@@ -46,6 +43,7 @@
 (declare-function image-roll-redisplay "image-roll")
 (declare-function image-roll-page-overlay "image-roll")
 (declare-function image-roll-page-at-current-pos "image-roll")
+(declare-function image-roll-display-image "image-roll")
 
 (defvar pdf-view-roll-minor-mode)
 
@@ -1159,7 +1157,7 @@ image.  These values may be different, if slicing is used."
                                                (image-mode-window-get 'displayed-pages window))
                                    (pdf-view-display-page (pdf-view-current-page window) window))
                                  (overlay-get (image-roll-page-overlay
-                                               (image-roll-page-at-current-pos) window)
+                                               (pdf-view-current-page window) window)
                                               'display))
                         (image-get-display-property))))
     (if displayed-p
@@ -1184,43 +1182,39 @@ It is equal to \(LEFT . TOP\) of the current slice in pixel."
   "Display page PAGE in WINDOW."
   (setf (pdf-view-window-needs-redisplay window) nil)
   (pdf-view-display-image
-   (pdf-view-create-page page window)
-   (when pdf-view-roll-minor-mode page)
-   window))
+   (pdf-view-create-page page window) page window))
 
 (defun pdf-view-display-image (image page &optional window inhibit-slice-p)
   ;; TODO: write documentation!
-  (let ((ol (if pdf-view-roll-minor-mode
-                (image-roll-page-overlay page window)
-              (pdf-view-current-overlay window))))
-    (when (window-live-p (overlay-get ol 'window))
-      (let* ((size (image-size image t))
-             (slice (if (not inhibit-slice-p)
-                        (pdf-view-current-slice window)))
-             (displayed-width (floor
-                               (if slice
-                                   (* (nth 2 slice)
-                                      (car (image-size image)))
-                                 (car (image-size image))))))
-        (setf (pdf-view-current-image window) image)
-        (unless pdf-view-roll-minor-mode
-          (move-overlay ol (point-min) (point-max)))
-        ;; In case the window is wider than the image, center the image
-        ;; horizontally.
-        (overlay-put ol 'before-string
-                     (when (> (window-width window)
-                              displayed-width)
-                       (propertize " " 'display
-                                   `(space :align-to
-                                     ,(/ (- (window-width window)
-                                            displayed-width) 2)))))
-        (overlay-put ol 'display
-                     (if slice
-                         (list (cons 'slice
-                                     (pdf-util-scale slice size 'round))
-                               image)
-                       image))
-        (unless pdf-view-roll-minor-mode
+  (if pdf-view-roll-minor-mode
+      (image-roll-display-image image page (or window (selected-window)))
+    (let ((ol (pdf-view-current-overlay window)))
+      (when (window-live-p (overlay-get ol 'window))
+        (let* ((size (image-size image t))
+               (slice (if (not inhibit-slice-p)
+                          (pdf-view-current-slice window)))
+               (displayed-width (floor
+                                 (if slice
+                                     (* (nth 2 slice)
+                                        (car (image-size image)))
+                                   (car (image-size image))))))
+          (setf (pdf-view-current-image window) image)
+          (move-overlay ol (point-min) (point-max))
+          ;; In case the window is wider than the image, center the image
+          ;; horizontally.
+          (overlay-put ol 'before-string
+                       (when (> (window-width window)
+                                displayed-width)
+                         (propertize " " 'display
+                                     `(space :align-to
+                                       ,(/ (- (window-width window)
+                                              displayed-width) 2)))))
+          (overlay-put ol 'display
+                       (if slice
+                           (list (cons 'slice
+                                       (pdf-util-scale slice size 'round))
+                                 image)
+                         image))
           (let* ((win (overlay-get ol 'window))
                  (hscroll (image-mode-window-get 'hscroll win))
                  (vscroll (image-mode-window-get 'vscroll win)))
