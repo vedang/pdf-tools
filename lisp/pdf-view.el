@@ -1798,23 +1798,24 @@ the selection styles."
 
 The optional, boolean args exclude certain attributes."
   (or pdf-view--bookmark-to-restore
-      (let ((displayed-p (eq (current-buffer)
-                             (window-buffer))))
+      (let ((win (car (cl-find-if #'window-live-p image-mode-winprops-alist
+                                  :key #'car-safe))))
         (cons (buffer-name)
-              (append (bookmark-make-record-default nil t (if pdf-view-roll-minor-mode (point) 1))
+              (append (bookmark-make-record-default
+                       nil t (if pdf-view-roll-minor-mode (point) 1))
                       `(,(unless no-page
-                           (cons 'page (pdf-view-current-page)))
+                           (cons 'page (pdf-view-current-page win)))
                         ,(unless no-slice
-                           (cons 'slice (and displayed-p
-                                             (pdf-view-current-slice))))
+                           (cons 'slice (and win (pdf-view-current-slice win))))
                         ,(unless no-size
                            (cons 'size pdf-view-display-size))
                         ,(unless no-origin
                            (cons 'origin
-                                 (and displayed-p
-                                      (let ((edges (pdf-util-image-displayed-edges nil t)))
+                                 (and win
+                                      (let* ((edges (pdf-util-image-displayed-edges win t)))
                                         (pdf-util-scale-pixel-to-relative
-                                         (cons (car edges) (cadr edges)) nil t)))))
+                                         (cons (car edges) (cadr edges)) nil
+                                         (eq (current-buffer) (window-buffer)) win)))))
                         (handler . pdf-view-bookmark-jump-handler)))))))
 
 ;;;###autoload
