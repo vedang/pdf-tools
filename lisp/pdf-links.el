@@ -244,24 +244,30 @@ See `pdf-links-action-perform' for the interface."
       (unwind-protect
           (progn
             (dolist (page pages)
-              (pdf-view-display-image
-               (create-image (pdf-util-convert-image
-                              (or (overlay-get (image-roll-page-overlay page win) 'display)
-                                  (pdf-view-current-image))
-                              :foreground (car colors)
-                              :background (cdr colors)
-                              :formats
-                              `((?c . ,(lambda (_edges) (apply #'string (pop keys))))
-                                (?P . ,(number-to-string
-                                        (max 1 (* (cdr (pdf-view-desired-image-size page win))
-                                                  pdf-links-convert-pointsize-scale)))))
-                              :commands pdf-links-read-link-convert-commands
-                              :apply (pdf-util-scale-relative-to-pixel
-                                      (mapcar (lambda (l) (cdr (assq 'edges l)))
-                                              (pop links))
-                                      nil nil win))
-                             (pdf-view-image-type) t)
-               page win))
+              (let* ((image (or (overlay-get (image-roll-page-overlay page win) 'display)
+                                (pdf-view-current-image)))
+                     (image (or (assoc 'image image) image))
+                     (height (cdr (image-size image t)))
+                     (orig-image (create-image (plist-get (cdr image) :data)
+                                               (pdf-view-image-type) t)))
+                (pdf-view-display-image
+                 (create-image (pdf-util-convert-image
+                                orig-image
+                                :foreground (car colors)
+                                :background (cdr colors)
+                                :formats
+                                `((?c . ,(lambda (_edges) (apply #'string (pop keys))))
+                                  (?P . ,(number-to-string
+                                          (max 1 (* height
+                                                    pdf-links-convert-pointsize-scale)))))
+                                :commands pdf-links-read-link-convert-commands
+                                :apply (pdf-util-scale
+                                        (mapcar (lambda (l) (cdr (assq 'edges l)))
+                                                (pop links))
+                                        (image-size orig-image t)))
+                               (pdf-view-image-type) t
+                               :height height)
+                 page win)))
             (pdf-links-read-link-action--read-chars prompt alist))
         (pdf-view-redisplay)))))
 
