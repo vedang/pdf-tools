@@ -253,6 +253,8 @@ overlays."
   "Handle modifications to the state in window WIN.
 It should be added to `pre-redisplay-functions' buffer locally."
   (with-demoted-errors "Error in image roll pre-redisplay: %S"
+    (unless (image-roll-page-overlay 1 win)
+      (image-roll-new-window-function win))
     (let* ((state (alist-get win image-roll--state))
            (height (window-pixel-height win))
            (page (image-roll-current-page win))
@@ -268,8 +270,6 @@ It should be added to `pre-redisplay-functions' buffer locally."
                                (1- (+ (nth 2 page-pos) (nth 4 page-pos))))))))
       (image-roll-set-vscroll vscroll win)
       (setq disable-point-adjustment t)
-      (unless (image-roll-page-overlay 1 win)
-        (image-roll-new-window-function win))
       (when (or size-changed page-changed vscroll-changed)
         (setf (alist-get win image-roll--state)
               `(,page ,height ,(window-pixel-width win) ,vscroll))
