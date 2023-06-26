@@ -25,14 +25,26 @@
 (require 'image-roll)
 (require 'pdf-view)
 
+
+(defun pdf-roll-maybe-slice-image (image &optional window inhibit-slice-p)
+  "Return a sliced IMAGE if `pdf-view-current-slice' in WINDOW is non-nil.
+If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
+  (if-let ((slice (pdf-view-current-slice window))
+           ((not inhibit-slice-p)))
+      (list (cons 'slice
+                  (pdf-util-scale slice (image-size image t) 'round))
+            image)
+    image))
+
+(defun pdf-roll-display-image (image page &optional window inhibit-slice-p)
+  "Display IMAGE for PAGE in WINDOW.
+If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
+  (let ((image (pdf-roll-maybe-slice-image image window inhibit-slice-p)))
+    (image-roll-display-image image page window)))
+
 (defun pdf-roll-page-image (page window)
   "Function to retrieve image of the PAGE in WINDOW."
-  (let ((image (pdf-view-create-page page window)))
-    (if-let ((slice (pdf-view-current-slice window)))
-        (list (cons 'slice
-                    (pdf-util-scale slice (image-size image t) 'round))
-              image)
-      image)))
+  (pdf-roll-maybe-slice-image (pdf-view-create-page page window) window))
 
 (define-minor-mode pdf-view-roll-minor-mode
   "If enabled display document on a virtual scroll providing continuous scrolling."

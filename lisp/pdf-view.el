@@ -43,7 +43,7 @@
 (declare-function image-roll-redisplay "image-roll")
 (declare-function image-roll-page-overlay "image-roll")
 (declare-function image-roll-page-at-current-pos "image-roll")
-(declare-function image-roll-display-image "image-roll")
+(declare-function pdf-roll-display-image "pdf-roll")
 
 (defvar pdf-view-roll-minor-mode)
 
@@ -1187,7 +1187,8 @@ It is equal to \(LEFT . TOP\) of the current slice in pixel."
 (defun pdf-view-display-image (image page &optional window inhibit-slice-p)
   ;; TODO: write documentation!
   (if pdf-view-roll-minor-mode
-      (image-roll-display-image image page (or window (selected-window)))
+      (pdf-roll-display-image
+       image page (or window (selected-window)) inhibit-slice-p)
     (let ((ol (pdf-view-current-overlay window)))
       (when (window-live-p (overlay-get ol 'window))
         (let* ((size (image-size image t))
