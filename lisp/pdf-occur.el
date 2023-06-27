@@ -282,12 +282,15 @@ FIXME: EVENT not used at the moment."
           (setq window (selected-window)))
         (with-selected-window window
           (when page
-            (pdf-view-goto-page page))
+            (pdf-view-goto-page page)
+            (when pdf-view-roll-minor-mode
+              (image-roll-pre-redisplay window)))
           ;; Abuse isearch.
           (when match
             (let ((pixel-match
                    (pdf-util-scale-relative-to-pixel match))
                   (pdf-isearch-batch-mode t))
+              (cl-incf pdf-isearch--hl-matches-tick)
               (pdf-isearch-hl-matches pixel-match nil t)
               (pdf-isearch-focus-match-batch pixel-match))))))))
 
@@ -629,9 +632,9 @@ matches linked with PAGE."
     (setq pdf-occur-number-of-matches 0)
     (setq pdf-occur-search-pages-left
           (apply #'+ (mapcar (lambda (elt)
-                              (1+ (- (cdr (nth 1 elt))
-                                     (car (nth 1 elt)))))
-                            batches)))))
+                               (1+ (- (cdr (nth 1 elt))
+                                      (car (nth 1 elt)))))
+                             batches)))))
 
 
 
