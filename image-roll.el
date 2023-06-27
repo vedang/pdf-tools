@@ -150,7 +150,7 @@ logic)"
 (defun image-roll-set-vscroll (vscroll win)
   "Set vscroll to VSCROLL in window WIN."
   (image-mode-window-put 'vscroll vscroll win)
-  (set-window-vscroll win vscroll t t))
+  (set-window-vscroll win vscroll t))
 
 ;;; Displaying/Undisplaying pages
 (defun image-roll-display-image (image page window)
@@ -177,11 +177,10 @@ With FORCE non-nil display fetch page again even if it is already displayed."
                                 page window)
     (cdr (image-display-size display t))))
 
-(defun image-roll-display-pages (&optional window force)
-  "Display pages to fill the WINDOW.
+(defun image-roll-display-pages (page &optional window force)
+  "Display pages to fill the WINDOW starting from PAGE.
 If FORCE is non-nill redisplay a page even if it is already displayed."
-  (let (displayed
-        (page (image-roll-page-at-current-pos)))
+  (let (displayed)
     (image-roll-set-vscroll (min (image-mode-window-get 'vscroll window)
                                  (1- (image-roll-display-page page window force)))
                             window)
@@ -245,8 +244,6 @@ overlays."
   (setq window (if (windowp window) window (selected-window)))
   (when (image-roll-page-overlay 1 window)
     (setf (alist-get window image-roll--state) nil)
-    (set-window-start window (goto-char (image-roll-page-to-pos
-                                         (image-roll-current-page window))) t)
     (force-window-update window)))
 
 (defun image-roll-pre-redisplay (win)
@@ -263,25 +260,19 @@ It should be added to `pre-redisplay-functions' buffer locally."
                                    (eq (window-pixel-width win) (nth 2 state)))))
            (page-changed (not (eq page (nth 0 state))))
            (vscroll-changed (not (eq vscroll (nth 3 state)))))
-      (when size-changed
-        (let ((page-pos (pos-visible-in-window-p (image-roll-page-to-pos page) win t)))
-          (when (and (nth 2 page-pos) (nth 1 state))
-            (setq vscroll (min (max 1 (- vscroll (- height (nth 1 state))))
-                               (1- (+ (nth 2 page-pos) (nth 4 page-pos))))))))
       (image-roll-set-vscroll vscroll win)
+      (set-window-start win (image-roll-page-to-pos page) t)
       (setq disable-point-adjustment t)
       (when (or size-changed page-changed vscroll-changed)
-        (setf (alist-get win image-roll--state)
-              `(,page ,height ,(window-pixel-width win) ,vscroll))
-        (set-window-start win (goto-char (image-roll-page-to-pos page)) t)
         (let ((old (image-mode-window-get 'displayed-pages win))
-              (new (image-roll-display-pages win size-changed)))
+              (new (image-roll-display-pages page win size-changed)))
           ;; If images/pages are small enough (or after jumps), there
           ;; might be multiple image that need to get updated
           (image-roll-undisplay-pages (cl-set-difference old new) win)
           (image-mode-window-put 'displayed-pages new win)
-          (when (> (length new) 1)
-            (forward-char 2)))
+          (set-window-point win (+ (window-start win) (if (> (length new) 1) 2 0))))
+        (setf (alist-get win image-roll--state)
+              `(,page ,height ,(window-pixel-width win) ,vscroll nil))
         (when page-changed (run-hooks 'image-roll-after-change-page-hook))))))
 
 ;;; Page navigation commands
