@@ -363,13 +363,13 @@ With a prefix arg PIXELS is the numeric value times `image-roll-step-size'."
   "Scroll forward by (almost) ARG many full screens."
   (interactive "p")
   (image-roll-scroll-forward
-   (* (window-text-height nil t) (- arg 0.1))))
+   (- (* (window-text-height nil t) arg) (* next-screen-context-lines (frame-char-height)))))
 
 (defun image-roll-scroll-screen-backward (&optional arg)
   "Scroll backward by (almost) ARG many full screens."
   (interactive "p")
   (image-roll-scroll-backward
-   (* (window-text-height nil t) (- arg 0.1))))
+   (- (* (window-text-height nil t) arg) (* next-screen-context-lines (frame-char-height)))))
 
 (defun image-roll-scroll-mouse-wheel (event)
   "Scroll according to mouse wheel EVENT."
