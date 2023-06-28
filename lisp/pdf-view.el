@@ -41,6 +41,7 @@
 (declare-function image-roll-scroll-backward "image-roll")
 (declare-function image-roll-next-page "image-roll")
 (declare-function image-roll-redisplay "image-roll")
+(declare-function image-roll-pre-redisplay "image-roll")
 (declare-function image-roll-page-overlay "image-roll")
 (declare-function image-roll-page-at-current-pos "image-roll")
 (declare-function pdf-roll-display-image "pdf-roll")
@@ -747,7 +748,9 @@ windows."
         (run-hooks 'pdf-view-change-page-hook))
       (when (window-live-p window)
         (image-set-window-vscroll 0)
-        (pdf-view-redisplay window))
+        (if pdf-view-roll-minor-mode
+            (image-roll-pre-redisplay window)
+          (pdf-view-redisplay window)))
       (when changing-p
         (pdf-view-deactivate-region)
         (force-mode-line-update)
@@ -759,10 +762,8 @@ windows."
 
 Optional parameter N moves N pages forward."
   (interactive "p")
-  (if pdf-view-roll-minor-mode
-      (image-roll-next-page n)
-    (pdf-view-goto-page (+ (pdf-view-current-page)
-                           (or n 1)))))
+  (pdf-view-goto-page (+ (pdf-view-current-page)
+                         (or n 1))))
 
 (defun pdf-view-previous-page (&optional n)
   "View the previous page in the PDF.

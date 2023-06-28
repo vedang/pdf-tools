@@ -282,9 +282,7 @@ FIXME: EVENT not used at the moment."
           (setq window (selected-window)))
         (with-selected-window window
           (when page
-            (pdf-view-goto-page page)
-            (when pdf-view-roll-minor-mode
-              (image-roll-pre-redisplay window)))
+            (pdf-view-goto-page page))
           ;; Abuse isearch.
           (when match
             (let ((pixel-match

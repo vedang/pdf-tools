@@ -301,7 +301,6 @@ This is a Isearch interface function."
                           string pdf-isearch-current-page t)))
           (when next-page
             (pdf-view-goto-page next-page)
-            (when pdf-view-roll-minor-mode (image-roll-pre-redisplay (selected-window)))
             (pdf-isearch-search-function string))))))))
 
 (defun pdf-isearch-push-state-function ()
@@ -321,7 +320,6 @@ This is a Isearch interface function."
             pdf-isearch-current-page page)
 
       (pdf-view-goto-page pdf-isearch-current-page)
-      (when pdf-view-roll-minor-mode (image-roll-pre-redisplay (selected-window)))
       (when pdf-isearch-current-match
         (pdf-isearch-hl-matches
          pdf-isearch-current-match
@@ -339,7 +337,6 @@ This is a Isearch interface function."
     (unless (or pdf-isearch-narrow-to-page
                 (= page (pdf-view-current-page)))
       (pdf-view-goto-page page)
-      (when pdf-view-roll-minor-mode (image-roll-pre-redisplay (selected-window)))
       (let ((next-screen-context-lines 0))
         (if (= page 1)
             (image-scroll-down)
@@ -761,7 +758,7 @@ MATCH-BG LAZY-FG LAZY-BG\)."
                                  (memq page (image-mode-window-get 'displayed-pages window))))
                     (pdf-view-display-image
                      (pdf-view-create-image data :width width)
-                     (when pdf-view-roll-minor-mode page))))))))
+                     page)))))))
       (pdf-info-renderpage-text-regions
        page width t nil nil
        `(,fg1 ,bg1 ,@(pdf-util-scale-pixel-to-relative

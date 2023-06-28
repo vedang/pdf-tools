@@ -389,42 +389,45 @@ needed.
 Note: For versions of emacs before 27 this will return lines instead of
 pixels. This is because of a change that occurred to `image-mode' in 27."
   (pdf-util-assert-pdf-window)
-  (let* ((win (window-inside-pixel-edges))
-         (image-height (cdr (pdf-view-image-size
-                             (unless pdf-view-roll-minor-mode
-                               t))))
-         (image-top (window-vscroll nil t))
-         (edges (pdf-util-translate
-                 edges
-                 (pdf-view-image-offset) t)))
-    (pdf-util-with-edges (win edges)
-      (let* ((context-pixel (or context-pixel
-                                (* next-screen-context-lines
-                                   (frame-char-height))))
-             ;;Be careful not to modify edges.
-             (edges-top (- edges-top context-pixel))
-             (edges-bot (+ edges-bot context-pixel))
-             (vscroll
-              (cond ((< edges-top image-top)
-                     (max 0 (if eager-p
-                                (- edges-bot win-height)
-                              edges-top)))
-                    ((> (min image-height
-                             edges-bot)
-                        (+ image-top win-height))
-                     (min (- image-height win-height)
-                          (if eager-p
-                              edges-top
-                            (- edges-bot win-height)))))))
+  (if pdf-view-roll-minor-mode
+      (max 0 (- (nth 1 edges)
+                (* next-screen-context-lines (frame-char-height))))
+    (let* ((win (window-inside-pixel-edges))
+           (image-height (cdr (pdf-view-image-size
+                               (unless pdf-view-roll-minor-mode
+                                 t))))
+           (image-top (window-vscroll nil t))
+           (edges (pdf-util-translate
+                   edges
+                   (pdf-view-image-offset) t)))
+      (pdf-util-with-edges (win edges)
+        (let* ((context-pixel (or context-pixel
+                                  (* next-screen-context-lines
+                                     (frame-char-height))))
+               ;;Be careful not to modify edges.
+               (edges-top (- edges-top context-pixel))
+               (edges-bot (+ edges-bot context-pixel))
+               (vscroll
+                (cond ((< edges-top image-top)
+                       (max 0 (if eager-p
+                                  (- edges-bot win-height)
+                                edges-top)))
+                      ((> (min image-height
+                               edges-bot)
+                          (+ image-top win-height))
+                       (min (- image-height win-height)
+                            (if eager-p
+                                edges-top
+                              (- edges-bot win-height)))))))
 
 
-        (when vscroll
-          (round
-           ;; `image-set-window-vscroll' changed in version 27 to using
-           ;; pixels, not lines.
-           (if (version< emacs-version "27")
-               (/ vscroll (float (frame-char-height)))
-               vscroll)))))))
+          (when vscroll
+            (round
+             ;; `image-set-window-vscroll' changed in version 27 to using
+             ;; pixels, not lines.
+             (if (version< emacs-version "27")
+                 (/ vscroll (float (frame-char-height)))
+               vscroll))))))))
 
 (defun pdf-util-scroll-to-edges (edges &optional eager-p)
   "Scroll window such that image EDGES are visible.
@@ -632,9 +635,7 @@ string."
          (dy image-top)
          (pos (list dx dy dx (+ dy (* 2 (frame-char-height)))))
          (vscroll
-          (if pdf-view-roll-minor-mode
-            image-top
-            (pdf-util-required-vscroll pos)))
+          (pdf-util-required-vscroll pos))
          (tooltip-frame-parameters
           `((border-width . 0)
             (internal-border-width . 0)
@@ -793,8 +794,8 @@ respective sequence."
 
   (cl-macrolet ((make-matrix (rows columns)
                   `(apply #'vector
-                          (cl-loop for i from 1 to ,rows
-                                   collect (make-vector ,columns nil))))
+                    (cl-loop for i from 1 to ,rows
+                             collect (make-vector ,columns nil))))
                 (mset (matrix row column newelt)
                   `(aset (aref ,matrix ,row) ,column ,newelt))
                 (mref (matrix row column)
@@ -809,21 +810,21 @@ respective sequence."
                                 (if (equal a b) 1 -1)))))
 
       (cl-loop for i from 0 to len1 do
-        (mset d i 0 (- i)))
+               (mset d i 0 (- i)))
       (cl-loop for j from 0 to len2 do
-        (mset d 0 j (if suffix-p 0 (- j))))
+               (mset d 0 j (if suffix-p 0 (- j))))
 
       (cl-loop for i from 1 to len1 do
-        (cl-loop for j from 1 to len2 do
-          (let ((max (max
-                      (1- (mref d (1- i) j))
-                      (+ (mref d i (1- j))
-                         (if (and prefix-p (= i len1)) 0 -1))
-                      (+ (mref d (1- i) (1- j))
-                         (funcall similarity-fn
-                                  (elt seq1 (1- i))
-                                  (elt seq2 (1- j)))))))
-            (mset d i j max))))
+               (cl-loop for j from 1 to len2 do
+                        (let ((max (max
+                                    (1- (mref d (1- i) j))
+                                    (+ (mref d i (1- j))
+                                       (if (and prefix-p (= i len1)) 0 -1))
+                                    (+ (mref d (1- i) (1- j))
+                                       (funcall similarity-fn
+                                                (elt seq1 (1- i))
+                                                (elt seq2 (1- j)))))))
+                          (mset d i j max))))
 
       (let ((i len1)
             (j len2)
