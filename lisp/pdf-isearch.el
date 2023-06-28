@@ -267,7 +267,7 @@ This is a Isearch interface function."
           (push page-matches matches)))
       ;; Where to go next ?
       (setq pdf-isearch-current-page (pdf-view-current-page)
-            pdf-isearch-current-matches (car matches)
+            pdf-isearch-current-matches matches
             next-match
             (pdf-isearch-next-match
              oldpage pdf-isearch-current-page
@@ -282,9 +282,7 @@ This is a Isearch interface function."
        (next-match
         (setq pdf-isearch-current-match next-match)
         (cl-incf pdf-isearch--hl-matches-tick)
-        (dolist (page pages)
-          (pdf-isearch-hl-matches (when (eq page pdf-isearch-current-page) next-match)
-                                  (pop matches) nil page))
+        (pdf-isearch-hl-matches  next-match matches nil pages)
         (pdf-isearch-focus-match next-match)
         ;; Don't get off track.
         (when (or (and (bobp) (not isearch-forward))
@@ -323,7 +321,8 @@ This is a Isearch interface function."
       (when pdf-isearch-current-match
         (pdf-isearch-hl-matches
          pdf-isearch-current-match
-         pdf-isearch-current-matches))
+         pdf-isearch-current-matches
+         nil (image-mode-window-get 'displayed-pages (selected-window))))
       (image-set-window-hscroll hscroll)
       (image-set-window-vscroll vscroll))))
 
@@ -398,9 +397,12 @@ there was no previous search, this function returns t."
 
 (defun pdf-isearch-redisplay ()
   "Redisplay the current highlighting."
-  (cl-incf pdf-isearch--hl-matches-tick)
-  (pdf-isearch-hl-matches pdf-isearch-current-match
-                          pdf-isearch-current-matches))
+  (pdf-isearch-hl-matches
+   pdf-isearch-current-match
+   pdf-isearch-current-matches
+   nil
+   (or (image-mode-window-get 'displayed-pages (selected-window))
+       (list (pdf-view-current-page)))))
 
 (defun pdf-isearch-update ()
   "Update search and redisplay, if necessary."
@@ -432,7 +434,7 @@ there was no previous search, this function returns t."
           (cl-every (lambda (edges)
                       (cl-every 'zerop edges))
                     match))
-        matches)))
+        (apply #'append matches))))
 
 (defun pdf-isearch-occur ()
   "Run `occur' using the last search string or regexp."
@@ -730,42 +732,45 @@ MATCH-BG LAZY-FG LAZY-BG\)."
               (car lazy)
               (cdr lazy)))))))
 
-(defun pdf-isearch-hl-matches (current matches &optional occur-hack-p page)
+(defun pdf-isearch-hl-matches (current matches &optional occur-hack-p pages)
   "Highlighting edges CURRENT and MATCHES."
   (cl-check-type current pdf-isearch-match)
-  (cl-check-type matches (list-of pdf-isearch-match))
-  (setq page (or page (pdf-view-current-page)))
+  (cl-check-type matches (list-of (list-of pdf-isearch-match)))
   (cl-destructuring-bind (fg1 bg1 fg2 bg2)
       (pdf-isearch-current-colors)
-    (let* ((width (car (pdf-view-image-size)))
-           (window (selected-window))
-           (page (or page (pdf-view-current-page)))
+    (let* ((window (selected-window))
+           (pages (or pages
+                      (image-mode-window-get 'displayed-pages (selected-window))
+                      (list (pdf-view-current-page))))
            (buffer (current-buffer))
-           (tick pdf-isearch--hl-matches-tick)
-           (pdf-info-asynchronous
-            (lambda (status data)
-              (when (and (null status)
-                         (eq tick pdf-isearch--hl-matches-tick)
-                         (buffer-live-p buffer)
-                         (window-live-p window)
-                         (eq (window-buffer window)
-                             buffer))
-                (with-selected-window window
-                  (when (and (derived-mode-p 'pdf-view-mode)
-                             (or isearch-mode
-                                 occur-hack-p)
-                             (or (eq page (pdf-view-current-page))
-                                 (memq page (image-mode-window-get 'displayed-pages window))))
-                    (pdf-view-display-image
-                     (pdf-view-create-image data :width width)
-                     page)))))))
-      (pdf-info-renderpage-text-regions
-       page width t nil nil
-       `(,fg1 ,bg1 ,@(pdf-util-scale-pixel-to-relative
-                      current))
-       `(,fg2 ,bg2 ,@(pdf-util-scale-pixel-to-relative
-                      (apply 'append
-                             (remove current matches))))))))
+           (tick (cl-incf pdf-isearch--hl-matches-tick)))
+      (dolist (page pages)
+        (let* ((width (car (pdf-view-image-size nil window page)))
+               (pdf-info-asynchronous
+                (lambda (status data)
+                  (when (and (null status)
+                             (eq tick pdf-isearch--hl-matches-tick)
+                             (buffer-live-p buffer)
+                             (window-live-p window)
+                             (eq (window-buffer window)
+                                 buffer))
+                    (with-selected-window window
+                      (when (and (derived-mode-p 'pdf-view-mode)
+                                 (or isearch-mode occur-hack-p
+                                     (memq last-command '(isearch-repeat-forward isearch-repeat-backward)))
+                                 (or (eq page (pdf-view-current-page))
+                                     (memq page (image-mode-window-get 'displayed-pages window))))
+                        (pdf-view-display-image
+                         (pdf-view-create-image data :width width)
+                         page window)))))))
+          (pdf-info-renderpage-text-regions
+           page width t nil nil
+           `(,fg1 ,bg1 ,@(pdf-util-scale-pixel-to-relative
+                          (when (eq page (pdf-view-current-page window))
+                            current)))
+           `(,fg2 ,bg2 ,@(pdf-util-scale-pixel-to-relative
+                          (apply 'append
+                                 (remove current (pop matches)))))))))))
 
 
 ;; * ================================================================== *

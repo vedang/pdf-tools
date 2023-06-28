@@ -46,6 +46,7 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
   "Function to retrieve image of the PAGE in WINDOW."
   (pdf-roll-maybe-slice-image (pdf-view-create-page page window) window))
 
+;;;###autoload
 (define-minor-mode pdf-view-roll-minor-mode
   "If enabled display document on a virtual scroll providing continuous scrolling."
   :lighter " Continuous"

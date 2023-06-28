@@ -288,7 +288,6 @@ FIXME: EVENT not used at the moment."
             (let ((pixel-match
                    (pdf-util-scale-relative-to-pixel match))
                   (pdf-isearch-batch-mode t))
-              (cl-incf pdf-isearch--hl-matches-tick)
               (pdf-isearch-hl-matches pixel-match nil t)
               (pdf-isearch-focus-match-batch pixel-match))))))))
 
