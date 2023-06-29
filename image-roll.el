@@ -159,7 +159,7 @@ logic)"
          (overlay (image-roll-page-overlay page window))
          (margin-pos (+ (image-roll-page-to-pos page) 2))
          (margin-overlay (image-roll--pos-overlay margin-pos window))
-         (align-to (when (> (window-width window t) (car size))
+         (align-to (when (and image-roll-center (> (window-width window t) (car size)))
                      (/ (- (window-width window t) (car size)) 2)))
          (before-string (when align-to (propertize " " 'display `(space :align-to (,align-to))))))
     (overlay-put overlay 'display image)
@@ -199,6 +199,7 @@ Replaces the display property of the overlay holding a page with a space."
   (dolist (page pages)
     (overlay-put (image-roll-page-overlay page window)
                  'display (get 'image-roll 'display))))
+
 ;;; State Management
 (defun image-roll-new-window-function (&optional win)
   "Setup image roll in a new window WIN.
@@ -260,7 +261,8 @@ It should be added to `pre-redisplay-functions' buffer locally."
                                    (eq (window-pixel-width win) (nth 2 state)))))
            (page-changed (not (eq page (nth 0 state))))
            (vscroll-changed (not (eq vscroll (nth 3 state)))))
-      (image-roll-set-vscroll vscroll win)
+      (set-window-vscroll win vscroll t)
+      (set-window-hscroll win (or (image-mode-window-get 'hscroll win) 0))
       (set-window-start win (image-roll-page-to-pos page) t)
       (setq disable-point-adjustment t)
       (when (or size-changed page-changed vscroll-changed)
