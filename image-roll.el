@@ -149,6 +149,7 @@ logic)"
 
 (defun image-roll-set-vscroll (vscroll win)
   "Set vscroll to VSCROLL in window WIN."
+  (image-mode-winprops win t)
   (image-mode-window-put 'vscroll vscroll win)
   (set-window-vscroll win vscroll t))
 
@@ -254,16 +255,17 @@ It should be added to `pre-redisplay-functions' buffer locally."
     (unless (image-roll-page-overlay 1 win)
       (image-roll-new-window-function win))
     (let* ((state (alist-get win image-roll--state))
-           (height (window-pixel-height win))
            (page (image-roll-current-page win))
+           (height (window-pixel-height win))
            (vscroll (image-mode-window-get 'vscroll win))
            (size-changed (not (and (eq height (nth 1 state))
                                    (eq (window-pixel-width win) (nth 2 state)))))
            (page-changed (not (eq page (nth 0 state))))
-           (vscroll-changed (not (eq vscroll (nth 3 state)))))
+           (vscroll-changed (not (eq vscroll (nth 3 state))))
+           (start (image-roll-page-to-pos page)))
       (set-window-vscroll win vscroll t)
       (set-window-hscroll win (or (image-mode-window-get 'hscroll win) 0))
-      (set-window-start win (image-roll-page-to-pos page) t)
+      (set-window-start win start t)
       (setq disable-point-adjustment t)
       (when (or size-changed page-changed vscroll-changed)
         (let ((old (image-mode-window-get 'displayed-pages win))
@@ -272,7 +274,8 @@ It should be added to `pre-redisplay-functions' buffer locally."
           ;; might be multiple image that need to get updated
           (image-roll-undisplay-pages (cl-set-difference old new) win)
           (image-mode-window-put 'displayed-pages new win)
-          (set-window-point win (+ (window-start win) (if (> (length new) 1) 2 0))))
+          (set-window-point win (+ start
+                                   (if (pos-visible-in-window-p (+ 2 start) win) 2 0))))
         (setf (alist-get win image-roll--state)
               `(,page ,height ,(window-pixel-width win) ,vscroll nil))
         (when page-changed (run-hooks 'image-roll-after-change-page-hook))))))
