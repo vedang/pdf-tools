@@ -306,6 +306,26 @@ os_debian() {
     return 0
 }
 
+# Android using Termux
+os_android() {
+    if ! [ -d "/data/data/com.termux/files/home" ]; then
+        return 1
+    fi
+    PACKAGES="autoconf
+              automake
+              binutils
+              clang
+              libpng
+              poppler
+              zlib
+              make
+              xorgproto
+              pkg-config"
+    PKGCMD=pkg
+    PKGARGS="install"
+    return 0
+}
+
 # Msys2
 os_msys2() {
     if [ -z "$MSYSTEM" ] || ! [ -r "/etc/profile" ]; then
@@ -546,6 +566,7 @@ os_argument() {
         opensuse) os_opensuse "$@";;
         alpine)  os_alpine  "$@";;
         nobara)  os_nobara  "$@";;
+        android) os_android  "$@";;
         *)       echo "Invalid --os argument: $OS"
                  exit 1
     esac || {
@@ -577,6 +598,7 @@ os_void     "$@" || \
 os_opensuse "$@" || \
 os_alpine   "$@" || \
 os_nobara   "$@" || \
+os_android  "$@" || \
 {
     OS_IS_HANDLED=
     if [ -z "$DRY_RUN" ]; then
