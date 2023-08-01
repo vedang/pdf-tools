@@ -53,6 +53,8 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
   :keymap (let ((map (make-sparse-keymap)))
             (define-key map [remap pdf-view-previous-line-or-previous-page] 'image-roll-scroll-backward)
             (define-key map [remap pdf-view-next-line-or-next-page] 'image-roll-scroll-forward)
+            (define-key map [remap pdf-view-scroll-down-or-previous-page] 'image-roll-scroll-backward)
+            (define-key map [remap pdf-view-scroll-up-or-next-page] 'image-roll-scroll-forward)
             (define-key map [remap mouse-set-point] 'ignore)
             (define-key map (kbd "<wheel-down>") 'image-roll-scroll-mouse-wheel)
             (define-key map (kbd "<wheel-up>") 'image-roll-scroll-mouse-wheel)
