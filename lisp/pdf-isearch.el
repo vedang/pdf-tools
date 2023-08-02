@@ -252,7 +252,7 @@ This is a Isearch interface function."
     (let ((same-search-p (pdf-isearch-same-search-p))
           (oldpage pdf-isearch-current-page)
           (pages (or (image-mode-window-get 'displayed-pages (selected-window))
-                     (pdf-view-current-page)))
+                     (list (pdf-view-current-page))))
           matches
           next-match)
       (dolist (page pages)
@@ -428,13 +428,14 @@ there was no previous search, this function returns t."
       (message "%s" msg))))
 
 (defun pdf-isearch-empty-match-p (matches)
-  (and matches
+  (let ((all-matches (apply #'append matches)))
+      (and all-matches
        (cl-every
         (lambda (match)
           (cl-every (lambda (edges)
                       (cl-every 'zerop edges))
                     match))
-        (apply #'append matches))))
+        all-matches))))
 
 (defun pdf-isearch-occur ()
   "Run `occur' using the last search string or regexp."

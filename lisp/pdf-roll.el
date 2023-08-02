@@ -97,6 +97,7 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
            (erase-buffer)
            (remove-overlays)
            (insert-file-contents-literally (buffer-file-name))
+           (image-mode-window-put 'displayed-pages nil)
            (pdf-view-new-window-function (list (selected-window)))
            (set-buffer-modified-p nil)))))
 
