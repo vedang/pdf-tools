@@ -101,6 +101,19 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
            (pdf-view-new-window-function (list (selected-window)))
            (set-buffer-modified-p nil)))))
 
+(defun pdf-roll--get-display-property ()
+  "`:before-until' advice for `image-get-display-property'.
+`image-get-display-property' looks at the `point-min'. This function instead
+returns the display property for the current page if `pdf-view-roll-minor-mode'
+is non-nil."
+  (when pdf-view-roll-minor-mode
+    (get-char-property (image-roll-page-to-pos (pdf-view-current-page))
+                       'display
+                       (if (eq (window-buffer) (current-buffer))
+                           (selected-window)))))
+
+(advice-add 'image-get-display-property :before-until #'pdf-roll--get-display-property)
+
 (provide 'pdf-roll)
 
 ;;; pdf-roll.el ends here
