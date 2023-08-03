@@ -32,8 +32,8 @@
 
 
 (defvar pdf-view-roll-minor-mode)
-(declare-function image-roll-page-overlay "image-roll")
-(declare-function image-roll-displayed-pages "image-roll")
+(declare-function pdf-roll-page-overlay "pdf-roll")
+(declare-function pdf-roll-displayed-pages "pdf-roll")
 ;;; Code:
 
 
@@ -244,7 +244,7 @@ See `pdf-links-action-perform' for the interface."
       (unwind-protect
           (progn
             (dolist (page pages)
-              (let* ((image (or (overlay-get (image-roll-page-overlay page win) 'display)
+              (let* ((image (or (overlay-get (pdf-roll-page-overlay page win) 'display)
                                 (pdf-view-current-image)))
                      (image (or (assoc 'image image) image))
                      (height (cdr (image-size image t)))

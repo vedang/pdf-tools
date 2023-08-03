@@ -37,13 +37,13 @@
 (declare-function cua-copy-region "cua-base")
 (declare-function pdf-tools-pdf-buffer-p "pdf-tools")
 
-(declare-function image-roll-scroll-forward "image-roll")
-(declare-function image-roll-scroll-backward "image-roll")
-(declare-function image-roll-next-page "image-roll")
-(declare-function image-roll-redisplay "image-roll")
-(declare-function image-roll-pre-redisplay "image-roll")
-(declare-function image-roll-page-overlay "image-roll")
-(declare-function image-roll-page-at-current-pos "image-roll")
+(declare-function pdf-roll-scroll-forward "pdf-roll")
+(declare-function pdf-roll-scroll-backward "pdf-roll")
+(declare-function pdf-roll-next-page "pdf-roll")
+(declare-function pdf-roll-redisplay "pdf-roll")
+(declare-function pdf-roll-pre-redisplay "pdf-roll")
+(declare-function pdf-roll-page-overlay "pdf-roll")
+(declare-function pdf-roll-page-at-current-pos "pdf-roll")
 (declare-function pdf-roll-display-image "pdf-roll")
 
 (defvar pdf-view-roll-minor-mode)
@@ -749,7 +749,7 @@ windows."
       (when (window-live-p window)
         (image-set-window-vscroll 0)
         (if pdf-view-roll-minor-mode
-            (image-roll-pre-redisplay window)
+            (pdf-roll-pre-redisplay window)
           (pdf-view-redisplay window)))
       (when changing-p
         (pdf-view-deactivate-region)
@@ -897,7 +897,7 @@ at the bottom edge of the page moves to the next page."
 (defun pdf-view-next-line-or-next-page (&optional arg)
   (interactive "p")
   (if pdf-view-roll-minor-mode
-      (dotimes (_ (or arg 1)) (image-roll-scroll-forward))
+      (dotimes (_ (or arg 1)) (pdf-roll-scroll-forward))
     (pdf-view--next-line-or-next-page arg)))
 
 (defun pdf-view--previous-line-or-previous-page (&optional arg)
@@ -921,7 +921,7 @@ at the top edge of the page moves to the previous page."
 (defun pdf-view-previous-line-or-previous-page (&optional arg)
   (interactive "p")
   (if pdf-view-roll-minor-mode
-      (dotimes (_ (or arg 1)) (image-roll-scroll-backward))
+      (dotimes (_ (or arg 1)) (pdf-roll-scroll-backward))
     (pdf-view--previous-line-or-previous-page arg)))
 
 (defun pdf-view-goto-label (label)
@@ -1159,7 +1159,7 @@ If PAGE is non-nil return its size instead of current page."
                                  (setq page (or page (pdf-view-current-page window)))
                                  (unless (memq page (image-mode-window-get 'displayed-pages window))
                                    (pdf-view-display-page page window))
-                                 (overlay-get (image-roll-page-overlay page window) 'display))
+                                 (overlay-get (pdf-roll-page-overlay page window) 'display))
                         (image-get-display-property))))
     (if displayed-p
         (image-display-size display-prop t)
@@ -1248,7 +1248,7 @@ If WINDOW is t, redisplay pages in all windows."
 
 (defun pdf-view-redisplay (&optional window)
   (if pdf-view-roll-minor-mode
-      (image-roll-redisplay window)
+      (pdf-roll-redisplay window)
     (pdf-view--redisplay window)))
 
 (defun pdf-view-redisplay-pages (&rest pages)
@@ -1640,10 +1640,10 @@ Stores the region in `pdf-view-active-region'."
                   (if pdf-view-roll-minor-mode
                       (cond
                        ((and (> dy 0) (< (- (window-text-height window t) y) 20))
-                        (image-roll-scroll-forward
+                        (pdf-roll-scroll-forward
                          (min 20 (or (nth 3 (pos-visible-in-window-p (posn-point pos) window t)) 0))))
                        ((and (< dy 0) (< (- y (window-header-line-height window)) 20))
-                        (image-roll-scroll-backward
+                        (pdf-roll-scroll-backward
                          (min 20 (or (nth 2 (pos-visible-in-window-p (posn-point pos) window t)) 0)))))
                     (pdf-util-scroll-to-edges iregion))))))
       (setq pdf-view-active-region
