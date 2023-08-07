@@ -1169,11 +1169,12 @@ EV describes the captured mouse event."
           "Click where a new text annotation should be added ..."))
      (event-start ev))))
 
-(defun pdf-annot-add-markup-annotation (list-of-edges type &optional color
+(defun pdf-annot-add-markup-annotation (region type &optional color
                                                       property-alist)
   "Add a new markup annotation in the selected window.
 
-LIST-OF-EDGES determines the marked up area and should be a list
+REGION determines the marked up area and should be a cons cell
+\(PAGE . LIST-OF-EDGES\) where LIST-OF-EDGES should be list
 of \(LEFT TOP RIGHT BOT\), each value a relative coordinate.
 
 TYPE should be one of `squiggly', `underline', `strike-out' or
@@ -1196,7 +1197,7 @@ Return the new annotation."
   (pdf-util-assert-pdf-window)
   (pdf-annot-add-annotation
    type
-   list-of-edges
+   (cdr region)
    (pdf-annot-merge-alists
     (and color `((color . ,color)))
     property-alist
@@ -1205,7 +1206,7 @@ Return the new annotation."
     (when pdf-annot-color-history
       `((color . ,(car pdf-annot-color-history))))
     '((color . "#ffff00")))
-   (pdf-view-current-page)))
+   (car region)))
 
 (defun pdf-annot-add-squiggly-markup-annotation (list-of-edges
                                                  &optional color property-alist)

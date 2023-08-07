@@ -264,7 +264,7 @@ Must be one of `glyph', `word', or `line'."
 ;; * ================================================================== *
 
 (defvar-local pdf-view-active-region nil
-  "The active region as a list of edges.
+  "The active region as a cons cell of page and list of edges.
 
 Edge values are relative coordinates.")
 
@@ -1255,8 +1255,9 @@ If WINDOW is t, redisplay pages in all windows."
   "Redisplay PAGES in all windows."
   (pdf-util-assert-pdf-buffer)
   (dolist (window (get-buffer-window-list nil nil t))
-    (when (memq (pdf-view-current-page window)
-                pages)
+    (when (cl-some (lambda (page) (memq page pages))
+                   (or (image-mode-window-get 'displayed-pages window)
+                       (list (pdf-view-current-page window))))
       (pdf-view-redisplay window))))
 
 (defun pdf-view-maybe-redisplay-resized-windows ()
@@ -1528,7 +1529,7 @@ supersede hotspots in lower ones."
   (setq deactivate-mark nil))
 
 (defun pdf-view-active-region (&optional deactivate-p)
-  "Return the active region, a list of edges.
+  "Return the active region, as a cons cell of page number and list of edges.
 
 Deactivate the region if DEACTIVATE-P is non-nil."
   (pdf-view-assert-active-region)
@@ -1578,10 +1579,13 @@ Stores the region in `pdf-view-active-region'."
                   (setq begin-inside-image-p nil)
                   (posn-x-y pos)))
          (abs-begin (posn-x-y pos))
-         (page (/ (+ 3 (posn-point pos)) 4))
+         (page (if pdf-view-roll-minor-mode
+                   (/ (+ 3 (posn-point pos)) 4)
+                 (pdf-view-current-page)))
          (selection-style (or selection-style pdf-view-selection-style))
          pdf-view-continuous
          region)
+    (setq pdf-view-active-region (list page))
     (when (pdf-util-track-mouse-dragging (event 0.05)
             (let* ((pos (event-start event))
                    (end (posn-object-x-y pos))
@@ -1633,10 +1637,9 @@ Stores the region in `pdf-view-active-region'."
                   (setq region
                         (pdf-util-scale-pixel-to-relative iregion))
                   (pdf-view-display-region
-                   (cons region pdf-view-active-region)
+                   (cons page (cons region (cdr pdf-view-active-region)))
                    rectangle-p
-                   selection-style
-                   page)
+                   selection-style)
                   (if pdf-view-roll-minor-mode
                       (cond
                        ((and (> dy 0) (< (- (window-text-height window t) y) 20))
@@ -1646,9 +1649,7 @@ Stores the region in `pdf-view-active-region'."
                         (pdf-roll-scroll-backward
                          (min 20 (or (nth 2 (pos-visible-in-window-p (posn-point pos) window t)) 0)))))
                     (pdf-util-scroll-to-edges iregion))))))
-      (setq pdf-view-active-region
-            (append pdf-view-active-region
-                    (list region)))
+      (cl-callf append (cdr pdf-view-active-region) (list region))
       (pdf-view--push-mark))))
 
 (defun pdf-view-mouse-extend-region (event)
@@ -1667,7 +1668,7 @@ This is more useful for commands like
   (interactive "@e")
   (pdf-view-mouse-set-region event nil t))
 
-(defun pdf-view-display-region (&optional region rectangle-p selection-style page)
+(defun pdf-view-display-region (&optional region rectangle-p selection-style)
   ;; TODO: write documentation!
   (unless region
     (pdf-view-assert-active-region)
@@ -1675,7 +1676,7 @@ This is more useful for commands like
   (let ((colors (pdf-util-face-colors
                  (if rectangle-p 'pdf-view-rectangle 'pdf-view-region)
                  (bound-and-true-p pdf-view-dark-minor-mode)))
-        (page (or page (pdf-view-current-page)))
+        (page (car region))
         (width (car (pdf-view-image-size))))
     (pdf-view-display-image
      (pdf-view-create-image
@@ -1685,7 +1686,7 @@ This is more useful for commands like
               `(,(car colors) ,(cdr colors) 0.35 ,@region))
            (pdf-info-renderpage-text-regions
             page width nil selection-style nil
-            `(,(car colors) ,(cdr colors) ,@region)))
+            `(,(car colors) ,(cdr colors) ,@(cdr region))))
        :width width)
      (when pdf-view-roll-minor-mode page))))
 
@@ -1702,7 +1703,7 @@ This is more useful for commands like
   (interactive)
   (pdf-view-deactivate-region)
   (setq pdf-view-active-region
-        (list (list 0 0 1 1)))
+        (cons (pdf-view-current-page) (list (list 0 0 1 1))))
   (pdf-view--push-mark)
   (pdf-view-display-region))
 
@@ -1712,10 +1713,10 @@ This is more useful for commands like
   (mapcar
    (lambda (edges)
      (pdf-info-gettext
-      (pdf-view-current-page)
+      (car pdf-view-active-region)
       edges
       pdf-view-selection-style))
-   pdf-view-active-region))
+   (cdr pdf-view-active-region)))
 
 (defun pdf-view-extract-region-image (regions &optional page size
                                               output-buffer no-display-p)
@@ -1737,11 +1738,11 @@ the `convert' program is used."
   (interactive
    (list (if (pdf-view-active-region-p)
              (pdf-view-active-region t)
-           '((0 0 1 1)))))
+           '(,(pdf-view-current-page) (0 0 1 1)))))
   (unless page
-    (setq page (pdf-view-current-page)))
+    (setq page (car regions)))
   (unless size
-    (setq size (pdf-view-image-size)))
+    (setq size (pdf-view-image-size nil nil page)))
   (unless output-buffer
     (setq output-buffer (get-buffer-create "*PDF image*")))
   (let* ((images (mapcar (lambda (edges)
@@ -1753,7 +1754,7 @@ the `convert' program is used."
                                :crop-to edges)
                               nil file nil 'no-message)
                              file))
-                         regions))
+                         (cdr regions)))
          result)
     (unwind-protect
         (progn
