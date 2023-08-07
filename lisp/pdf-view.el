@@ -1582,6 +1582,7 @@ Stores the region in `pdf-view-active-region'."
          (page (if pdf-view-roll-minor-mode
                    (/ (+ 3 (posn-point pos)) 4)
                  (pdf-view-current-page)))
+         (margin (frame-char-height))
          (selection-style (or selection-style pdf-view-selection-style))
          pdf-view-continuous
          region)
@@ -1642,12 +1643,14 @@ Stores the region in `pdf-view-active-region'."
                    selection-style)
                   (if pdf-view-roll-minor-mode
                       (cond
-                       ((and (> dy 0) (< (- (window-text-height window t) y) 20))
+                       ((and (> dy 0) (< (- (window-text-height window t) y) margin))
                         (pdf-roll-scroll-forward
-                         (min 20 (or (nth 3 (pos-visible-in-window-p (posn-point pos) window t)) 0))))
-                       ((and (< dy 0) (< (- y (window-header-line-height window)) 20))
+                         (min margin
+                              (or (nth 3 (pos-visible-in-window-p (posn-point pos) window t)) 0))))
+                       ((and (< dy 0) (< (- y (window-header-line-height window)) margin))
                         (pdf-roll-scroll-backward
-                         (min 20 (or (nth 2 (pos-visible-in-window-p (posn-point pos) window t)) 0)))))
+                         (min margin
+                              (or (nth 2 (pos-visible-in-window-p (posn-point pos) window t)) 0)))))
                     (pdf-util-scroll-to-edges iregion))))))
       (cl-callf append (cdr pdf-view-active-region) (list region))
       (pdf-view--push-mark))))
