@@ -31,7 +31,7 @@
 ;;; Custom Variables
 (defgroup pdf-roll nil
   "Image roll configurations."
-  :group 'applications)
+  :group 'pdf-view)
 
 (defface pdf-roll-default `((t :font ,(font-spec :family "monospace" :size 1)))
   "Default face for image roll documents.")
@@ -45,23 +45,11 @@
   :type 'color
   :set (lambda (_ color) (put 'pdf-roll-margin 'face `(:background ,color))))
 
-(defcustom pdf-roll-step-size 50
-  "Scroll step size in pixels units."
-  :type 'integer)
-
 ;;; Variables
-(defvar-local pdf-roll-last-page 0)
-(defvar-local pdf-roll--state nil
+(defvar pdf-roll--state nil
   "Local variable that tracks window, point and vscroll to handle changes.")
 
 ;;; Utility Macros and functions
-(defmacro pdf-roll-current-page (&optional window)
-  "Return the page number of the currently displayed page in WINDOW.
-The current page is the page that overlaps with the window
-start (this choice was made in order to simplify the scrolling
-logic)"
-  `(image-mode-window-get 'page ,window))
-
 (defsubst pdf-roll-page-to-pos (page)
   "Get the buffer position displaing PAGE."
   (- (* 4 page) 3))
@@ -99,9 +87,11 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
             image)
     image))
 
-(defun pdf-roll--display-image (image page window)
-  "Display IMAGE for PAGE in WINDOW."
-  (let* ((size (image-display-size image t))
+(defun pdf-roll-display-image (image page &optional window inhibit-slice-p)
+  "Display IMAGE for PAGE in WINDOW.
+If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
+  (let* ((image (pdf-roll-maybe-slice-image image window inhibit-slice-p))
+         (size (image-display-size image t))
          (overlay (pdf-roll-page-overlay page window))
          (margin-pos (+ (pdf-roll-page-to-pos page) 2))
          (margin-overlay (pdf-roll--pos-overlay margin-pos window))
@@ -113,12 +103,6 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
     (overlay-put margin-overlay 'display `(space :width (,(car size)) :height (,pdf-roll-vertical-margin)))
     (overlay-put margin-overlay 'before-string before-string)
     (cdr size)))
-
-(defun pdf-roll-display-image (image page &optional window inhibit-slice-p)
-  "Display IMAGE for PAGE in WINDOW.
-If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
-  (let ((image (pdf-roll-maybe-slice-image image window inhibit-slice-p)))
-    (pdf-roll--display-image image page window)))
 
 (defun pdf-roll-page-image (page window)
   "Function to retrieve image of the PAGE in WINDOW."
@@ -171,7 +155,7 @@ minor mode commands, after erasing the buffer to create the
 overlays."
   (setq win (or (and (windowp win) win) (selected-window)))
   (if (not (overlays-at 1))
-      (let ((pages pdf-roll-last-page)
+      (let ((pages (pdf-cache-number-of-pages))
             (inhibit-read-only t))
         (erase-buffer)
         (setq pdf-roll--state (list t))
@@ -193,7 +177,7 @@ overlays."
           (remove-overlays (point-min) (point-max) 'window win-old)))
       (cl-callf2 cl-delete-if-not #'window-live-p pdf-roll--state :key #'car-safe)))
   ;; initial `pdf-roll-redisplay' needs to know which page(s) to display
-  (cl-callf or (pdf-roll-current-page win) 1)
+  (cl-callf or (pdf-view-current-page win) 1)
   (cl-callf or (image-mode-window-get 'vscroll win) 0))
 
 (defun pdf-roll-redisplay (&optional window)
@@ -210,7 +194,7 @@ It should be added to `pre-redisplay-functions' buffer locally."
     (unless (pdf-roll-page-overlay 1 win)
       (pdf-roll-new-window-function win))
     (let* ((state (alist-get win pdf-roll--state))
-           (page (pdf-roll-current-page win))
+           (page (pdf-view-current-page win))
            (height (window-pixel-height win))
            (vscroll (image-mode-window-get 'vscroll win))
            (size-changed (not (and (eq height (nth 1 state))
@@ -248,9 +232,9 @@ It should be added to `pre-redisplay-functions' buffer locally."
              (prefix-numeric-value current-prefix-arg)
            (read-number "Page: "))))
   (unless (and (>= page 1)
-               (<= page pdf-roll-last-page))
+               (<= page (pdf-cache-number-of-pages)))
     (error "No such page: %d" page))
-  (setf (pdf-roll-current-page window) page)
+  (setf (pdf-view-current-page window) page)
   (pdf-roll-set-vscroll 0 window))
 
 (defun pdf-roll-next-page (&optional n)
@@ -270,8 +254,8 @@ By default PIXELS is `pdf-roll-step-size'. When PIXELS is negative scroll
 backward instead.
 
 With a prefix arg PIXELS is the numeric value times `pdf-roll-step-size'."
-  (interactive (list (* (prefix-numeric-value current-prefix-arg) pdf-roll-step-size)))
-  (setq pixels (or pixels pdf-roll-step-size))
+  (interactive (list (* (prefix-numeric-value current-prefix-arg) (frame-char-height))))
+  (setq pixels (or pixels (frame-char-height)))
   (setq window (or window (selected-window)))
   (when (> 0 pixels) (pdf-roll-scroll-backward (- pixels) window))
   (let ((pos (goto-char (window-start window))))
@@ -287,7 +271,7 @@ With a prefix arg PIXELS is the numeric value times `pdf-roll-step-size'."
                         (message "End of buffer"))
                     (cl-decf pixels occupied-pixels))))
       (forward-char 4))
-    (setf (pdf-roll-current-page window) (pdf-roll-page-at-current-pos))
+    (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos))
     (pdf-roll-set-vscroll (+ (if (eq pos (point)) (window-vscroll window t) 0) pixels)
                             window)))
 
@@ -297,8 +281,8 @@ By default PIXELS is `pdf-roll-step-size'. When PIXELS is negative scroll
 forward instead.
 
 With a prefix arg PIXELS is the numeric value times `pdf-roll-step-size'."
-  (interactive (list (* (prefix-numeric-value current-prefix-arg) pdf-roll-step-size)))
-  (setq pixels (or pixels pdf-roll-step-size))
+  (interactive (list (* (prefix-numeric-value current-prefix-arg) (frame-char-height))))
+  (setq pixels (or pixels (frame-char-height)))
   (setq window (or window (selected-window)))
   (when (> 0 pixels) (pdf-roll-scroll-backward (- pixels) window))
   (goto-char (window-start window))
@@ -317,7 +301,7 @@ With a prefix arg PIXELS is the numeric value times `pdf-roll-step-size'."
                          (cl-decf pixels (line-pixel-height)))
                   (> pixels 0)))
       (pdf-roll-set-vscroll (- pixels) window)))
-  (setf (pdf-roll-current-page window) (pdf-roll-page-at-current-pos)))
+  (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos)))
 
 (defun pdf-roll-scroll-screen-forward (&optional arg)
   "Scroll forward by (almost) ARG many full screens."
@@ -331,15 +315,6 @@ With a prefix arg PIXELS is the numeric value times `pdf-roll-step-size'."
   (pdf-roll-scroll-backward
    (- (* (window-text-height nil t) arg) (* next-screen-context-lines (frame-char-height)))))
 
-(defun pdf-roll-scroll-mouse-wheel (event)
-  "Scroll according to mouse wheel EVENT."
-  (interactive "e")
-  (with-selected-window (posn-window (event-start event))
-    (pcase (event-basic-type event)
-      ('wheel-down (pdf-roll-scroll-forward))
-      ('wheel-up (pdf-roll-scroll-backward))
-      (_ (error "Event must be wheel down or wheel up event")))))
-
 ;;; Minor mode
 ;;;###autoload
 (define-minor-mode pdf-view-roll-minor-mode
@@ -351,16 +326,13 @@ With a prefix arg PIXELS is the numeric value times `pdf-roll-step-size'."
             (define-key map [remap pdf-view-scroll-down-or-previous-page] 'pdf-roll-scroll-backward)
             (define-key map [remap pdf-view-scroll-up-or-next-page] 'pdf-roll-scroll-forward)
             (define-key map [remap mouse-set-point] 'ignore)
-            (define-key map (kbd "<wheel-down>") 'pdf-roll-scroll-mouse-wheel)
-            (define-key map (kbd "<wheel-up>") 'pdf-roll-scroll-mouse-wheel)
             (define-key map (kbd "S-<next>") 'pdf-roll-scroll-screen-forward)
             (define-key map (kbd "S-<prior>") 'pdf-roll-scroll-screen-backward)
             map)
   :version 28.1
 
   (cond (pdf-view-roll-minor-mode
-         (setq-local pdf-roll-last-page (pdf-cache-number-of-pages)
-                     face-remapping-alist '((default . pdf-roll-default))
+         (setq-local face-remapping-alist '((default . pdf-roll-default))
                      mwheel-scroll-up-function #'pdf-roll-scroll-forward
                      mwheel-scroll-down-function #'pdf-roll-scroll-backward)
 
@@ -370,6 +342,10 @@ With a prefix arg PIXELS is the numeric value times `pdf-roll-step-size'."
 
          (add-hook 'pre-redisplay-functions 'pdf-roll-pre-redisplay nil t)
          (add-hook 'pdf-roll-after-change-page-hook 'pdf-history-before-change-page-hook nil t)
+
+         (add-function :after (local 'revert-buffer-function) #'pdf-view-roll-minor-mode)
+
+         (make-local-variable 'pdf-roll--state)
 
          (let ((inhibit-read-only t))
            (erase-buffer)
@@ -383,8 +359,12 @@ With a prefix arg PIXELS is the numeric value times `pdf-roll-step-size'."
          (add-hook 'window-configuration-change-hook 'pdf-view-redisplay-some-windows nil t)
          (add-hook 'image-mode-new-window-functions #'pdf-view-new-window-function nil t)
 
+         (remove-function (local 'revert-buffer-function) #'pdf-view-roll-minor-mode)
+
          (remove-hook 'pre-redisplay-functions 'pdf-roll-pre-redisplay t)
          (remove-hook 'pdf-roll-after-change-page-hook 'pdf-history-before-change-page-hook t)
+
+         (kill-local-variable 'pdf-roll--state)
 
          (let ((inhibit-read-only t))
            (erase-buffer)
