@@ -248,72 +248,74 @@ It should be added to `pre-redisplay-functions' buffer locally."
   (pdf-roll-next-page (- n)))
 
 ;;; Scrolling Commands
-(defun pdf-roll-scroll-forward (&optional pixels window)
-  "Scroll image PIXELS forward in WINDOW.
-By default PIXELS is `pdf-roll-step-size'. When PIXELS is negative scroll
-backward instead.
+(defun pdf-roll-scroll-forward (&optional n window pixels)
+  "Scroll image N lines forward in WINDOW.
+Line height is determined by `frame-char-height'. When N is negative
+scroll backward instead. With a prefix arg N is its numeric value.
 
-With a prefix arg PIXELS is the numeric value times `pdf-roll-step-size'."
-  (interactive (list (* (prefix-numeric-value current-prefix-arg) (frame-char-height))))
-  (setq pixels (or pixels (frame-char-height)))
+If PIXELS is non-nil N is number of pixels instead of lines."
+  (interactive (list (prefix-numeric-value current-prefix-arg)))
+  (setq n (* (or n 1) (if pixels 1 (frame-char-height))))
   (setq window (or window (selected-window)))
-  (when (> 0 pixels) (pdf-roll-scroll-backward (- pixels) window))
+  (when (> 0 n) (pdf-roll-scroll-backward (- n) window))
   (let ((pos (goto-char (window-start window))))
     (while (let* ((data (pos-visible-in-window-p (point) window t))
                   (occupied-pixels (cond ((nth 2 data) (nth 4 data))
                                          (data (line-pixel-height))
                                          (t (pdf-roll-display-page
                                              (pdf-roll-page-at-current-pos) window)))))
-             (and (>= pixels occupied-pixels)
+             (and (>= n occupied-pixels)
                   (if (eq (point) (1- (point-max)))
                       (prog1 nil
-                        (setq pixels (- occupied-pixels 10))
+                        (setq n (- occupied-pixels 10))
                         (message "End of buffer"))
-                    (cl-decf pixels occupied-pixels))))
+                    (cl-decf n occupied-pixels))))
       (forward-char 4))
     (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos))
-    (pdf-roll-set-vscroll (+ (if (eq pos (point)) (window-vscroll window t) 0) pixels)
+    (pdf-roll-set-vscroll (+ (if (eq pos (point)) (window-vscroll window t) 0) n)
                             window)))
 
-(defun pdf-roll-scroll-backward (&optional pixels window)
-  "Scroll image PIXELS backwards in WINDOW.
-By default PIXELS is `pdf-roll-step-size'. When PIXELS is negative scroll
-forward instead.
+(defun pdf-roll-scroll-backward (&optional n window pixels)
+  "Scroll image N lines backwards in WINDOW.
+Line height is determined by `frame-char-height'. When N is negative
+scroll forward instead. With a prefix arg N is its numeric value.
 
-With a prefix arg PIXELS is the numeric value times `pdf-roll-step-size'."
+If PIXELS is non-nil N is number of pixels instead of lines."
   (interactive (list (* (prefix-numeric-value current-prefix-arg) (frame-char-height))))
-  (setq pixels (or pixels (frame-char-height)))
+  (setq n (* (or n 1) (if pixels 1 (frame-char-height))))
   (setq window (or window (selected-window)))
-  (when (> 0 pixels) (pdf-roll-scroll-backward (- pixels) window))
+  (when (> 0 n) (pdf-roll-scroll-backward (- n) window))
   (goto-char (window-start window))
   (let* ((data (pos-visible-in-window-p (point) window t))
          (pixels-top (if (nth 2 data) (nth 2 data) 0)))
-    (if (< pixels pixels-top)
-        (pdf-roll-set-vscroll (- (window-vscroll window t) pixels)
+    (if (< n pixels-top)
+        (pdf-roll-set-vscroll (- (window-vscroll window t) n)
                                 window)
-      (cl-decf pixels pixels-top)
+      (cl-decf n pixels-top)
       (while (and (if (bobp)
                       (prog1 nil (message "Beginning of buffer."))
                     t)
                   (progn (forward-char -4)
                          (pdf-roll-display-page
                           (pdf-roll-page-at-current-pos) window)
-                         (cl-decf pixels (line-pixel-height)))
-                  (> pixels 0)))
-      (pdf-roll-set-vscroll (- pixels) window)))
+                         (cl-decf n (line-pixel-height)))
+                  (> n 0)))
+      (pdf-roll-set-vscroll (- n) window)))
   (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos)))
 
 (defun pdf-roll-scroll-screen-forward (&optional arg)
   "Scroll forward by (almost) ARG many full screens."
   (interactive "p")
   (pdf-roll-scroll-forward
-   (- (* (window-text-height nil t) arg) (* next-screen-context-lines (frame-char-height)))))
+   (- (* (window-text-height nil t) arg) (* next-screen-context-lines (frame-char-height)))
+   nil t))
 
 (defun pdf-roll-scroll-screen-backward (&optional arg)
   "Scroll backward by (almost) ARG many full screens."
   (interactive "p")
   (pdf-roll-scroll-backward
-   (- (* (window-text-height nil t) arg) (* next-screen-context-lines (frame-char-height)))))
+   (- (* (window-text-height nil t) arg) (* next-screen-context-lines (frame-char-height)))
+   nil t))
 
 ;;; Minor mode
 ;;;###autoload
