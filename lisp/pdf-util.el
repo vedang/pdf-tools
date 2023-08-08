@@ -163,7 +163,7 @@ See also `pdf-util-scale'."
 
 The result depends on the currently displayed page in WINDOW.
 See also `pdf-util-scale'."
-  (pdf-util-assert-pdf-window window)
+  (when displayed-p (pdf-util-assert-pdf-window window))
   (pdf-util-scale-to
    list-of-pixel-edges
    (pdf-view-image-size displayed-p window)
@@ -316,15 +316,19 @@ depending on the input."
   "Return the visible region of the image in WINDOW.
 
 Returns a list of pixel edges."
-  (pdf-util-assert-pdf-window)
+  (when displayed-p (pdf-util-assert-pdf-window))
   (let* ((edges (window-inside-pixel-edges window))
          (isize (pdf-view-image-size displayed-p window))
          (offset (if displayed-p
                      `(0 . 0)
                    (pdf-view-image-offset window)))
-         (hscroll (* (window-hscroll window)
+         (hscroll (* (if displayed-p
+                         (window-hscroll window)
+                       (image-mode-window-get 'hscroll window))
                      (frame-char-width (window-frame window))))
-         (vscroll (window-vscroll window t))
+         (vscroll (if displayed-p
+                      (window-vscroll window t)
+                    (image-mode-window-get 'vscroll window)))
          (x0 (+ hscroll (car offset)))
          (y0 (+ vscroll (cdr offset)))
          (x1 (min (car isize)

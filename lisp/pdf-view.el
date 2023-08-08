@@ -1830,7 +1830,8 @@ The optional, boolean args exclude certain attributes."
                         ,(unless no-origin
                            (cons 'origin
                                  (and win
-                                      (let* ((edges (pdf-util-image-displayed-edges win t)))
+                                      (let* ((edges (pdf-util-image-displayed-edges
+                                                     win (eq (window-buffer win) (current-buffer)))))
                                         (pdf-util-scale-pixel-to-relative
                                          (cons (car edges) (cadr edges)) nil
                                          (eq (current-buffer) (window-buffer)) win)))))
