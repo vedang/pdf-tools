@@ -117,16 +117,24 @@ With FORCE non-nil display fetch page again even if it is already displayed."
                               page window)
     (cdr (image-display-size display t))))
 
-(defun pdf-roll-display-pages (page &optional window force)
+(defun pdf-roll-display-pages (page &optional window force pscrolling)
   "Display pages to fill the WINDOW starting from PAGE.
 If FORCE is non-nill redisplay a page even if it is already displayed."
-  (let (displayed)
-    (pdf-roll-set-vscroll (min (image-mode-window-get 'vscroll window)
-                                 (1- (pdf-roll-display-page page window force)))
-                            window)
+  (let (displayed
+        (available-height (window-pixel-height window)))
+    (when (and pscrolling (> page 1))
+      (pdf-roll-display-page (1- page) window force)
+      (push (1- page) displayed))
+    (let ((vscroll (image-mode-window-get 'vscroll window))
+          (im-height (pdf-roll-display-page page window force)))
+      (pdf-roll-set-vscroll (min vscroll (1- im-height)) window)
+      (cl-callf - available-height (- im-height (window-vscroll window t))))
     (push page displayed)
-    (while (pos-visible-in-window-p (pdf-roll-page-to-pos (cl-incf page)) window t)
-      (pdf-roll-display-page page window force)
+    (while (and (> available-height 0) (< page (pdf-cache-number-of-pages)))
+      (cl-callf - available-height (pdf-roll-display-page (cl-incf page) window force))
+      (push page displayed))
+    (when (and pscrolling (< page (pdf-cache-number-of-pages)))
+      (pdf-roll-display-page (cl-incf page) window force)
       (push page displayed))
     ;; store displayed images for determining which images to update when update
     ;; is triggered
@@ -194,7 +202,12 @@ It should be added to `pre-redisplay-functions' buffer locally."
     (unless (pdf-roll-page-overlay 1 win)
       (pdf-roll-new-window-function win))
     (let* ((state (alist-get win pdf-roll--state))
-           (page (pdf-view-current-page win))
+           (pscrolling (memq last-command
+                             '(pixel-scroll-precision pixel-scroll-start-momentum
+                               pixel-scroll-interpolate-up pixel-scroll-interpolate-down)))
+           (page (progn (when pscrolling
+                          (setf (pdf-view-current-page) (/ (+ (window-start win) 5) 4)))
+                        (pdf-view-current-page win)))
            (height (window-pixel-height win))
            (vscroll (image-mode-window-get 'vscroll win))
            (size-changed (not (and (eq height (nth 1 state))
@@ -202,13 +215,16 @@ It should be added to `pre-redisplay-functions' buffer locally."
            (page-changed (not (eq page (nth 0 state))))
            (vscroll-changed (not (eq vscroll (nth 3 state))))
            (start (pdf-roll-page-to-pos page)))
-      (set-window-vscroll win vscroll t)
-      (set-window-hscroll win (or (image-mode-window-get 'hscroll win) 0))
-      (set-window-start win start t)
+      (if pscrolling
+          (progn (image-mode-window-put 'vscroll (window-vscroll win t))
+                 (image-mode-window-put 'hscroll (window-hscroll win)))
+        (set-window-vscroll win vscroll t)
+        (set-window-hscroll win (or (image-mode-window-get 'hscroll win) 0))
+        (set-window-start win start t))
       (setq disable-point-adjustment t)
       (when (or size-changed page-changed vscroll-changed)
         (let ((old (image-mode-window-get 'displayed-pages win))
-              (new (pdf-roll-display-pages page win size-changed)))
+              (new (pdf-roll-display-pages page win size-changed pscrolling)))
           ;; If images/pages are small enough (or after jumps), there
           ;; might be multiple image that need to get updated
           (pdf-roll-undisplay-pages (cl-set-difference old new) win)
