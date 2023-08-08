@@ -324,11 +324,11 @@ Returns a list of pixel edges."
                    (pdf-view-image-offset window)))
          (hscroll (* (if displayed-p
                          (window-hscroll window)
-                       (image-mode-window-get 'hscroll window))
+                       (or (image-mode-window-get 'hscroll window) 0))
                      (frame-char-width (window-frame window))))
          (vscroll (if displayed-p
                       (window-vscroll window t)
-                    (image-mode-window-get 'vscroll window)))
+                    (or (image-mode-window-get 'vscroll window) 0)))
          (x0 (+ hscroll (car offset)))
          (y0 (+ vscroll (cdr offset)))
          (x1 (min (car isize)
