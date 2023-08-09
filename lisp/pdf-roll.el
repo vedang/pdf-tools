@@ -206,7 +206,7 @@ It should be added to `pre-redisplay-functions' buffer locally."
                              '(pixel-scroll-precision pixel-scroll-start-momentum
                                pixel-scroll-interpolate-up pixel-scroll-interpolate-down)))
            (page (progn (when pscrolling
-                          (setf (pdf-view-current-page) (/ (+ (window-start win) 5) 4)))
+                          (setf (pdf-view-current-page win) (/ (+ (window-start win) 5) 4)))
                         (pdf-view-current-page win)))
            (height (window-pixel-height win))
            (vscroll (image-mode-window-get 'vscroll win))
@@ -216,8 +216,8 @@ It should be added to `pre-redisplay-functions' buffer locally."
            (vscroll-changed (not (eq vscroll (nth 3 state))))
            (start (pdf-roll-page-to-pos page)))
       (if pscrolling
-          (progn (image-mode-window-put 'vscroll (window-vscroll win t))
-                 (image-mode-window-put 'hscroll (window-hscroll win)))
+          (progn (image-mode-window-put 'vscroll (window-vscroll win t) win)
+                 (image-mode-window-put 'hscroll (window-hscroll win)) win)
         (set-window-vscroll win vscroll t)
         (set-window-hscroll win (or (image-mode-window-get 'hscroll win) 0))
         (set-window-start win start t))
