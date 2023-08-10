@@ -365,6 +365,10 @@ If PIXELS is non-nil N is number of pixels instead of lines."
 
          (make-local-variable 'pdf-roll--state)
 
+         (when (local-variable-p 'pixel-scroll-precision-mode)
+           (kill-local-variable 'pixel-scroll-precision-mode)
+           (kill-local-variable 'mwheel-coalesce-scroll-events))
+
          (let ((inhibit-read-only t))
            (erase-buffer)
            (remove-overlays))
@@ -383,6 +387,10 @@ If PIXELS is non-nil N is number of pixels instead of lines."
          (remove-hook 'pdf-roll-after-change-page-hook 'pdf-history-before-change-page-hook t)
 
          (kill-local-variable 'pdf-roll--state)
+
+         (when (bound-and-true-p pixel-scroll-precision-mode)
+             (setq-local pixel-scroll-precision-mode nil)
+             (setq-local mwheel-coalesce-scroll-events t))
 
          (let ((inhibit-read-only t))
            (erase-buffer)
