@@ -45,7 +45,7 @@
 (declare-function pdf-roll-page-at-current-pos "pdf-roll")
 (declare-function pdf-roll-display-image "pdf-roll")
 
-(defvar pdf-view-roll-minor-mode)
+(defvar pdf-view-roll-minor-mode nil)
 
 
 ;; * ================================================================== *

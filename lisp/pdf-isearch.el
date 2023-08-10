@@ -33,8 +33,6 @@
 (require 'let-alist)
 
 ;;; Code:
-(defvar pdf-view-roll-minor-mode)
-
 (defvar pdf-isearch--hl-matches-tick 0)
 
 
