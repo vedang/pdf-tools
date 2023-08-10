@@ -31,7 +31,6 @@
 
 
 
-(defvar pdf-view-roll-minor-mode)
 (declare-function pdf-roll-page-overlay "pdf-roll")
 (declare-function pdf-roll-displayed-pages "pdf-roll")
 ;;; Code:

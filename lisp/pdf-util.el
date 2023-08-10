@@ -353,8 +353,7 @@ needed."
   (unless context-pixel
     (setq context-pixel 0))
   (let* ((win (window-inside-pixel-edges))
-         (image-width (car (pdf-view-image-size (unless pdf-view-roll-minor-mode
-                                                  t))))
+         (image-width (car (pdf-view-image-size t)))
          (image-left (* (frame-char-width)
                         (window-hscroll)))
          (edges (pdf-util-translate
@@ -395,7 +394,8 @@ pixels. This is because of a change that occurred to `image-mode' in 27."
   (pdf-util-assert-pdf-window)
   (if pdf-view-roll-minor-mode
       (max 0 (- (nth 1 edges)
-                (* next-screen-context-lines (frame-char-height))))
+                (or context-pixel
+                    (* next-screen-context-lines (frame-char-height)))))
     (let* ((win (window-inside-pixel-edges))
            (image-height (cdr (pdf-view-image-size
                                (unless pdf-view-roll-minor-mode
