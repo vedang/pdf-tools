@@ -104,16 +104,12 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
     (overlay-put margin-overlay 'before-string before-string)
     (cdr size)))
 
-(defun pdf-roll-page-image (page window)
-  "Function to retrieve image of the PAGE in WINDOW."
-  (pdf-roll-maybe-slice-image (pdf-view-create-page page window) window))
-
 (defun pdf-roll-display-page (page window &optional force)
   "Display PAGE in WINDOW.
 With FORCE non-nil display fetch page again even if it is already displayed."
   (if-let ((display (overlay-get (pdf-roll-page-overlay page window) 'display))
            ((or force (eq (car display) 'space))))
-      (pdf-roll-display-image (pdf-roll-page-image page window)
+      (pdf-roll-display-image (pdf-view-create-page page window)
                               page window)
     (cdr (image-display-size display t))))
 
