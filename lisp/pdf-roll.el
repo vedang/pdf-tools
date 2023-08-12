@@ -202,7 +202,8 @@ It should be added to `pre-redisplay-functions' buffer locally."
                              '(pixel-scroll-precision pixel-scroll-start-momentum
                                pixel-scroll-interpolate-up pixel-scroll-interpolate-down)))
            (page (progn (when pscrolling
-                          (setf (pdf-view-current-page win) (/ (+ (window-start win) 5) 4)))
+                          (setf (pdf-view-current-page win)
+                                (/ (min (+ (window-start win) 5) (point-max)) 4)))
                         (pdf-view-current-page win)))
            (height (window-pixel-height win))
            (vscroll (image-mode-window-get 'vscroll win))
@@ -211,7 +212,11 @@ It should be added to `pre-redisplay-functions' buffer locally."
            (page-changed (not (eq page (nth 0 state))))
            (vscroll-changed (not (eq vscroll (nth 3 state))))
            (start (pdf-roll-page-to-pos page)))
-      (if pscrolling
+      (if (and pscrolling
+               (or (not (eq start (- (point-max) 3)))
+                   (let ((visible-pixels (nth 4 (pos-visible-in-window-p start win t))))
+                     (and visible-pixels (> visible-pixels (/ (window-text-height win t) 2))))
+                   (prog1 nil (message "End of buffer"))))
           (progn (image-mode-window-put 'vscroll (window-vscroll win t) win)
                  (image-mode-window-put 'hscroll (window-hscroll win)) win)
         (set-window-vscroll win vscroll t)
@@ -276,16 +281,16 @@ If PIXELS is non-nil N is number of pixels instead of lines."
                                          (data (line-pixel-height))
                                          (t (pdf-roll-display-page
                                              (pdf-roll-page-at-current-pos) window)))))
-             (and (>= n occupied-pixels)
-                  (if (eq (point) (1- (point-max)))
-                      (prog1 nil
-                        (setq n (- occupied-pixels 10))
-                        (message "End of buffer"))
-                    (cl-decf n occupied-pixels))))
+             (if (eq (point) (- (point-max) 3))
+                 (prog1 nil
+                   (setq n (min n (max 0 (- occupied-pixels (/ (window-text-height window t) 2)))))
+                   (message "End of buffer"))
+               (when (>= n occupied-pixels)
+                 (cl-decf n occupied-pixels))))
       (forward-char 4))
     (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos))
     (pdf-roll-set-vscroll (+ (if (eq pos (point)) (window-vscroll window t) 0) n)
-                            window)))
+                          window)))
 
 (defun pdf-roll-scroll-backward (&optional n window pixels)
   "Scroll image N lines backwards in WINDOW.
