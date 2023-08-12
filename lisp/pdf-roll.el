@@ -293,7 +293,7 @@ Line height is determined by `frame-char-height'. When N is negative
 scroll forward instead. With a prefix arg N is its numeric value.
 
 If PIXELS is non-nil N is number of pixels instead of lines."
-  (interactive (list (* (prefix-numeric-value current-prefix-arg) (frame-char-height))))
+  (interactive (list (prefix-numeric-value current-prefix-arg)))
   (setq n (* (or n 1) (if pixels 1 (frame-char-height))))
   (setq window (or window (selected-window)))
   (when (> 0 n) (pdf-roll-scroll-backward (- n) window))
