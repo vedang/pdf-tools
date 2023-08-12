@@ -336,6 +336,14 @@ If PIXELS is non-nil N is number of pixels instead of lines."
 
 ;;; Minor mode
 ;;;###autoload
+(defun pdf-roll-initialize (&rest _args)
+  "Fun to initialize `pdf-view-roll-minor-mode'.
+It is also added to `revert-buffer-function'."
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (remove-overlays))
+  (pdf-roll-new-window-function))
+
 (define-minor-mode pdf-view-roll-minor-mode
   "If enabled display document on a virtual scroll providing continuous scrolling."
   :lighter " Continuous"
@@ -362,7 +370,7 @@ If PIXELS is non-nil N is number of pixels instead of lines."
          (add-hook 'pre-redisplay-functions 'pdf-roll-pre-redisplay nil t)
          (add-hook 'pdf-roll-after-change-page-hook 'pdf-history-before-change-page-hook nil t)
 
-         (add-function :after (local 'revert-buffer-function) #'pdf-view-roll-minor-mode)
+         (add-function :after (local 'revert-buffer-function) #'pdf-roll-initialize)
 
          (make-local-variable 'pdf-roll--state)
 
@@ -370,10 +378,7 @@ If PIXELS is non-nil N is number of pixels instead of lines."
            (kill-local-variable 'pixel-scroll-precision-mode)
            (kill-local-variable 'mwheel-coalesce-scroll-events))
 
-         (let ((inhibit-read-only t))
-           (erase-buffer)
-           (remove-overlays))
-         (pdf-roll-new-window-function))
+         (pdf-roll-initialize))
         (t
          (setq-local mwheel-scroll-up-function #'pdf-view-scroll-up-or-next-page
                      mwheel-scroll-down-function #'pdf-view-scroll-down-or-previous-page)
@@ -382,7 +387,7 @@ If PIXELS is non-nil N is number of pixels instead of lines."
          (add-hook 'window-configuration-change-hook 'pdf-view-redisplay-some-windows nil t)
          (add-hook 'image-mode-new-window-functions #'pdf-view-new-window-function nil t)
 
-         (remove-function (local 'revert-buffer-function) #'pdf-view-roll-minor-mode)
+         (remove-function (local 'revert-buffer-function) #'pdf-roll-initialize)
 
          (remove-hook 'pre-redisplay-functions 'pdf-roll-pre-redisplay t)
          (remove-hook 'pdf-roll-after-change-page-hook 'pdf-history-before-change-page-hook t)
