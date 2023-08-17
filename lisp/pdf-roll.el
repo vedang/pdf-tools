@@ -335,7 +335,6 @@ If PIXELS is non-nil N is number of pixels instead of lines."
    nil t))
 
 ;;; Minor mode
-;;;###autoload
 (defun pdf-roll-initialize (&rest _args)
   "Fun to initialize `pdf-view-roll-minor-mode'.
 It is also added to `revert-buffer-function'."
@@ -344,6 +343,7 @@ It is also added to `revert-buffer-function'."
     (remove-overlays))
   (pdf-roll-new-window-function))
 
+;;;###autoload
 (define-minor-mode pdf-view-roll-minor-mode
   "If enabled display document on a virtual scroll providing continuous scrolling."
   :lighter " Continuous"
