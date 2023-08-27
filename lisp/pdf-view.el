@@ -364,6 +364,14 @@ PNG images in Emacs buffers."
       (setq-local mwheel-scroll-down-function
                   #'pdf-view-scroll-down-or-previous-page))
 
+  (if (boundp 'mwheel-scroll-left-function)
+      (setq-local mwheel-scroll-left-function
+                  #'image-scroll-left))
+
+  (if (boundp 'mwheel-scroll-right-function)
+      (setq-local mwheel-scroll-right-function
+                  #'image-scroll-right))
+
   ;; Disable pixel-scroll-precision-mode locally if enabled
   (if (bound-and-true-p pixel-scroll-precision-mode)
       (set (make-local-variable 'pixel-scroll-precision-mode) nil))
