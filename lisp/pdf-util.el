@@ -316,7 +316,7 @@ depending on the input."
   "Return the visible region of the image in WINDOW.
 
 Returns a list of pixel edges."
-  (when displayed-p (pdf-util-assert-pdf-window))
+  (when displayed-p (pdf-util-assert-pdf-window window))
   (let* ((edges (window-inside-pixel-edges window))
          (isize (pdf-view-image-size displayed-p window))
          (offset (if displayed-p
