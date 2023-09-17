@@ -341,6 +341,7 @@ It is also added to `revert-buffer-function'."
   (let ((inhibit-read-only t))
     (erase-buffer)
     (remove-overlays))
+  (image-mode-window-put 'displayed-pages nil)
   (pdf-roll-new-window-function))
 
 ;;;###autoload
@@ -399,9 +400,7 @@ It is also added to `revert-buffer-function'."
              (setq-local mwheel-coalesce-scroll-events t))
 
          (let ((inhibit-read-only t))
-           (erase-buffer)
            (remove-overlays)
-           (insert-file-contents-literally (buffer-file-name))
            (image-mode-window-put 'displayed-pages nil)
            (pdf-view-new-window-function (list (selected-window)))
            (set-buffer-modified-p nil)))))
