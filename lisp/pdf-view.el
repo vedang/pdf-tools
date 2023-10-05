@@ -1007,7 +1007,7 @@ dragging it to its bottom-right corner.  See also
             (cons (/ 1.0 (float (car size)))
                   (/ 1.0 (float (cdr size))))))))
 
-(defun pdf-view--bounding-box-to-slice (bb)
+(defun pdf-view-bounding-box-to-slice (bb)
   "Convert bounding box BB to slice format for `pdf-view-set-slice'.
 BB is a list (LEFT TOP RIGHT BOTTOM).
 Returns a list (X Y WIDTH HEIGHT)."
@@ -1029,7 +1029,7 @@ much more accurate than could be done manually using
 See also `pdf-view-bounding-box-margin'."
   (interactive)
   (let* ((bb (pdf-cache-boundingbox (pdf-view-current-page window)))
-         (slice (pdf-view--bounding-box-to-slice bb)))
+         (slice (pdf-view-bounding-box-to-slice bb)))
     (apply 'pdf-view-set-slice
            (append slice (and window (list window))))))
 
@@ -1055,7 +1055,7 @@ WINDOW specifies which document to use; defaults to `selected-window'.
 A margin is added from `pdf-view-bounding-box-margin'."
   (interactive)
   (let* ((bb (pdf-document-common-bounding-box))
-         (slice (pdf-view--bounding-box-to-slice bb)))
+         (slice (pdf-view-bounding-box-to-slice bb)))
     (when window
       (push slice window))
     (message (prin1-to-string slice))
