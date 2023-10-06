@@ -126,7 +126,6 @@ The cdr is the height should be between 0 and 0.5"
     kmap))
 
 (defvar pdf-links--child-frame nil)
-(defvar pdf-links--last-link-id nil)
 
 ;;;###autoload
 (define-minor-mode pdf-links-minor-mode
@@ -247,6 +246,7 @@ scroll the current page."
 
 (defvar pdf-links-preview-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "f") #'pdf-links-preview-follow-link)
     (define-key map (kbd "q") #'pdf-links-hide-child-frame)
     (define-key map (kbd "<down>") #'pdf-links-scroll-up-child-frame)
     (define-key map (kbd "<up>") #'pdf-links-scroll-down-child-frame)
@@ -349,18 +349,27 @@ is non-nil assume link to be at mouse position."
                                      (top . ,(car top-left))
                                      (left . ,(cdr top-left))
                                      (width text-pixels . ,width)
-                                     (height text-pixels . ,height)))
+                                     (height text-pixels . ,height)
+                                     (link . ,link)))
           (pdf-links-preview-mode))
       (pdf-links-action-perform link))))
 
 (defun pdf-links-preview-toggle-mouse (link)
   "Toggle the preview for LINK."
-  (if (and (eq (aref (this-command-keys-vector) 0) pdf-links--last-link-id)
-           (frame-live-p pdf-links--child-frame)
-           (frame-visible-p pdf-links--child-frame))
+  (if (and (frame-live-p pdf-links--child-frame)
+           (frame-visible-p pdf-links--child-frame)
+           (eq (aref (this-command-keys-vector) 0)
+               (frame-parameter pdf-links--child-frame 'link-id)))
       (pdf-links-hide-child-frame)
-    (setq pdf-links--last-link-id (aref (this-command-keys-vector) 0))
+    (set-frame-parameter pdf-links--child-frame
+                         'link-id (aref (this-command-keys-vector) 0))
     (pdf-links-preview-in-child-frame link t)))
+
+(defun pdf-links-preview-follow-link ()
+  "Follow the link being previewed."
+  (interactive)
+  (pdf-links-hide-child-frame)
+  (pdf-links-action-perform (frame-parameter pdf-links--child-frame 'link)))
 
 (defun pdf-links-hide-child-frame (&optional frame)
   "Function to hide the childframe FRAME."
@@ -512,7 +521,9 @@ See `pdf-links-action-perform' for the interface."
           (push key keys)))
       (nreverse keys))))
 
-(defun pdf-links-isearch-link ()
+(defun pdf-links-isearch-link (&optional action)
+  "Use isearch to find a link.
+If non-nil ACTION should be function of one argument: the selected link."
   (interactive)
   (let* (quit-p
          (isearch-mode-end-hook
@@ -526,7 +537,10 @@ See `pdf-links-action-perform' for the interface."
          pdf-isearch-batch-mode)
     (isearch-forward)
     (unless (or quit-p (null pdf-isearch-current-match))
-      (let* ((page (pdf-view-current-page))
+      (let* ((page (when (memq pdf-isearch-current-page
+                               (or (image-mode-window-get 'displayed-pages)
+                                   (list (pdf-view-current-page))))
+                     pdf-isearch-current-page))
              (match (car pdf-isearch-current-match))
              (size (pdf-view-image-size))
              (links (sort (cl-remove-if
@@ -543,7 +557,13 @@ See `pdf-links-action-perform' for the interface."
                                 (alist-get 'edges e2) match))))))
         (unless links
           (error "No link found at this position"))
-        (pdf-links-action-perform (car links))))))
+        (funcall (or action 'pdf-links-action-perform)
+                 (push `(link-page . ,page) (car links)))))))
+
+(defun pdf-links-isearch-preview-in-child-frame ()
+  "Use isearch to select a link and preview it in a child frame."
+  (interactive)
+  (pdf-links-isearch-link 'pdf-links-preview-in-child-frame))
 
 (defun pdf-links-isearch-link-filter-matches (matches)
   (let ((links (pdf-util-scale
