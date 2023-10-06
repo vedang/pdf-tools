@@ -296,11 +296,13 @@ This is a Isearch interface function."
                    (re-search-forward "."))
           (unless (eobp) (forward-char 1))
           (re-search-backward ".")))
-       ((and (not pdf-isearch-narrow-to-page)
+       ((and (or (not pdf-isearch-narrow-to-page) pdf-view-roll-minor-mode)
              (not (pdf-isearch-empty-match-p pdf-isearch-current-matches)))
         (let ((next-page (pdf-isearch-find-next-matching-page
                           string pdf-isearch-current-page t)))
-          (when next-page
+          (when (and next-page
+                     (or (not pdf-isearch-narrow-to-page)
+                         (memq next-page pages)))
             (pdf-view-goto-page next-page)
             (pdf-isearch-search-function string))))))))
 
