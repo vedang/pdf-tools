@@ -12,7 +12,8 @@ emacs_version = $(shell $(emacs) --batch --eval \
 $(info Using Emacs $(emacs_version))
 
 version=$(shell sed -ne 's/^;\+ *Version: *\([0-9.]\)/\1/p' lisp/pdf-tools.el)
-pkgname=pdf-tools-$(version)
+PKG=pdf-tools
+pkgname=$(PKG)-$(version)
 pkgfile=$(pkgname).tar
 
 .PHONY: all clean distclean bytecompile test check melpa
@@ -20,8 +21,10 @@ pkgfile=$(pkgname).tar
 all: $(pkgfile)
 
 # Create a elpa package including the server
-$(pkgfile): .cask/$(emacs_version) server/epdfinfo lisp/*.el
+$(pkgfile): .cask/$(emacs_version) server/epdfinfo lisp/*.el loaddefs
 	$(CASK) package .
+
+loaddefs: $(PKG)-autoloads.el
 
 # Compile the Lisp sources
 bytecompile: .cask/$(emacs_version)
@@ -105,3 +108,18 @@ server-test-supported: server/test/Makefile
 
 server-test-unsupported: server/test/Makefile
 	$(MAKE) -C server/test print-failing
+
+$(PKG)-autoloads.el: lisp/*.el
+	@printf " Creating $@\n"
+	@cd lisp;$(EMACS) -Q --batch -l autoload -l cl-lib --eval "\
+(let ((file (expand-file-name \"$@\"))\
+      (autoload-timestamps nil) \
+      (backup-inhibited t)\
+      (version-control 'never)\
+      (coding-system-for-write 'utf-8-emacs-unix))\
+  (write-region (autoload-rubric file \"package\" nil) nil file nil 'silent)\
+  (cl-letf (((symbol-function 'progress-reporter-do-update) (lambda (&rest _)))\
+            ((symbol-function 'progress-reporter-done) (lambda (_))))\
+    (let ((generated-autoload-file file))\
+      (update-directory-autoloads default-directory))))" \
+	2>&1 | sed "/^Package autoload is deprecated$$/d"
