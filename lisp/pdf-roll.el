@@ -44,7 +44,7 @@
   "Background color of overlay, i.e. page separation color."
   :type 'color
   :set (lambda (sym color)
-         (set-default sym color)
+         (set-default-toplevel-value sym color)
          (put 'pdf-roll-margin 'face `(:background ,color))))
 
 ;;; Variables
