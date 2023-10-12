@@ -374,8 +374,9 @@ is non-nil assume link to be at mouse position."
 (defun pdf-links-hide-child-frame (&optional frame)
   "Function to hide the childframe FRAME."
   (interactive (list pdf-links--child-frame))
-  (make-frame-invisible (or frame pdf-links--child-frame))
-  (pdf-links-preview-mode -1))
+  (when-let ((frame (or frame pdf-links--child-frame)))
+   (make-frame-invisible frame)
+  (pdf-links-preview-mode -1)))
 
 (defun pdf-links-scroll-up-child-frame (&optional n)
   "Scroll up the preview in child frame by N lines."
