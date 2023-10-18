@@ -96,6 +96,13 @@ if available."
   :group 'pdf-view
   :type 'boolean)
 
+(defcustom pdf-view-selection-show-popup t
+  "Whether a popup menu will show up after text has been selected.
+
+This variable affects whether to show popup menu like other PDF editors when a text block is selected. Default to true to make this feature known to user."
+  :group 'pdf-view
+  :type 'boolean)
+
 (defface pdf-view-region
   '((((background dark)) (:inherit region))
     (((background light)) (:inherit region)))
@@ -1408,6 +1415,13 @@ Deactivate the region if DEACTIVATE-P is non-nil."
     (deactivate-mark)
     (pdf-view-redisplay t)))
 
+(easy-menu-define pdf-view-quick-popup nil "Quick popup"
+  `("Quick popup"
+    ["Highlight" (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region t) "yellow")]
+    ["Copy" (lambda() (interactive) (kill-new (car (pdf-view-active-region-text))))]
+    ["More" (message "Set variable pdf-view-quick-popup in your startup file to change")]
+    ))
+
 (defun pdf-view-mouse-set-region (event &optional allow-extend-p
                                         rectangle-p
                                         selection-style)
@@ -1500,7 +1514,11 @@ Stores the region in `pdf-view-active-region'."
       (setq pdf-view-active-region
             (append pdf-view-active-region
                     (list region)))
-      (pdf-view--push-mark))))
+      (pdf-view--push-mark)
+      (if (and
+           pdf-view-selection-show-popup
+           (not (string-blank-p (car (pdf-view-active-region-text)))))
+          (popup-menu pdf-view-quick-popup)))))
 
 (defun pdf-view-mouse-extend-region (event)
   "Extend the currently active region with mouse event EVENT."
