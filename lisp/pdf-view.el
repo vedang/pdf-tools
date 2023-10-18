@@ -1420,6 +1420,7 @@ Deactivate the region if DEACTIVATE-P is non-nil."
     ["Highlight" (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region t) "yellow")]
     ["Copy" (lambda() (interactive) (kill-new (car (pdf-view-active-region-text))))]
     ["More" (message "Set variable pdf-view-quick-popup in your startup file to change")]
+    ["Turn off" (customize-variable 'pdf-view-selection-show-popup)]
     ))
 
 (defun pdf-view-mouse-set-region (event &optional allow-extend-p
