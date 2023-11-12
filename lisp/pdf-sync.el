@@ -334,7 +334,8 @@ point to the correct position."
                             (if (if (consp text)
                                     (member source text)
                                   (equal text source))
-                                1024 -1024)))
+                                (expt (length source) 2)
+                              (- (expt (length source) 2)))))
            (alignment
             (pdf-util-seq-alignment
              words swords similarity-fn 'infix)))
