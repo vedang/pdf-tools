@@ -329,8 +329,7 @@ point to the correct position."
   (pdf-util-goto-position line column)
   (cl-destructuring-bind (windex chindex words)
       context
-    (let* ((swords (pdf-sync-backward--get-source-context
-                    nil (* 6 pdf-sync-backward-context-limit)))
+    (let* ((swords (pdf-sync-backward--get-source-context))
            (similarity-fn (lambda (text source)
                             (if (if (consp text)
                                     (member source text)
@@ -354,16 +353,12 @@ point to the correct position."
           (goto-char (get-text-property 0 'position word))
           (forward-char chindex))))))
 
-(defun pdf-sync-backward--get-source-context (&optional position limit)
+(defun pdf-sync-backward--get-source-context (&optional position)
   (save-excursion
     (when position (goto-char position))
     (goto-char (line-beginning-position))
     (let* ((region
             (cond
-             ((eq limit 'line)
-              (cons (line-beginning-position)
-                    (line-end-position)))
-
              ;; Synctex usually jumps to the end macro, in case it
              ;; does not understand the environment.
              ((and (fboundp 'LaTeX-find-matching-begin)
@@ -385,16 +380,9 @@ point to the correct position."
                             (forward-line 0)
                             (point)))
                         (point))))
-             (t (cons (point) (point)))))
+             (t (cons (point) (line-end-position)))))
            (begin (car region))
            (end (cdr region)))
-      (when (numberp limit)
-        (let ((delta (- limit (- end begin))))
-          (when (> delta 0)
-            (setq begin (max (point-min)
-                             (- begin (/ delta 2)))
-                  end (min (point-max)
-                           (+ end (/ delta 2)))))))
       (let ((string (buffer-substring-no-properties begin end)))
         (dotimes (i (length string))
           (put-text-property i (1+ i) 'position (+ begin i) string))
