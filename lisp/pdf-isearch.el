@@ -279,7 +279,6 @@ This is a Isearch interface function."
       (cond
        (next-match
         (setq pdf-isearch-current-match next-match)
-        (cl-incf pdf-isearch--hl-matches-tick)
         (pdf-isearch-hl-matches  next-match matches nil pages)
         (pdf-isearch-focus-match next-match)
         ;; Don't get off track.
@@ -314,13 +313,14 @@ This is a Isearch interface function."
             pdf-isearch-current-matches matches
             pdf-isearch-current-match match
             pdf-isearch-current-page page)
-
       (pdf-view-goto-page pdf-isearch-current-page)
-      (when pdf-isearch-current-match
-        (pdf-isearch-hl-matches
-         pdf-isearch-current-match
-         pdf-isearch-current-matches
-         nil (image-mode-window-get 'displayed-pages (selected-window))))
+      (if pdf-isearch-current-match
+          (pdf-isearch-hl-matches
+           pdf-isearch-current-match
+           pdf-isearch-current-matches
+           nil (image-mode-window-get 'displayed-pages (selected-window)))
+        (when pdf-view-roll-minor-mode
+          (pdf-view-redisplay)))
       (image-set-window-hscroll hscroll)
       (image-set-window-vscroll vscroll))))
 
