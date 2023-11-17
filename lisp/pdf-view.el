@@ -1686,7 +1686,7 @@ This is more useful for commands like
          (if rectangle-p
              (pdf-info-renderpage-highlight
               page width nil
-              `(,(car colors) ,(cdr colors) 0.35 ,@region))
+              `(,(car colors) ,(cdr colors) 0.35 ,@(cdr region)))
            (pdf-info-renderpage-text-regions
             page width nil selection-style nil
             `(,(car colors) ,(cdr colors) ,@(cdr region))))
