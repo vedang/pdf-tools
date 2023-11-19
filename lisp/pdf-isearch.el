@@ -287,8 +287,14 @@ This is a Isearch interface function."
           (unless pdf-view-roll-minor-mode
             (goto-char (1+ (/ (buffer-size) 2)))))
         ;; Signal success to isearch.
+        ;; Moving the point is for `pdf-roll'. It ensures that
+        ;; `re-search-forward' takes us back to the starting point. Otherwise
+        ;; every call to `isearch-repeat' will increment/decrement the point
+        ;; and that causes recentering.
         (if isearch-forward
-            (re-search-forward ".")
+            (progn (unless (bobp) (forward-char -1))
+                   (re-search-forward "."))
+          (unless (eobp) (forward-char 1))
           (re-search-backward ".")))
        ((and (not pdf-isearch-narrow-to-page)
              (not (pdf-isearch-empty-match-p pdf-isearch-current-matches)))
