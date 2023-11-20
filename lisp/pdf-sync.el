@@ -805,8 +805,7 @@ and Y2 may be nil, if the destination could not be found."
   "Find the line corresponding to point in PDF on PAGE."
   (save-restriction
     (pdf-sync--narrow-to-region)
-    (when-let ((regexp (pdf-sync--forward-line-regexp))
-               ((> (length regexp) 32)))
+    (when-let ((regexp (pdf-sync--forward-line-regexp)))
       (let ((text (pdf-info-gettext page '(0 0 1 1) 'line pdf))
             (continue t)
             beg end line-beg line-end twopages res)
@@ -817,14 +816,15 @@ and Y2 may be nil, if the destination could not be found."
             (goto-char (point-min))
             (save-excursion
               (while (re-search-forward "[ \t\f\n]+" nil t)
-                (replace-match " " t t))
-              (while (re-search-forward (rx (not alpha)) nil t)
                 (replace-match " " t t)))
             (goto-char (point-min))
             (if (and (re-search-forward regexp nil t)
                      (setq beg (match-beginning 1))
                      (setq end (match-end 1)))
-                (progn
+                ;; Make sure that regex has a unique match, otherwise
+                ;; accept that we can't figure out the correct match.
+                (unless (progn (goto-char (1+ beg))
+                               (re-search-forward regexp nil t))
                   (erase-buffer)
                   (insert text)
                   (goto-char beg)
