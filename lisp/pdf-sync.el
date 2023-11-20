@@ -836,12 +836,14 @@ and Y2 may be nil, if the destination could not be found."
                                   (- (min line-end end) line-beg)
                                   (buffer-substring line-beg line-end)
                                   twopages)))
-              (unless twopages (setq continue t))
-              (setq twopages t)
-              (setq text (concat text "\n"
-                                 (pdf-info-gettext
-                                  (1+ page) '(0 0 1 1) 'line pdf)))
-              (erase-buffer))))
+              (unless (eq page (pdf-info-number-of-pages pdf))
+                (unless (or twopages)
+                  (setq continue t))
+                (setq twopages t)
+                (setq text (concat text "\n"
+                                   (pdf-info-gettext
+                                    (1+ page) '(0 0 1 1) 'line pdf)))
+                (erase-buffer)))))
         res))))
 
 (defun pdf-sync--forward-correlate-heuristically ()
