@@ -361,9 +361,9 @@ is non-nil assume link to be at mouse position."
            (eq (aref (this-command-keys-vector) 0)
                (frame-parameter pdf-links--child-frame 'link-id)))
       (pdf-links-hide-child-frame)
+    (pdf-links-preview-in-child-frame link t)
     (set-frame-parameter pdf-links--child-frame
-                         'link-id (aref (this-command-keys-vector) 0))
-    (pdf-links-preview-in-child-frame link t)))
+                         'link-id (aref (this-command-keys-vector) 0))))
 
 (defun pdf-links-preview-follow-link ()
   "Follow the link being previewed."
@@ -374,7 +374,8 @@ is non-nil assume link to be at mouse position."
 (defun pdf-links-hide-child-frame (&optional frame)
   "Function to hide the childframe FRAME."
   (interactive (list pdf-links--child-frame))
-  (when-let ((frame (or frame pdf-links--child-frame)))
+  (when-let ((frame (or frame pdf-links--child-frame))
+             ((frame-live-p frame)))
    (make-frame-invisible frame)
   (pdf-links-preview-mode -1)))
 
