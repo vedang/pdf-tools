@@ -116,6 +116,12 @@ The cdr is the height should be between 0 and 0.5"
 
 
 ;; * ================================================================== *
+(defcustom pdf-links-child-frame-auto-preview-wait nil
+  "Duration in seconds to wait before the preview when the cursor is on a link.
+Value of nil disables the preview."
+  :group 'pdf-links
+  :type 'float)
+
 ;; * Minor Mode
 ;; * ================================================================== *
 
@@ -126,6 +132,7 @@ The cdr is the height should be between 0 and 0.5"
     kmap))
 
 (defvar pdf-links--child-frame nil)
+(defvar pdf-links--auto-preview-state nil)
 
 ;;;###autoload
 (define-minor-mode pdf-links-minor-mode
@@ -146,15 +153,33 @@ links via \\[pdf-links-isearch-link].
     (pdf-view-remove-hotspot-function 'pdf-links-hotspots-function)))
   (pdf-view-redisplay t))
 
+(defun pdf-linnks--make-help-echo (id link)
+  "Return a lambda returning help-echo for LINK and ID."
+  (lambda ()
+    (when (and pdf-links-child-frame-auto-preview-wait
+               (not (eq id (car pdf-links--auto-preview-state))))
+      (unless (not pdf-links--auto-preview-state)
+        (cancel-timer (nth 1 pdf-links--auto-preview-state)))
+      (setq pdf-links--auto-preview-state
+            (list
+             id
+             (run-with-timer
+              pdf-links-child-frame-auto-preview-wait
+              pdf-links-child-frame-auto-preview-wait
+              #'pdf-links--timer link (pdf-view-current-page)
+              (current-buffer) (selected-window))
+             nil)))
+    (pdf-links-action-to-string link)))
+
 (defun pdf-links-hotspots-function (page size)
   "Create hotspots for links on PAGE using SIZE."
-
   (let ((links (pdf-cache-pagelinks page))
         (id-fmt "link-%d-%d")
         (i 0)
         (pointer 'hand)
         hotspots)
     (dolist (l links)
+      (push `(link-page . ,page) l)
       (let ((e (pdf-util-scale
                 (cdr (assq 'edges l)) size 'round))
             (id (intern (format id-fmt page
@@ -164,7 +189,7 @@ links via \\[pdf-links-isearch-link].
                 ,id
                 (pointer
                  ,pointer
-                 help-echo ,(pdf-links-action-to-string l)))
+                 help-echo ,(pdf-linnks--make-help-echo id l)))
               hotspots)
         (local-set-key
          (vector id 'mouse-1)
@@ -300,6 +325,34 @@ If USE-MOUSE-POS is non-nil consider mouse position to be link position."
                               0
                             (- (/ width 2) right-lim)))
             (nth 0 win-edges)))))
+
+(defun pdf-links--stop-auto-preview ()
+  "Stop the auto preview FRAME."
+  (pdf-links-hide-child-frame pdf-links--child-frame)
+  (cancel-timer (nth 1 pdf-links--auto-preview-state))
+  (setq pdf-links--auto-preview-state nil))
+
+(defun pdf-links--timer (link page buf window)
+  "Function to manage preview for LINK on PAGE of BUF displayed in WINDOW."
+  (if (and (eq window (selected-window))
+           (eq buf (current-buffer))
+           (eq page (pdf-view-current-page)))
+      (cl-destructuring-bind (x1 y1 x2 y2) (pdf-links--frame-edges link)
+        (cl-destructuring-bind (frame x . y) (mouse-pixel-position)
+          (let ((insidep (and (< x1 x) (< y1 y) (< x x2) (< y y2)))
+                (status (nth 2 pdf-links--auto-preview-state)))
+            (if (and insidep (not status))
+                (progn (pdf-links-preview-in-child-frame link)
+                       (setf (nth 2 pdf-links--auto-preview-state) t))
+              (when (and (not insidep) status)
+                (let ((pos (frame-position pdf-links--child-frame)))
+                  (setq x1 (car pos))
+                  (setq y1 (cdr pos))
+                  (setq x2 (+ x1 (frame-native-width pdf-links--child-frame)))
+                  (setq y2 (+ y1 (frame-native-height pdf-links--child-frame)))
+                 (unless (and (< x1 x) (< y1 y) (< x x2) (< y y2))
+                  (pdf-links--stop-auto-preview))))))))
+    (pdf-links--stop-auto-preview)))
 
 (defun pdf-links-preview-in-child-frame (link &optional use-mouse-pos)
   "Preview the LINK if it points to a destination in the same pdf.
