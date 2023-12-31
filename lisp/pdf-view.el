@@ -812,7 +812,7 @@ at the bottom edge of the page moves to the next page."
             (image-bob)
             (image-bol 1))
           (image-set-window-hscroll hscroll)))
-    (image-next-line 1)))
+    (image-next-line arg)))
 
 (defun pdf-view-previous-line-or-previous-page (&optional arg)
   "Scroll downward by ARG lines if possible, else go to the previous page.
