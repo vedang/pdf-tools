@@ -479,6 +479,7 @@ Signals an error, if PROPERTY is not modifiable.
 Returns the modified annotation."
 
   (declare (indent 2))
+  (setq a (pdf-annot--ensure-fresh a))
   (unless (equal value (pdf-annot-get a property))
     (unless (pdf-annot-property-modifiable-p a property)
       (error "Property `%s' is read-only for this annotation"
@@ -558,6 +559,15 @@ have identical id properties."
   "Return id property of annotation A."
   (pdf-annot-get a 'id))
 
+(defun pdf-annot--ensure-fresh (a)
+  "Return a fresh version of annotation A from the server.
+If the annotation does not exist anymore, signal an error."
+  (let ((id (pdf-annot-get-id a)))
+    (or (cl-find id
+                 (pdf-annot-getannots (pdf-annot-get a 'page) nil (pdf-annot-get-buffer a))
+                 :key #'pdf-annot-get-id)
+        (user-error "No such annotation: %s" id))))
+
 (defun pdf-annot-get-type (a)
   "Return type property of annotation A."
   (pdf-annot-get a 'type))
@@ -581,6 +591,7 @@ This function always returns nil."
   (interactive
    (list (pdf-annot-read-annotation
           "Click on the annotation you wish to delete")))
+  (setq a (pdf-annot--ensure-fresh a))
   (with-current-buffer (pdf-annot-get-buffer a)
     (pdf-info-delannot
      (pdf-annot-get-id a))
@@ -644,6 +655,7 @@ The DO-SAVE argument is given to
 `pdf-info-getattachment-from-annot', which see."
   (unless (pdf-annot-has-attachment-p a)
     (error "Annotation has no data attached: %s" a))
+  (setq a (pdf-annot--ensure-fresh a))
   (pdf-info-getattachment-from-annot
    (pdf-annot-get-id a)
    do-save
@@ -892,6 +904,7 @@ i.e. a non mouse-movement event is read."
   (let* ((mpos (posn-object-x-y (event-start event)))
          (a (or annot
                 (pdf-annot-at-position mpos))))
+    (setq a (pdf-annot--ensure-fresh a))
     (unless a
       (error "No annotation at this position: %s" mpos))
     (let* ((apos (pdf-annot-image-position a))
@@ -1510,6 +1523,7 @@ At any given point of time, only one annotation can be in edit mode."
                (not (eq a pdf-annot-edit-contents--annotation)))
       (with-current-buffer pdf-annot-edit-contents--buffer
         (pdf-annot-edit-contents-finalize 'ask)))
+    (setq a (pdf-annot--ensure-fresh a))
     (unless (buffer-live-p pdf-annot-edit-contents--buffer)
       (setq pdf-annot-edit-contents--buffer
             (get-buffer-create
