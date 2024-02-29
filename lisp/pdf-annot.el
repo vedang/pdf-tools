@@ -1085,8 +1085,8 @@ Return the new annotation."
       (pdf-annot-activate-annotation a))
     a))
 
-(defun pdf-annot-add-text-annotation (pos &optional icon property-alist)
-  "Add a new text annotation at POS in the selected window.
+(defun pdf-annot-add-text-annotation (pos &optional icon property-alist page)
+  "Add a new text annotation at POS on PAGE in the selected window.
 
 POS should be a image position object or a cons \(X . Y\), both
 being image coordinates.
@@ -1114,6 +1114,9 @@ Return the new annotation."
      (list posn)))
   (pdf-util-assert-pdf-window)
   (when (posnp pos)
+    (setq page (or page
+                   (when pdf-view-roll-minor-mode
+                     (1+ (/ (posn-point pos) 4)))))
     (setq pos (posn-object-x-y pos)))
   (let ((isize (pdf-view-image-size))
         (x (car pos))
@@ -1139,7 +1142,8 @@ Return the new annotation."
         pdf-annot-default-text-annotation-properties
         (cdr (assq 'text pdf-annot-default-annotation-properties))
         (cdr (assq t pdf-annot-default-annotation-properties))
-        `((color . ,(car pdf-annot-color-history))))))))
+        `((color . ,(car pdf-annot-color-history))))
+       page))))
 
 (defun pdf-annot-mouse-add-text-annotation (ev)
   "Add a text annotation using the mouse.
