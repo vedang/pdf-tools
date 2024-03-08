@@ -466,12 +466,14 @@ PNG images in Emacs buffers."
   "Read a password, if the document is encrypted and open it."
   (interactive)
   (when (pdf-info-encrypted-p)
-    (let ((prompt (format "Enter password for `%s': "
-                          (abbreviate-file-name
-                           (buffer-file-name))))
-          (key (concat "/pdf-tools" (buffer-file-name)))
+    (let ((fn (buffer-file-name))
+          (prompt "Enter password for pdf document: ")
           (i 3)
-          password)
+          key password)
+      (when fn
+        (setq prompt (format "Enter password for `%s': "
+                             (abbreviate-file-name fn)))
+        (setq key (concat "/pdf-tools" fn)))
       (while (and (> i 0)
                   (pdf-info-encrypted-p))
         (setq i (1- i))
@@ -479,7 +481,8 @@ PNG images in Emacs buffers."
         (setq prompt "Invalid password, try again: ")
         (ignore-errors (pdf-info-open nil password)))
       (pdf-info-open nil password)
-      (password-cache-add key password)))
+      (when key
+        (password-cache-add key password))))
   nil)
 
 (defun pdf-view-buffer-file-name ()
