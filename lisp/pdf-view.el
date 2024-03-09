@@ -470,14 +470,23 @@ PNG images in Emacs buffers."
           (prompt "Enter password for pdf document: ")
           (i 3)
           key password)
+
       (when fn
         (setq prompt (format "Enter password for `%s': "
                              (abbreviate-file-name fn)))
-        (setq key (concat "/pdf-tools" fn)))
+        (setq key (concat "/pdf-tools" fn))
+        ;; First, try with a cached password
+        (when (setq password (password-read-from-cache key))
+          (ignore-errors (pdf-info-open nil password))
+          (when (pdf-info-encrypted-p)
+            (password-cache-remove key))))
+
       (while (and (> i 0)
                   (pdf-info-encrypted-p))
         (setq i (1- i))
-        (setq password (password-read prompt key))
+        ;; Cached password was not present or valid, try reading a new password
+        ;; without cache.
+        (setq password (password-read prompt))
         (setq prompt "Invalid password, try again: ")
         (ignore-errors (pdf-info-open nil password)))
       (pdf-info-open nil password)
