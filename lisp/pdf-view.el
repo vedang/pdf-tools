@@ -553,6 +553,7 @@ Optional parameters IGNORE-AUTO and NOCONFIRM are defined as in
                after-revert-hook)))
     (prog1
         (revert-buffer ignore-auto noconfirm 'preserve-modes)
+      (pdf-view-decrypt-document)
       (pdf-view-redisplay t))))
 
 (defun pdf-view-close-document ()
