@@ -88,12 +88,12 @@ Set to nil to disable line wrapping."
     (define-key kmap (kbd "p") #'previous-line)
     (define-key kmap (kbd "n") #'next-line)
     (define-key kmap (kbd "b") #'outline-backward-same-level)
-    (define-key kmap (kbd "d") #'hide-subtree)
-    (define-key kmap (kbd "a") #'show-all)
-    (define-key kmap (kbd "s") #'show-subtree)
+    (define-key kmap (kbd "d") #'outline-hide-subtree)
+    (define-key kmap (kbd "a") #'outline-show-all)
+    (define-key kmap (kbd "s") #'outline-show-subtree)
     (define-key kmap (kbd "f") #'outline-forward-same-level)
     (define-key kmap (kbd "u") #'pdf-outline-up-heading)
-    (define-key kmap (kbd "Q") #'hide-sublevels)
+    (define-key kmap (kbd "Q") #'outline-hide-sublevels)
     (define-key kmap (kbd "<") #'beginning-of-buffer)
     (define-key kmap (kbd ">") #'pdf-outline-end-of-buffer)
     (define-key kmap (kbd "TAB") #'outline-toggle-children)
@@ -175,7 +175,7 @@ rebound to their respective last character.
   (setq buffer-read-only t)
   (when (> (count-lines 1 (point-max))
            (* 1.5 (frame-height)))
-    (hide-sublevels 1))
+    (outline-hide-sublevels 1))
   (message "%s"
            (substitute-command-keys
             (concat
@@ -405,8 +405,8 @@ Then quit the outline window."
   (save-excursion
     (outline-back-to-heading)
     (if (not (outline-invisible-p (line-end-position)))
-        (hide-subtree)
-      (show-subtree))))
+        (outline-hide-subtree)
+      (outline-show-subtree))))
 
 (defun pdf-outline-move-to-page (page)
   "Move to an outline item corresponding to PAGE."
