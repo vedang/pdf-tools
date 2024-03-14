@@ -466,20 +466,32 @@ PNG images in Emacs buffers."
   "Read a password, if the document is encrypted and open it."
   (interactive)
   (when (pdf-info-encrypted-p)
-    (let ((prompt (format "Enter password for `%s': "
-                          (abbreviate-file-name
-                           (buffer-file-name))))
-          (key (concat "/pdf-tools" (buffer-file-name)))
+    (let ((fn (buffer-file-name))
+          (prompt "Enter password for pdf document: ")
           (i 3)
-          password)
+          key password)
+
+      (when fn
+        (setq prompt (format "Enter password for `%s': "
+                             (abbreviate-file-name fn)))
+        (setq key (concat "/pdf-tools" fn))
+        ;; First, try with a cached password
+        (when (setq password (password-read-from-cache key))
+          (ignore-errors (pdf-info-open nil password))
+          (when (pdf-info-encrypted-p)
+            (password-cache-remove key))))
+
       (while (and (> i 0)
                   (pdf-info-encrypted-p))
         (setq i (1- i))
-        (setq password (password-read prompt key))
+        ;; Cached password was not present or valid, try reading a new password
+        ;; without cache.
+        (setq password (password-read prompt))
         (setq prompt "Invalid password, try again: ")
         (ignore-errors (pdf-info-open nil password)))
       (pdf-info-open nil password)
-      (password-cache-add key password)))
+      (when key
+        (password-cache-add key password))))
   nil)
 
 (defun pdf-view-buffer-file-name ()
@@ -541,6 +553,7 @@ Optional parameters IGNORE-AUTO and NOCONFIRM are defined as in
                after-revert-hook)))
     (prog1
         (revert-buffer ignore-auto noconfirm 'preserve-modes)
+      (pdf-view-decrypt-document)
       (pdf-view-redisplay t))))
 
 (defun pdf-view-close-document ()
