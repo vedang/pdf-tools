@@ -408,10 +408,10 @@ os_gentoo() {
     PACKAGES="app-text/poppler
               dev-util/pkgconf
               media-libs/libpng
-              sys-devel/autoconf
-              sys-devel/automake
+              dev-build/autoconf
+              dev-build/automake
               sys-devel/gcc
-              sys-devel/make
+              dev-build/make
               sys-libs/glibc
               sys-libs/zlib"
     return 0
