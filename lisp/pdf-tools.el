@@ -212,11 +212,13 @@ PDF buffers."
 (defcustom pdf-tools-installer-os nil
   "Specifies which installer to use.
 
-If nil the installer is chosen automatically. This variable is
+If nil, the installer is chosen automatically.  This variable is
 useful if you have multiple installers present on your
 system (e.g. nix on arch linux)"
   :group 'pdf-tools
-  :type 'string)
+  :type '(choice
+          (const :tag "Choose automatically" nil)
+          string))
 
 (defun pdf-tools-identify-build-directory (directory)
   "Return non-nil, if DIRECTORY appears to contain the epdfinfo source.

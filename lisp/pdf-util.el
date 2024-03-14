@@ -907,21 +907,23 @@ frame's PPI is larger than 180. Otherwise, return 1."
     (executable-find "convert"))
   "Absolute path to the convert program."
   :group 'pdf-tools
-  :type 'executable)
+  :type '(choice (const :tag "Unset" nil) file))
 
 (defcustom pdf-util-fast-image-format nil
   "An image format appropriate for fast displaying.
 
-This should be a cons \(TYPE . EXT\) where type is the Emacs
-image-type and EXT the appropriate file extension starting with a
-dot. If nil, the value is determined automatically.
+This should be a cons (TYPE . EXT) where type is the Emacs
+`image-type' and EXT the appropriate file extension starting with
+a dot.  If nil, the value is determined automatically.
 
 Different formats have different properties, with respect to
 Emacs loading time, convert creation time and the file-size.  In
 general, uncompressed formats are faster, but may need a fair
 amount of (temporary) disk space."
   :group 'pdf-tools
-  :type '(cons symbol string))
+  :type '(choice
+          (const :tag "Determine automatically" nil)
+          (cons symbol string)))
 
 (defun pdf-util-assert-convert-program ()
   (unless (and pdf-util-convert-program
