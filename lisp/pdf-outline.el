@@ -175,7 +175,7 @@ rebound to their respective last character.
   (setq buffer-read-only t)
   (when (> (count-lines 1 (point-max))
            (* 1.5 (frame-height)))
-    (hide-sublevels 1))
+    (outline-hide-sublevels 1))
   (message "%s"
            (substitute-command-keys
             (concat
@@ -405,8 +405,8 @@ Then quit the outline window."
   (save-excursion
     (outline-back-to-heading)
     (if (not (outline-invisible-p (line-end-position)))
-        (hide-subtree)
-      (show-subtree))))
+        (outline-hide-subtree)
+      (outline-show-subtree))))
 
 (defun pdf-outline-move-to-page (page)
   "Move to an outline item corresponding to PAGE."
