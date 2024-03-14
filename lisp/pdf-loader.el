@@ -57,7 +57,7 @@ see."
 (defun pdf-loader--load (&rest args)
   (pdf-loader--uninstall)
   (save-selected-window
-    (pdf-tools-install args)))
+    (apply #'pdf-tools-install args)))
 
 (defun pdf-loader--install (loader)
   (pdf-loader--uninstall)
