@@ -321,7 +321,7 @@ Returns the buffer of the compilation process."
          (process-environment process-environment)
          (default-directory build-directory)
          (autobuild (shell-quote-argument
-                     (expand-file-name "autobuild" build-directory)))
+                     (expand-file-name (if (eq system-type 'android) "autobuild.android" "autobuild") build-directory)))
          (msys2-p (equal "bash.exe" (file-name-nondirectory shell-file-name))))
     (unless shell-file-name
       (error "No suitable shell found"))
