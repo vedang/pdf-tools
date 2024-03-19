@@ -248,10 +248,14 @@ See `pdf-links-action-perform' for the interface."
                  `((?c . ,(lambda (_edges) (pop key-strings)))
                    (?P . ,(number-to-string
                            (max 1 (* (cdr size)
+                                     (pdf-util-frame-scale-factor)
                                      pdf-links-convert-pointsize-scale)))))
                  :commands pdf-links-read-link-convert-commands
                  :apply (pdf-util-scale-relative-to-pixel
-                         (mapcar (lambda (l) (cdr (assq 'edges l)))
+                         (mapcar (lambda (l)
+                                   (mapcar (lambda (x)
+                                             (* x (pdf-util-frame-scale-factor)))
+                                           (cdr (assq 'edges l))))
                                  links)))))
     (unless links
       (error "No links on this page"))
@@ -266,7 +270,7 @@ See `pdf-links-action-perform' for the interface."
              (pdf-view-current-page)
              (car size) image-data 'pdf-links-read-link-action))
           (pdf-view-display-image
-           (create-image image-data (pdf-view-image-type) t))
+           (pdf-view-create-image image-data))
           (pdf-links-read-link-action--read-chars prompt alist))
       (pdf-view-redisplay))))
 
