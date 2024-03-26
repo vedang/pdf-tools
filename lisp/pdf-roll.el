@@ -27,6 +27,7 @@
 (put 'pdf-roll 'display '(space :width 25 :height 1000))
 (put 'pdf-roll 'evaporate t)
 (put 'pdf-roll-margin 'evaporate t)
+(put 'pdf-roll-margin 'cursor t)
 
 ;;; Custom Variables
 (defgroup pdf-roll nil
