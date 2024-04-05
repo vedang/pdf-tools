@@ -362,9 +362,12 @@ os_macos() {
         PKGARGS=install
         PACKAGES="pkg-config poppler autoconf automake"
         PKG_INSTALL_AS_ROOT=
-        # brew installs libffi as keg-only, meaning we need to set
-        # PKG_CONFIG_PATH manually so configure can find it
-        export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:$(brew --prefix libffi)/lib/pkgconfig/:$(brew --prefix zlib)/lib/pkgconfig/"
+        # We need to set PKG_CONFIG_PATH manually so configure can
+        # find these dependencies. I don't know why (one possible
+        # explanation has to do with 'keg-only' installs). If you do,
+        # please update:
+        # https://github.com/vedang/pdf-tools/issues/270
+        export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:$(brew --prefix libffi)/lib/pkgconfig/:$(brew --prefix zlib)/lib/pkgconfig/:$(brew --prefix glib)/lib/pkgconfig/"
     elif which port >/dev/null 2>&1; then
         PKGCMD=port
         PKGARGS=install
