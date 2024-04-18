@@ -307,8 +307,8 @@ called in the buffer of the aforementioned file, will try to move
 point to the correct position."
 
   (pdf-util-assert-pdf-window)
-  (let ((size (pdf-view-image-size))
-        (page (or page (pdf-view-current-page))))
+  (let* ((page (or page (pdf-view-current-page)))
+         (size (pdf-view-image-size nil nil page)))
     (setq x (/ x (float (car size)))
           y (/ y (float (cdr size))))
     (let-alist (pdf-info-synctex-backward-search page x y)
@@ -317,7 +317,7 @@ point to the correct position."
         (cl-destructuring-bind (source line column)
             (or (save-selected-window
                   (apply #'run-hook-with-args-until-success
-                    'pdf-sync-backward-redirect-functions data))
+                         'pdf-sync-backward-redirect-functions data))
                 data)
           (list source
                 (if (not pdf-sync-backward-use-heuristic)
@@ -670,7 +670,8 @@ considered to be the region."
           (when page
             (pdf-view-goto-page page (selected-window))
             (when y1
-              (let ((top (* y1 (cdr (pdf-view-image-size)))))
+              (let ((top (* (- y1 (or (nth 1 (pdf-view-current-slice)) 0))
+                            (cdr (pdf-view-image-size)))))
                 (pdf-util-tooltip-arrow (round top))
                 (pdf-sync--forward-highlight `(,x1 ,y1 ,x2 ,y2) page)))))
         (with-current-buffer buffer

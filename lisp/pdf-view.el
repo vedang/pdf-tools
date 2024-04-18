@@ -1161,9 +1161,11 @@ If PAGE is non-nil return its size instead of current page."
                                    (pdf-view-display-page page window))
                                  (overlay-get (pdf-roll-page-overlay page window) 'display))
                         (image-get-display-property))))
-    (if displayed-p
-        (image-display-size display-prop t)
-      (image-size display-prop t))))
+    (if (eq (car display-prop) 'image)
+        (image-size display-prop t)
+      (if displayed-p
+          (image-display-size display-prop t)
+        (image-size (nth 1 display-prop) t)))))
 
 (defun pdf-view-image-offset (&optional window)
   ;; TODO: add WINDOW to docstring.
