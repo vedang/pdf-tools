@@ -1017,8 +1017,13 @@ Returns a list (X Y WIDTH HEIGHT)."
       (list (- left halfmargin) (- top halfmargin)
             (+ (- right left) margin) (+ (- bottom top) margin)))))
 
+(defun pdf-view-page-slice-from-bounding-box (page)
+  "Return the slice for PAGE using its bounding box.
+This takes `pdf-view-bounding-box-margin' into account."
+  (pdf-view-bounding-box-to-slice (pdf-cache-boundingbox page)))
+
 (defun pdf-view-set-slice-from-bounding-box (&optional window)
-  "Set the slice from the page's bounding-box.
+  "Set the slice of PAGE from the page's bounding-box.
 
 WINDOW defaults to `selected-window' if not provided.
 
@@ -1074,6 +1079,14 @@ again."
     (pdf-view-redisplay window))
   nil)
 
+(defun pdf-view-get-slice (&optional window page)
+  "Get the slice applicable for PAGE on WINDOW.
+This handles function values for `pdf-view-current-slice'."
+  (when-let ((slice (pdf-view-current-slice window)))
+    (if (functionp slice)
+        (funcall slice (or page (pdf-view-current-page window)))
+      slice)))
+
 (define-minor-mode pdf-view-auto-slice-minor-mode
   "Automatically slice pages according to their bounding boxes.
 
@@ -1084,13 +1097,12 @@ See also `pdf-view-set-slice-from-bounding-box'."
    (pdf-view-auto-slice-minor-mode
     (dolist (win (get-buffer-window-list nil nil t))
       (when (pdf-util-pdf-window-p win)
-        (pdf-view-set-slice-from-bounding-box win)))
-    (add-hook 'pdf-view-change-page-hook
-              'pdf-view-set-slice-from-bounding-box nil t))
-   (t
-    (progn (remove-hook 'pdf-view-change-page-hook
-                        'pdf-view-set-slice-from-bounding-box t)
-           (pdf-view-reset-slice)))))
+        (setf (pdf-view-current-slice win)
+              #'pdf-view-page-slice-from-bounding-box)
+        (pdf-view-redisplay win))))
+   (t (dolist (win (get-buffer-window-list nil nil t))
+        (when (pdf-util-pdf-window-p win)
+          (pdf-view-reset-slice win))))))
 
 
 ;; * ================================================================== *
@@ -1167,12 +1179,12 @@ If PAGE is non-nil return its size instead of current page."
           (image-display-size display-prop t)
         (image-size (nth 1 display-prop) t)))))
 
-(defun pdf-view-image-offset (&optional window)
+(defun pdf-view-image-offset (&optional window page)
   ;; TODO: add WINDOW to docstring.
-  "Return the offset of the current image.
+  "Return the offset of the image for page.
 
 It is equal to \(LEFT . TOP\) of the current slice in pixel."
-  (let* ((slice (pdf-view-current-slice window)))
+  (let* ((slice (pdf-view-get-slice window page)))
     (cond
      (slice
       (pdf-util-scale-relative-to-pixel
@@ -1196,7 +1208,7 @@ It is equal to \(LEFT . TOP\) of the current slice in pixel."
       (when (window-live-p (overlay-get ol 'window))
         (let* ((size (image-size image t))
                (slice (if (not inhibit-slice-p)
-                          (pdf-view-current-slice window)))
+                          (pdf-view-get-slice window page)))
                (displayed-width (floor
                                  (if slice
                                      (* (nth 2 slice)
@@ -1323,7 +1335,7 @@ If WINDOW is t, redisplay pages in all windows."
   ;; TODO: write documentation!
   (let* ((pagesize (pdf-cache-pagesize
                     (or page (pdf-view-current-page window))))
-         (slice (pdf-view-current-slice window))
+         (slice (pdf-view-get-slice window page))
          (width-scale (/ (/ (float (window-body-width window t))
                             (or (nth 2 slice) 1.0))
                          (float (car pagesize))))

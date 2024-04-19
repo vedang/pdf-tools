@@ -670,7 +670,7 @@ considered to be the region."
           (when page
             (pdf-view-goto-page page (selected-window))
             (when y1
-              (let ((top (* (- y1 (or (nth 1 (pdf-view-current-slice)) 0))
+              (let ((top (* (- y1 (or (nth 1 (pdf-view-get-slice nil page)) 0))
                             (cdr (pdf-view-image-size)))))
                 (pdf-util-tooltip-arrow (round top))
                 (pdf-sync--forward-highlight `(,x1 ,y1 ,x2 ,y2) page)))))

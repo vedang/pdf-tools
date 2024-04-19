@@ -460,7 +460,7 @@ is non-nil assume link to be at mouse position."
            (prefix (if (> win-width image-width)
                        (/ (- win-width image-width) 2)
                      0))
-           (slice (or (pdf-util-scale (pdf-view-current-slice)
+           (slice (or (pdf-util-scale (pdf-view-get-slice nil .link-page)
                                       (image-size image t) 'round)
                       '(0 0)))
            (edges (pdf-util-scale .edges

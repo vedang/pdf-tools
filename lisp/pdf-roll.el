@@ -80,10 +80,10 @@
   (set-window-vscroll win vscroll t))
 
 ;;; Displaying/Undisplaying pages
-(defun pdf-roll-maybe-slice-image (image &optional window inhibit-slice-p)
+(defun pdf-roll-maybe-slice-image (image &optional page window inhibit-slice-p)
   "Return a sliced IMAGE if `pdf-view-current-slice' in WINDOW is non-nil.
 If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
-  (if-let ((slice (pdf-view-current-slice window))
+  (if-let ((slice (pdf-view-get-slice window page))
            ((not inhibit-slice-p)))
       (list (cons 'slice
                   (pdf-util-scale slice (image-size image t) 'round))
@@ -93,7 +93,7 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
 (defun pdf-roll-display-image (image page &optional window inhibit-slice-p)
   "Display IMAGE for PAGE in WINDOW.
 If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
-  (let* ((image (pdf-roll-maybe-slice-image image window inhibit-slice-p))
+  (let* ((image (pdf-roll-maybe-slice-image image page window inhibit-slice-p))
          (size (image-display-size image t))
          (overlay (pdf-roll-page-overlay page window))
          (margin-pos (+ (pdf-roll-page-to-pos page) 2))
