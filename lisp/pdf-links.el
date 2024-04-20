@@ -153,7 +153,7 @@ links via \\[pdf-links-isearch-link].
     (pdf-view-remove-hotspot-function 'pdf-links-hotspots-function)))
   (pdf-view-redisplay t))
 
-(defun pdf-linnks--make-help-echo (id link)
+(defun pdf-links--make-help-echo (id link)
   "Return a lambda returning help-echo for LINK and ID."
   (lambda ()
     (when (and pdf-links-child-frame-auto-preview-wait
@@ -189,7 +189,7 @@ links via \\[pdf-links-isearch-link].
                 ,id
                 (pointer
                  ,pointer
-                 help-echo ,(pdf-linnks--make-help-echo id l)))
+                 help-echo ,(pdf-links--make-help-echo id l)))
               hotspots)
         (local-set-key
          (vector id 'mouse-1)
@@ -338,7 +338,7 @@ If USE-MOUSE-POS is non-nil consider mouse position to be link position."
            (eq buf (current-buffer))
            (eq page (pdf-view-current-page)))
       (cl-destructuring-bind (x1 y1 x2 y2) (pdf-links--frame-edges link)
-        (cl-destructuring-bind (frame x . y) (mouse-pixel-position)
+        (cl-destructuring-bind (_frame x . y) (mouse-pixel-position)
           (let ((insidep (and (< x1 x) (< y1 y) (< x x2) (< y y2)))
                 (status (nth 2 pdf-links--auto-preview-state)))
             (if (and insidep (not status))
@@ -350,8 +350,8 @@ If USE-MOUSE-POS is non-nil consider mouse position to be link position."
                   (setq y1 (cdr pos))
                   (setq x2 (+ x1 (frame-native-width pdf-links--child-frame)))
                   (setq y2 (+ y1 (frame-native-height pdf-links--child-frame)))
-                 (unless (and (< x1 x) (< y1 y) (< x x2) (< y y2))
-                  (pdf-links--stop-auto-preview))))))))
+                  (unless (and (< x1 x) (< y1 y) (< x x2) (< y y2))
+                    (pdf-links--stop-auto-preview))))))))
     (pdf-links--stop-auto-preview)))
 
 (defun pdf-links-preview-in-child-frame (link &optional use-mouse-pos)
@@ -468,8 +468,14 @@ is non-nil assume link to be at mouse position."
            (y-offset (+ (nth 1 win-edges)
                         (if (eq (pdf-view-current-page) .link-page)
                             (- (window-vscroll nil t))
-                          (nth 1 (pos-visible-in-window-p
-                                  (- (* 4 .link-page) 3) nil t)))
+                          ;; `pos-visible-in-window-p' seems to be unreliable
+                          ;; for large images. So we check the visibility of
+                          ;; margin line and add its height to get the start
+                          ;; of page in window.
+                          ;; TO DO: Reproduce in `emacs -Q' and file a bug report.
+                          (+ (nth 1 (pos-visible-in-window-p
+                                     (- (* 4 .link-page) 5) nil t))
+                             (line-pixel-height)))
                         (nth 1 slice)))
            (x-offset (+ (nth 0 win-edges)
                         (- (* (frame-char-height) (window-hscroll)))
