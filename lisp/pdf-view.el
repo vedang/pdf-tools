@@ -1099,10 +1099,13 @@ See also `pdf-view-set-slice-from-bounding-box'."
       (when (pdf-util-pdf-window-p win)
         (setf (pdf-view-current-slice win)
               #'pdf-view-page-slice-from-bounding-box)
-        (pdf-view-redisplay win))))
+        (pdf-view-redisplay win)))
+    (setf (pdf-view-current-slice)
+          #'pdf-view-page-slice-from-bounding-box))
    (t (dolist (win (get-buffer-window-list nil nil t))
         (when (pdf-util-pdf-window-p win)
-          (pdf-view-reset-slice win))))))
+          (pdf-view-reset-slice win)))
+      (pdf-view-reset-slice))))
 
 
 ;; * ================================================================== *
