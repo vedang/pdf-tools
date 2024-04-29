@@ -1510,6 +1510,7 @@ At any given point of time, only one annotation can be in edit mode."
                (not (eq a pdf-annot-edit-contents--annotation)))
       (with-current-buffer pdf-annot-edit-contents--buffer
         (pdf-annot-edit-contents-finalize 'ask)))
+    (pdf-annot-getannots (pdf-view-current-page)) ; avoids "epdfinfo: No such annotation: annot-N-M"
     (unless (buffer-live-p pdf-annot-edit-contents--buffer)
       (setq pdf-annot-edit-contents--buffer
             (get-buffer-create
