@@ -338,6 +338,13 @@ strchomp (char *str)
   return str;
 }
 
+#ifdef _WIN32
+#define MKTEMP_SEPARATOR "\\"
+#define MKTEMP_TEMPDIR_VAR "TMP"
+#else
+#define MKTEMP_SEPARATOR "/"
+#define MKTEMP_TEMPDIR_VAR "TMPDIR"
+#endif
 /**
  * Create a new, temporary file and returns its name.
  *
@@ -346,28 +353,25 @@ strchomp (char *str)
 static char*
 mktempfile()
 {
-  char *filename = NULL;
-  int tries = 3;
-  while (! filename && tries-- > 0)
+  char *template = malloc(256);
+  char *tmpdir = getenv(MKTEMP_TEMPDIR_VAR);
+  if (tmpdir != NULL) {
+    strcpy(template, tmpdir);
+  } else {
+    strcpy(template, P_tmpdir);
+  }
+  strcat(template, MKTEMP_SEPARATOR "epdfinfo_XXXXXX");
+  int fd = mkstemp(template);
+  if (fd == -1)
     {
-
-      filename =  tempnam(NULL, "epdfinfo");
-      if (filename)
-        {
-          int fd = open(filename, O_CREAT | O_EXCL | O_RDONLY, S_IRUSR | S_IWUSR);
-          if (fd > 0)
-            close (fd);
-          else
-            {
-              free (filename);
-              filename = NULL;
-            }
-        }
+      fprintf (stderr, "Unable to create tempfile");
+      free(template);
+      template = NULL;
     }
-  if (! filename)
-    fprintf (stderr, "Unable to create tempfile");
+  else
+    close(fd);
 
-  return filename;
+  return template;
 }
 
 /* Holds RGB, HSL, HSV, Lab, or Lch... but note that the order in memory for HSL
