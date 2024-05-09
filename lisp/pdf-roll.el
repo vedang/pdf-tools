@@ -82,7 +82,8 @@
 ;;; Displaying/Undisplaying pages
 (defun pdf-roll-maybe-slice-image (image &optional page window inhibit-slice-p)
   "Return a sliced IMAGE if `pdf-view-current-slice' in WINDOW is non-nil.
-If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
+If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'. IMAGE
+should be for PAGE."
   (if-let ((slice (pdf-view-get-slice window page))
            ((not inhibit-slice-p)))
       (list (cons 'slice
