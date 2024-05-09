@@ -33,7 +33,7 @@
 (require 'let-alist)
 
 ;;; Code:
-
+(defvar pdf-isearch--hl-matches-tick 0)
 
 
 ;; * ================================================================== *
@@ -249,42 +249,55 @@ This is a Isearch interface function."
   (when (> (length string) 0)
     (let ((same-search-p (pdf-isearch-same-search-p))
           (oldpage pdf-isearch-current-page)
-          (matches (pdf-isearch-search-page string))
+          (pages (or (image-mode-window-get 'displayed-pages (selected-window))
+                     (list (pdf-view-current-page))))
+          matches
           next-match)
-      ;; matches is a list of list of edges ((x0 y1 x1 y2) ...),
-      ;; sorted top to bottom ,left to right. Coordinates are in image
-      ;; space.
-      (unless isearch-forward
-        (setq matches (reverse matches)))
-      (when pdf-isearch-filter-matches-function
-        (setq matches (funcall pdf-isearch-filter-matches-function matches)))
+      (dolist (page pages)
+        (let ((page-matches (pdf-isearch-search-page string page)))
+          ;; matches is a list of list of edges ((x0 y1 x1 y2) ...),
+          ;; sorted top to bottom ,left to right. Coordinates are in image
+          ;; space.
+          (unless isearch-forward
+            (setq page-matches (reverse page-matches)))
+          (when pdf-isearch-filter-matches-function
+            (setq page-matches (funcall pdf-isearch-filter-matches-function page-matches)))
+          (push page-matches matches)))
       ;; Where to go next ?
       (setq pdf-isearch-current-page (pdf-view-current-page)
             pdf-isearch-current-matches matches
             next-match
             (pdf-isearch-next-match
              oldpage pdf-isearch-current-page
-             pdf-isearch-current-match matches
+             pdf-isearch-current-match (car matches)
              same-search-p
              isearch-forward)
             pdf-isearch-current-parameter
             (list string isearch-regexp
                   isearch-case-fold-search isearch-word))
+      (cl-callf nreverse matches)
       (cond
        (next-match
         (setq pdf-isearch-current-match next-match)
-        (pdf-isearch-hl-matches next-match matches)
+        (pdf-isearch-hl-matches  next-match matches nil pages)
         (pdf-isearch-focus-match next-match)
         ;; Don't get off track.
         (when (or (and (bobp) (not isearch-forward))
                   (and (eobp) isearch-forward))
-          (goto-char (1+ (/ (buffer-size) 2))))
+          (unless pdf-view-roll-minor-mode
+            (goto-char (1+ (/ (buffer-size) 2)))))
         ;; Signal success to isearch.
+        ;; Moving the point is for `pdf-roll'. It ensures that
+        ;; `re-search-forward' takes us back to the starting point. Otherwise
+        ;; every call to `isearch-repeat' will increment/decrement the point
+        ;; and that causes recentering.
         (if isearch-forward
-            (re-search-forward ".")
+            (progn (unless (bobp) (forward-char -1))
+                   (re-search-forward "."))
+          (unless (eobp) (forward-char 1))
           (re-search-backward ".")))
        ((and (not pdf-isearch-narrow-to-page)
-             (not (pdf-isearch-empty-match-p matches)))
+             (not (pdf-isearch-empty-match-p pdf-isearch-current-matches)))
         (let ((next-page (pdf-isearch-find-next-matching-page
                           string pdf-isearch-current-page t)))
           (when next-page
@@ -306,12 +319,14 @@ This is a Isearch interface function."
             pdf-isearch-current-matches matches
             pdf-isearch-current-match match
             pdf-isearch-current-page page)
-
       (pdf-view-goto-page pdf-isearch-current-page)
-      (when pdf-isearch-current-match
-        (pdf-isearch-hl-matches
-         pdf-isearch-current-match
-         pdf-isearch-current-matches))
+      (if pdf-isearch-current-match
+          (pdf-isearch-hl-matches
+           pdf-isearch-current-match
+           pdf-isearch-current-matches
+           nil (image-mode-window-get 'displayed-pages (selected-window)))
+        (when pdf-view-roll-minor-mode
+          (pdf-view-redisplay)))
       (image-set-window-hscroll hscroll)
       (image-set-window-vscroll vscroll))))
 
@@ -347,7 +362,8 @@ This is a Isearch interface function."
         pdf-isearch-current-match nil
         pdf-isearch-current-matches nil
         pdf-isearch-current-parameter nil)
-  (goto-char (1+ (/ (buffer-size) 2))))
+  (unless pdf-view-roll-minor-mode
+    (goto-char (1+ (/ (buffer-size) 2)))))
 
 (defun pdf-isearch-same-search-p (&optional ignore-search-string-p)
   "Return non-nil, if search parameter have not changed.
@@ -385,8 +401,12 @@ there was no previous search, this function returns t."
 
 (defun pdf-isearch-redisplay ()
   "Redisplay the current highlighting."
-  (pdf-isearch-hl-matches pdf-isearch-current-match
-                          pdf-isearch-current-matches))
+  (pdf-isearch-hl-matches
+   pdf-isearch-current-match
+   pdf-isearch-current-matches
+   nil
+   (or (image-mode-window-get 'displayed-pages (selected-window))
+       (list (pdf-view-current-page)))))
 
 (defun pdf-isearch-update ()
   "Update search and redisplay, if necessary."
@@ -412,13 +432,14 @@ there was no previous search, this function returns t."
       (message "%s" msg))))
 
 (defun pdf-isearch-empty-match-p (matches)
-  (and matches
+  (let ((all-matches (apply #'append matches)))
+      (and all-matches
        (cl-every
         (lambda (match)
           (cl-every (lambda (edges)
                       (cl-every 'zerop edges))
                     match))
-        matches)))
+        all-matches))))
 
 (defun pdf-isearch-occur ()
   "Run `occur' using the last search string or regexp."
@@ -564,10 +585,10 @@ is no such page."
                    (= incr 8)) ;;Don't bother right away.
           (setq reporter
                 (apply
-                    'make-progress-reporter "Searching"
-                    (if isearch-forward
-                        (list (car pages) (pdf-cache-number-of-pages) nil 0)
-                      (list 1 (cdr pages) nil 0)))))
+                 'make-progress-reporter "Searching"
+                 (if isearch-forward
+                     (list (car pages) (pdf-cache-number-of-pages) nil 0)
+                   (list 1 (cdr pages) nil 0)))))
         (when reporter
           (progress-reporter-update
            reporter (if isearch-forward
@@ -674,18 +695,18 @@ it is assumed to be ordered with respect to FORWARD-P."
   (let ((matched (apply 'pdf-util-edges-union match)))
     (pdf-util-with-edges (matched)
       (cl-loop for next in matches do
-        (let ((edges (apply 'pdf-util-edges-union next)))
-          (pdf-util-with-edges (edges)
-            (when (if forward-p
-                      (or (>= edges-top matched-bot)
-                          (and (or (>= edges-top matched-top)
-                                   (>= edges-bot matched-bot))
-                               (>= edges-right matched-right)))
-                    (or (<= edges-bot matched-top)
-                        (and (or (<= edges-bot matched-bot)
-                                 (<= edges-top matched-top))
-                             (<= edges-left matched-left))))
-              (cl-return next))))))))
+               (let ((edges (apply 'pdf-util-edges-union next)))
+                 (pdf-util-with-edges (edges)
+                   (when (if forward-p
+                             (or (>= edges-top matched-bot)
+                                 (and (or (>= edges-top matched-top)
+                                          (>= edges-bot matched-bot))
+                                      (>= edges-right matched-right)))
+                           (or (<= edges-bot matched-top)
+                               (and (or (<= edges-bot matched-bot)
+                                        (<= edges-top matched-top))
+                                    (<= edges-left matched-left))))
+                     (cl-return next))))))))
 
 
 
@@ -716,41 +737,45 @@ MATCH-BG LAZY-FG LAZY-BG\)."
               (car lazy)
               (cdr lazy)))))))
 
-(defvar pdf-isearch--hl-matches-tick 0)
-
-(defun pdf-isearch-hl-matches (current matches &optional occur-hack-p)
+(defun pdf-isearch-hl-matches (current matches &optional occur-hack-p pages)
   "Highlighting edges CURRENT and MATCHES."
   (cl-check-type current pdf-isearch-match)
-  (cl-check-type matches (list-of pdf-isearch-match))
+  (cl-check-type matches (list-of (list-of pdf-isearch-match)))
   (cl-destructuring-bind (fg1 bg1 fg2 bg2)
       (pdf-isearch-current-colors)
-    (let* ((width (car (pdf-view-image-size)))
-           (page (pdf-view-current-page))
-           (window (selected-window))
+    (let* ((window (selected-window))
+           (pages (or pages
+                      (image-mode-window-get 'displayed-pages (selected-window))
+                      (list (pdf-view-current-page))))
            (buffer (current-buffer))
-           (tick (cl-incf pdf-isearch--hl-matches-tick))
-           (pdf-info-asynchronous
-            (lambda (status data)
-              (when (and (null status)
-                         (eq tick pdf-isearch--hl-matches-tick)
-                         (buffer-live-p buffer)
-                         (window-live-p window)
-                         (eq (window-buffer window)
-                             buffer))
-                (with-selected-window window
-                  (when (and (derived-mode-p 'pdf-view-mode)
-                             (or isearch-mode
-                                 occur-hack-p)
-                             (eq page (pdf-view-current-page)))
-                    (pdf-view-display-image
-                     (pdf-view-create-image data :width width))))))))
-      (pdf-info-renderpage-text-regions
-       page width t nil nil
-       `(,fg1 ,bg1 ,@(pdf-util-scale-pixel-to-relative
-                      current))
-       `(,fg2 ,bg2 ,@(pdf-util-scale-pixel-to-relative
-                      (apply 'append
-                        (remove current matches))))))))
+           (tick (cl-incf pdf-isearch--hl-matches-tick)))
+      (dolist (page pages)
+        (let* ((width (car (pdf-view-image-size nil window page)))
+               (pdf-info-asynchronous
+                (lambda (status data)
+                  (when (and (null status)
+                             (eq tick pdf-isearch--hl-matches-tick)
+                             (buffer-live-p buffer)
+                             (window-live-p window)
+                             (eq (window-buffer window)
+                                 buffer))
+                    (with-selected-window window
+                      (when (and (derived-mode-p 'pdf-view-mode)
+                                 (or isearch-mode occur-hack-p
+                                     (memq last-command '(isearch-repeat-forward isearch-repeat-backward)))
+                                 (or (eq page (pdf-view-current-page))
+                                     (memq page (image-mode-window-get 'displayed-pages window))))
+                        (pdf-view-display-image
+                         (pdf-view-create-image data :width width)
+                         page window)))))))
+          (pdf-info-renderpage-text-regions
+           page width t nil nil
+           `(,fg1 ,bg1 ,@(pdf-util-scale-pixel-to-relative
+                          (when (eq page (pdf-view-current-page window))
+                            current)))
+           `(,fg2 ,bg2 ,@(pdf-util-scale-pixel-to-relative
+                          (apply 'append
+                                 (remove current (pop matches)))))))))))
 
 
 ;; * ================================================================== *
