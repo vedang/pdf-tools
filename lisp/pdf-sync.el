@@ -804,48 +804,48 @@ and Y2 may be nil, if the destination could not be found."
 
 (defun pdf-sync--forward-find-line (pdf page)
   "Find the line corresponding to point in PDF on PAGE."
-  (save-restriction
-    (pdf-sync--narrow-to-region)
-    (when-let ((regexp (pdf-sync--forward-line-regexp)))
-      (let ((text (pdf-info-gettext page '(0 0 1 1) 'line pdf))
-            (continue t)
-            beg end line-beg line-end twopages res)
-        (with-temp-buffer
-          (while continue
-            (setq continue nil)
-            (insert text)
-            (goto-char (point-min))
-            (save-excursion
-              (while (re-search-forward "[ \t\f\n]+" nil t)
-                (replace-match " " t t)))
-            (goto-char (point-min))
-            (if (and (re-search-forward regexp nil t)
-                     (setq beg (match-beginning 1))
-                     (setq end (match-end 1)))
-                ;; Make sure that regex has a unique match, otherwise
-                ;; accept that we can't figure out the correct match.
-                (unless (progn (goto-char (1+ beg))
-                               (re-search-forward regexp nil t))
-                  (erase-buffer)
-                  (insert text)
-                  (goto-char beg)
-                  (when (eolp)
-                    (forward-line 1))
-                  (setq line-beg (line-beginning-position))
-                  (setq line-end (line-end-position))
-                  (setq res (list (- (max beg line-beg) line-beg)
-                                  (- (min line-end end) line-beg)
-                                  (buffer-substring line-beg line-end)
-                                  twopages)))
-              (unless (eq page (pdf-info-number-of-pages pdf))
-                (unless (or twopages)
-                  (setq continue t))
-                (setq twopages t)
-                (setq text (concat text "\n"
-                                   (pdf-info-gettext
-                                    (1+ page) '(0 0 1 1) 'line pdf)))
-                (erase-buffer)))))
-        res))))
+  (when-let ((regexp (save-restriction
+                       (pdf-sync--narrow-to-region)
+                       (pdf-sync--forward-line-regexp))))
+    (let ((text (pdf-info-gettext page '(0 0 1 1) 'line pdf))
+          (continue t)
+          beg end line-beg line-end twopages res)
+      (with-temp-buffer
+        (while continue
+          (setq continue nil)
+          (insert text)
+          (goto-char (point-min))
+          (save-excursion
+            (while (re-search-forward "[ \t\f\n]+" nil t)
+              (replace-match " " t t)))
+          (goto-char (point-min))
+          (if (and (re-search-forward regexp nil t)
+                   (setq beg (match-beginning 1))
+                   (setq end (match-end 1)))
+              ;; Make sure that regex has a unique match, otherwise
+              ;; accept that we can't figure out the correct match.
+              (unless (progn (goto-char (1+ beg))
+                             (re-search-forward regexp nil t))
+                (erase-buffer)
+                (insert text)
+                (goto-char beg)
+                (when (eolp)
+                  (forward-line 1))
+                (setq line-beg (line-beginning-position))
+                (setq line-end (line-end-position))
+                (setq res (list (- (max beg line-beg) line-beg)
+                                (- (min line-end end) line-beg)
+                                (buffer-substring line-beg line-end)
+                                twopages)))
+            (unless (eq page (pdf-info-number-of-pages pdf))
+              (unless (or twopages)
+                (setq continue t))
+              (setq twopages t)
+              (setq text (concat text "\n"
+                                 (pdf-info-gettext
+                                  (1+ page) '(0 0 1 1) 'line pdf)))
+              (erase-buffer)))))
+      res)))
 
 (defun pdf-sync--forward-correlate-heuristically ()
   "A version of `pdf-sync-forward-correlate' to try to find a more accurate match."
