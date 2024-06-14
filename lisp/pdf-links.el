@@ -352,7 +352,12 @@ If USE-MOUSE-POS is non-nil consider mouse position to be link position."
                   (setq y2 (+ y1 (frame-native-height pdf-links--child-frame)))
                   (unless (and (< x1 x) (< y1 y) (< x x2) (< y y2))
                     (pdf-links--stop-auto-preview))))))))
-    (pdf-links--stop-auto-preview)))
+    (cl-destructuring-bind (frame x . y) (mouse-pixel-position)
+      (unless (and (eq frame pdf-links--child-frame)
+                   (>= y 0) (<= y (frame-native-height pdf-links--child-frame))
+                   (>= x 0) (<= x (frame-native-width pdf-links--child-frame)))
+        (select-window window t)
+        (pdf-links--stop-auto-preview)))))
 
 (defun pdf-links-preview-in-child-frame (link &optional use-mouse-pos)
   "Preview the LINK if it points to a destination in the same pdf.
