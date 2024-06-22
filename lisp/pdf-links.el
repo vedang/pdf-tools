@@ -155,20 +155,22 @@ links via \\[pdf-links-isearch-link].
 
 (defun pdf-links--make-help-echo (id link)
   "Return a lambda returning help-echo for LINK and ID."
-  (lambda ()
+  (lambda (win buf _pos)
     (when (and pdf-links-child-frame-auto-preview-wait
-               (not (eq id (car pdf-links--auto-preview-state))))
+               (not (eq id (car pdf-links--auto-preview-state)))
+               (eq (alist-get 'type link) 'goto-dest))
       (unless (not pdf-links--auto-preview-state)
         (cancel-timer (nth 1 pdf-links--auto-preview-state)))
-      (setq pdf-links--auto-preview-state
-            (list
-             id
-             (run-with-timer
-              pdf-links-child-frame-auto-preview-wait
-              pdf-links-child-frame-auto-preview-wait
-              #'pdf-links--timer link (pdf-view-current-page)
-              (current-buffer) (selected-window))
-             nil)))
+      (with-current-buffer buf
+        (setq pdf-links--auto-preview-state
+              (list
+               id
+               (run-with-timer
+                pdf-links-child-frame-auto-preview-wait
+                pdf-links-child-frame-auto-preview-wait
+                #'pdf-links--timer link (pdf-view-current-page win)
+                buf win)
+               nil))))
     (pdf-links-action-to-string link)))
 
 (defun pdf-links-hotspots-function (page size)
@@ -187,8 +189,7 @@ links via \\[pdf-links-isearch-link].
         (push `((rect . ((,(nth 0 e) . ,(nth 1 e))
                          . (,(nth 2 e) . ,(nth 3 e))))
                 ,id
-                (pointer
-                 ,pointer
+                (pointer ,pointer
                  help-echo ,(pdf-links--make-help-echo id l)))
               hotspots)
         (local-set-key
@@ -334,30 +335,31 @@ If USE-MOUSE-POS is non-nil consider mouse position to be link position."
 
 (defun pdf-links--timer (link page buf window)
   "Function to manage preview for LINK on PAGE of BUF displayed in WINDOW."
-  (if (and (eq window (selected-window))
-           (eq buf (current-buffer))
-           (eq page (pdf-view-current-page)))
-      (cl-destructuring-bind (x1 y1 x2 y2) (pdf-links--frame-edges link)
-        (cl-destructuring-bind (_frame x . y) (mouse-pixel-position)
-          (let ((insidep (and (< x1 x) (< y1 y) (< x x2) (< y y2)))
-                (status (nth 2 pdf-links--auto-preview-state)))
-            (if (and insidep (not status))
-                (progn (pdf-links-preview-in-child-frame link)
-                       (setf (nth 2 pdf-links--auto-preview-state) t))
-              (when (and (not insidep) status)
-                (let ((pos (frame-position pdf-links--child-frame)))
-                  (setq x1 (car pos))
-                  (setq y1 (cdr pos))
-                  (setq x2 (+ x1 (frame-native-width pdf-links--child-frame)))
-                  (setq y2 (+ y1 (frame-native-height pdf-links--child-frame)))
-                  (unless (and (< x1 x) (< y1 y) (< x x2) (< y y2))
-                    (pdf-links--stop-auto-preview))))))))
-    (cl-destructuring-bind (frame x . y) (mouse-pixel-position)
-      (unless (and (eq frame pdf-links--child-frame)
-                   (>= y 0) (<= y (frame-native-height pdf-links--child-frame))
-                   (>= x 0) (<= x (frame-native-width pdf-links--child-frame)))
-        (select-window window t)
-        (pdf-links--stop-auto-preview)))))
+  (let ((stop nil))
+    (with-current-buffer buf
+      (if (and (eq buf (window-buffer window))
+               (eq page (pdf-view-current-page window)))
+          (with-selected-window window
+            (cl-destructuring-bind (x1 y1 x2 y2) (pdf-links--frame-edges link)
+              (cl-destructuring-bind (_frame x . y) (mouse-pixel-position)
+                (let ((insidep (and (< x1 x) (< y1 y) (< x x2) (< y y2)))
+                      (status (nth 2 pdf-links--auto-preview-state)))
+                  (if (and insidep (not status))
+                      (progn
+                        (pdf-links-preview-in-child-frame link)
+                        (setf (nth 2 pdf-links--auto-preview-state) t))
+                    (when (and (not insidep) status)
+                      (let ((pos (frame-position pdf-links--child-frame)))
+                        (setq x1 (car pos))
+                        (setq y1 (cdr pos))
+                        (setq x2 (+ x1 (frame-native-width pdf-links--child-frame)))
+                        (setq y2 (+ y1 (frame-native-height pdf-links--child-frame)))
+                        (unless (and (< x1 x) (< y1 y) (< x x2) (< y y2))
+                          (setq stop t)))))))))
+        (setq stop t)))
+    (when stop
+      (select-window (frame-selected-window (window-frame window)))
+      (pdf-links--stop-auto-preview))))
 
 (defun pdf-links-preview-in-child-frame (link &optional use-mouse-pos)
   "Preview the LINK if it points to a destination in the same pdf.
@@ -434,8 +436,8 @@ is non-nil assume link to be at mouse position."
   (interactive (list pdf-links--child-frame))
   (when-let ((frame (or frame pdf-links--child-frame))
              ((frame-live-p frame)))
-   (make-frame-invisible frame)
-  (pdf-links-preview-mode -1)))
+    (make-frame-invisible frame)
+    (pdf-links-preview-mode -1)))
 
 (defun pdf-links-scroll-up-child-frame (&optional n)
   "Scroll up the preview in child frame by N lines."
