@@ -328,12 +328,6 @@ If USE-MOUSE-POS is non-nil consider mouse position to be link position."
                             (- (/ width 2) right-lim)))
             (nth 0 win-edges)))))
 
-(defun pdf-links--stop-auto-preview ()
-  "Stop the auto preview FRAME."
-  (pdf-links-hide-child-frame pdf-links--child-frame)
-  (cancel-timer (nth 1 pdf-links--auto-preview-state))
-  (setq pdf-links--auto-preview-state nil))
-
 (defun pdf-links--timer (link page buf window)
   "Function to manage preview for LINK on PAGE of BUF displayed in WINDOW."
   (let ((stop nil))
@@ -361,7 +355,7 @@ If USE-MOUSE-POS is non-nil consider mouse position to be link position."
         (setq stop t)))
     (when stop
       (select-window (frame-selected-window (window-frame window)))
-      (pdf-links--stop-auto-preview))))
+      (pdf-links-hide-child-frame))))
 
 (defun pdf-links-preview-in-child-frame (link &optional use-mouse-pos)
   "Preview the LINK if it points to a destination in the same pdf.
@@ -439,7 +433,10 @@ is non-nil assume link to be at mouse position."
   (when-let ((frame (or frame pdf-links--child-frame))
              ((frame-live-p frame)))
     (make-frame-invisible frame)
-    (pdf-links-preview-mode -1)))
+    (pdf-links-preview-mode -1))
+  (when pdf-links--auto-preview-state
+    (cancel-timer (nth 1 pdf-links--auto-preview-state))
+    (setq pdf-links--auto-preview-state nil)))
 
 (defun pdf-links-scroll-up-child-frame (&optional n)
   "Scroll up the preview in child frame by N lines."
