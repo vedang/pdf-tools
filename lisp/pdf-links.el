@@ -454,6 +454,28 @@ is non-nil assume link to be at mouse position."
     (with-selected-window (frame-selected-window frame)
       (image-previous-line n))))
 
+(defun pdf-links-redirect-event-to-child-frame (event)
+  "Redirect EVENT to child frame by changing the window in it."
+  (interactive "e")
+  (unless (eq (window-frame (nth 0 (nth 1 event))) pdf-links--child-frame)
+    (setf (nth 0 (nth 1 event)) (frame-selected-window pdf-links--child-frame))
+    (push event unread-command-events)))
+
+(defun pdf-links-preview-command-was-redirected-p (cmd)
+  "Return CMD unless `last-command' was `pdf-links-redirect-event-to-child-frame'."
+  (unless (eq last-command #'pdf-links-redirect-event-to-child-frame)
+    cmd))
+
+(defun pdf-links-preview-bind-redirection (key)
+  "Bind KEY to be redirected using `pdf-links-redirect-event-to-child-frame'."
+  (define-key pdf-links-preview-mode-map (kbd key)
+              '(menu-item "" pdf-links-redirect-event-to-child-frame
+                          :filter pdf-links-preview-command-was-redirected-p)))
+
+(pdf-links-preview-bind-redirection "<wheel-up>")
+(pdf-links-preview-bind-redirection "<wheel-down>")
+(pdf-links-preview-bind-redirection "<touch-end>")
+
 (defun pdf-links--frame-edges (link)
   "Return the position of the LINK edges on the frame coordinate system."
   (let-alist link
