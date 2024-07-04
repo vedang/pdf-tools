@@ -395,7 +395,11 @@ is non-nil assume link to be at mouse position."
                           (pdf-util-scale slice (image-size page t) 'round))
             (setq mode-line-format nil)
             (goto-char (point-max))
-            (insert "\n")
+            (insert "\n"
+                    ;; This makes scrolling to the end of page much better with
+                    ;; pixel scroll precision mode.  Hopefull it will also help
+                    ;; with erratic point movement.
+                    (propertize " " 'display '(space :width 25 :height 1000)))
             (image-mode-setup-winprops))
           (set-window-point window (point-min))
           (set-window-vscroll
