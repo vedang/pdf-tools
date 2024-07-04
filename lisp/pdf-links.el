@@ -103,6 +103,8 @@ do something with it."
     (unsplittable . t)
     (no-other-frame . t)
     (auto-hide-function . pdf-links-hide-childframe)
+    (left-fringe . 0)
+    (right-fringe . 0)
     (undecorated . t))
   "Frame parameters for the childframe used by `pdf-links-preview-in-childframe'."
   :group 'pdf-links
