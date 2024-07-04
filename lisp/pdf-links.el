@@ -94,6 +94,7 @@ do something with it."
   :group 'pdf-links
   :type 'function)
 
+(defvar pdf-links--child-frame nil)
 (defcustom pdf-links-child-frame-parameters
   '((name . "PDF links preview")
     (height . 0.25)
@@ -105,7 +106,11 @@ do something with it."
     (undecorated . t))
   "Frame parameters for the childframe used by `pdf-links-preview-in-childframe'."
   :group 'pdf-links
-  :type '(alist :key-type symbol :value-type sexp))
+  :type '(alist :key-type symbol :value-type sexp)
+  :set (lambda (sym val)
+         (set-default-toplevel-value sym val)
+         (when pdf-links--child-frame
+           (modify-frame-parameters pdf-links--child-frame val))))
 
 (defcustom pdf-links-child-frame-size '(0.6 . 0.3)
   "The size of the child frame relative to the pdf window.
@@ -131,7 +136,6 @@ Value of nil disables the preview."
     (define-key kmap (kbd "F") 'pdf-links-action-perform)
     kmap))
 
-(defvar pdf-links--child-frame nil)
 (defvar pdf-links--auto-preview-state nil)
 
 ;;;###autoload
