@@ -129,6 +129,19 @@ Value of nil disables the preview."
   :group 'pdf-links
   :type 'float)
 
+(defvar pdf-links-child-frame-vscroll nil
+  "Determines how far to scroll initially during child frame preview.
+It can be a floating point number between 0 and 1. In this case the preview
+will be started with this fraction of page scrolled out of view. This is useful
+for documents missing precise location information. The default value of nil
+is adequate for documents with accurate location for links.
+
+It can also be function accepting two arguments. The first argument is
+the fractional location of the top of the link target given in the
+link. The second argument is the fractional size of the top margin on
+the page. It should return a floating point number between 0 and 1
+which gives the amount to scroll.")
+
 ;; * Minor Mode
 ;; * ================================================================== *
 
@@ -364,6 +377,13 @@ If USE-MOUSE-POS is non-nil consider mouse position to be link position."
       (select-window (frame-selected-window (window-frame window)))
       (pdf-links-hide-child-frame))))
 
+(defun pdf-links-preview-vscroll (top bb)
+  "Return vscroll fraction according to TOP and BB."
+  (cond ((floatp pdf-links-child-frame-vscroll) pdf-links-child-frame-vscroll)
+        ((functionp pdf-links-child-frame-vscroll)
+         (funcall pdf-links-child-frame-vscroll top bb))
+        (t (- top bb))))
+
 (defun pdf-links-preview-in-child-frame (link &optional use-mouse-pos)
   "Preview the LINK if it points to a destination in the same pdf.
 Otherwise follow it using `pdf-links-action-perform'. If USE-MOUSE-POS
@@ -409,7 +429,9 @@ is non-nil assume link to be at mouse position."
             (image-mode-setup-winprops))
           (set-window-point window (point-min))
           (set-window-vscroll
-           window (max 0 (* (- .top (nth 1 bb)) (cdr (image-size page t)))) t)
+           window (max 0 (* (pdf-links-preview-vscroll .top (nth 1 bb))
+                            (cdr (image-size page t))))
+           t)
           (modify-frame-parameters pdf-links--child-frame
                                    `((visibility . t)
                                      (parent-frame . ,(selected-frame))
