@@ -106,11 +106,10 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
 (defun pdf-roll-display-page (page window &optional force)
   "Display PAGE in WINDOW.
 With FORCE non-nil display fetch page again even if it is already displayed."
-  (if-let ((display (overlay-get (pdf-roll-page-overlay page window) 'display))
-           ((or force (eq (car display) 'space))))
-      (pdf-roll-display-image (pdf-view-create-page page window)
-                              page window)
-    (cdr (image-display-size display t))))
+  (let ((display (overlay-get (pdf-roll-page-overlay page window) 'display)))
+    (if (or force (not display) (eq (car display) 'space))
+        (pdf-roll-display-image (pdf-view-create-page page window) page window)
+      (cdr (image-display-size display t)))))
 
 (defun pdf-roll-display-pages (page &optional window force pscrolling)
   "Display pages to fill the WINDOW starting from PAGE.
