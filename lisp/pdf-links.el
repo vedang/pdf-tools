@@ -103,8 +103,10 @@ do something with it."
     (unsplittable . t)
     (no-other-frame . t)
     (auto-hide-function . pdf-links-hide-childframe)
-    (left-fringe . 0)
-    (right-fringe . 0)
+    ;; Setting fringes to zero causes Emacs to reserve space for truncation
+    ;; and continuation glyphs which end up taking more space.
+    (left-fringe . 1)
+    (right-fringe . 1)
     (undecorated . t))
   "Frame parameters for the childframe used by `pdf-links-preview-in-childframe'."
   :group 'pdf-links
@@ -396,15 +398,14 @@ is non-nil assume link to be at mouse position."
         (let* ((width (floor (* (car pdf-links-child-frame-size)
                                 (window-pixel-width))))
                (bb (pdf-cache-boundingbox .page))
-               (page-width (floor (/ width (+ (- (nth 2 bb) (nth 0 bb))
-                                              pdf-view-bounding-box-margin))))
                (slice (pdf-view-bounding-box-to-slice bb))
+               (page-width (floor (/ width (nth 2 slice))))
                (height (floor (* (cdr pdf-links-child-frame-size)
                                  (window-pixel-height))))
                (page (create-image (pdf-cache-renderpage
-                                     .page page-width page-width)
-                                    (pdf-view-image-type) t
-                                    :width page-width))
+                                    .page page-width page-width)
+                                   (pdf-view-image-type) t
+                                   :width page-width))
                (buffer (get-buffer-create "pdf-link-preview"))
                (top-left (pdf-links--position-child-frame
                           link width height use-mouse-pos))
@@ -419,12 +420,12 @@ is non-nil assume link to be at mouse position."
             (erase-buffer)
             (insert-image page nil nil
                           (pdf-util-scale slice (image-size page t) 'round))
-            (setq mode-line-format nil)
+            (setq mode-line-format nil
+                  cursor-type nil)
             (goto-char (point-max))
             (insert "\n"
                     ;; This makes scrolling to the end of page much better with
-                    ;; pixel scroll precision mode.  Hopefull it will also help
-                    ;; with erratic point movement.
+                    ;; pixel scroll precision mode.
                     (propertize " " 'display '(space :width 25 :height 1000)))
             (image-mode-setup-winprops))
           (set-window-point window (point-min))
