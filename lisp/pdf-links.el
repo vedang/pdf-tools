@@ -406,7 +406,7 @@ is non-nil assume link to be at mouse position."
                                     .page page-width page-width)
                                    (pdf-view-image-type) t
                                    :width page-width))
-               (buffer (get-buffer-create "pdf-link-preview"))
+               (buffer (get-buffer-create " *pdf-link-preview*" t))
                (top-left (pdf-links--position-child-frame
                           link width height use-mouse-pos))
                (window nil))
