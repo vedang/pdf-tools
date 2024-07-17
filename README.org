@@ -94,15 +94,19 @@ If you install ~pdf-tools~ via NonGNU ELPA or MELPA, *you don't need to worry ab
 
 Note: You'll need GNU Emacs \ge 26.3 and some form of a GNU/Linux OS. Other operating systems are not officially supported, but ~pdf-tools~ is known to work on many of them.
 
-The ~epdfinfo~ install script takes care of installing all the necessary pre-requisites on supported operating systems (see list below). See the section on [[id:A34704B9-1B51-4614-8806-C4059F7B42D5][I want to add support for ~pdf-tools~ on =My Fav OS=. How do I do that?]] to learn how to add your favorite Operating System to this list.
+The ~epdfinfo~ install script takes care of installing most of the necessary pre-requisites on supported operating systems (see list below). See the section on [[id:A34704B9-1B51-4614-8806-C4059F7B42D5][I want to add support for ~pdf-tools~ on =My Fav OS=. How do I do that?]] to learn how to add your favorite Operating System to this list.
 
 Similarly, package-managers are not officially supported, but ~pdf-tools~ is known to be available on some of them. See the section on [[id:fb5cef15-fed4-4dec-a443-52f7c00c7831][Installing the ~epdfinfo~ server from package managers]] to avoid manual installation of server / server prerequisites.
+
+Pre-requisites:
+- make: if this is not already installed, run ~./server/autobuild~ instead of ~make -s~
+- [[https://github.com/cask/cask][cask]]: if this is not already installed, follow the install instructions from the cask github
 
 Installation Instructions for ~epdfinfo~:
 #+begin_src sh
   $ git clone https://github.com/vedang/pdf-tools
-  $ cd /path/to/pdf-tools
-  $ make -s # If you don't have make installed, run ./server/autobuild and it will install make
+  $ cd pdf-tools
+  $ make -s
 #+end_src
 
 This should give you no error and should compile the ~epdfinfo~ server. If you face a problem, please report on the issue tracker!
