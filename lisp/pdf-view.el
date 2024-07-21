@@ -748,9 +748,7 @@ windows."
         (run-hooks 'pdf-view-change-page-hook))
       (when (window-live-p window)
         (image-set-window-vscroll 0)
-        (if pdf-view-roll-minor-mode
-            (pdf-roll-pre-redisplay window)
-          (pdf-view-redisplay window)))
+        (pdf-view-redisplay window))
       (when changing-p
         (pdf-view-deactivate-region)
         (force-mode-line-update)
