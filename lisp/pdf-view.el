@@ -1168,10 +1168,8 @@ image.  These values may be different, if slicing is used.
 
 If PAGE is non-nil return its size instead of current page."
   (let ((display-prop (if pdf-view-roll-minor-mode
-                          (progn (setq window (if (windowp window) window (selected-window)))
-                                 (setq page (or page (pdf-view-current-page window)))
-                                 (unless (memq page (image-mode-window-get 'displayed-pages window))
-                                   (pdf-view-display-page page window))
+                          (progn (setq window (or window (selected-window)))
+                                 (pdf-roll-pre-redisplay window)
                                  (overlay-get (pdf-roll-page-overlay page window) 'display))
                         (image-get-display-property))))
     (if (eq (car display-prop) 'image)
