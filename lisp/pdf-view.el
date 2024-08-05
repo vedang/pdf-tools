@@ -1168,9 +1168,7 @@ image.  These values may be different, if slicing is used.
 
 If PAGE is non-nil return its size instead of current page."
   (let ((display-prop (if pdf-view-roll-minor-mode
-                          (progn (setq window (or window (selected-window)))
-                                 (pdf-roll-pre-redisplay window)
-                                 (overlay-get (pdf-roll-page-overlay page window) 'display))
+                          (overlay-get (pdf-roll-page-overlay page window) 'display)
                         (image-get-display-property))))
     (if (eq (car display-prop) 'image)
         (image-size display-prop t)
@@ -1261,7 +1259,9 @@ If WINDOW is t, redisplay pages in all windows."
 
 (defun pdf-view-redisplay (&optional window)
   (if pdf-view-roll-minor-mode
-      (pdf-roll-redisplay window)
+      (let ((window (if (windowp window) window (selected-window))))
+       (pdf-roll-redisplay window)
+       (pdf-roll-pre-redisplay window))
     (pdf-view--redisplay window)))
 
 (defun pdf-view-redisplay-pages (&rest pages)

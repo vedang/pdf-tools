@@ -64,7 +64,7 @@
 (defun pdf-roll-page-overlay (&optional page window)
   "Return overlay displaying PAGE in WINDOW."
   (pdf-roll--pos-overlay
-   (pdf-roll-page-to-pos (or page (pdf-roll-page-at-current-pos)))
+   (pdf-roll-page-to-pos (or page (pdf-view-current-page)))
    (or window (selected-window))))
 
 (defun pdf-roll-page-at-current-pos ()
