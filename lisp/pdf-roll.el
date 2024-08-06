@@ -188,10 +188,12 @@ overlays."
 
 (defun pdf-roll-redisplay (&optional window)
   "Analogue of `pdf-view-redisplay' for WINDOW."
-  (setq window (if (windowp window) window (selected-window)))
-  (when (pdf-roll-page-overlay 1 window)
-    (setf (alist-get window pdf-roll--state) nil)
-    (force-window-update window)))
+  (let ((window (or window (selected-window))))
+    (dolist (window (if (windowp window)
+                        `(,window)
+                      (get-buffer-window-list nil nil t)))
+      (setf (alist-get window pdf-roll--state) nil)
+      (pdf-roll-pre-redisplay window))))
 
 (defun pdf-roll-pre-redisplay (win)
   "Handle modifications to the state in window WIN.

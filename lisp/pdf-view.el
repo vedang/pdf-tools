@@ -1259,9 +1259,7 @@ If WINDOW is t, redisplay pages in all windows."
 
 (defun pdf-view-redisplay (&optional window)
   (if pdf-view-roll-minor-mode
-      (let ((window (if (windowp window) window (selected-window))))
-       (pdf-roll-redisplay window)
-       (pdf-roll-pre-redisplay window))
+      (pdf-roll-redisplay window)
     (pdf-view--redisplay window)))
 
 (defun pdf-view-redisplay-pages (&rest pages)
