@@ -26,11 +26,13 @@
 (require 'pdf-info)
 (require 'pdf-cache)
 (require 'pdf-misc)
+(require 'pdf-util)
 (require 'facemenu) ;; list-colors-duplicates
 (require 'faces) ;; color-values
 (require 'org)   ;; org-create-formula-image
 (require 'tablist)
 (require 'cl-lib)
+(require 'seq)
 
 
 ;; * ================================================================== *
@@ -1098,7 +1100,7 @@ Adjust X and Y accordingly, if the position would render the
 annotation off-page.
 
 Merge ICON as a icon property with PROPERTY-ALIST and
-`pdf-annot-default-text-annotation-properties' and apply the
+`pdf-annot-default-annotation-properties' and apply the
 result to the created annotation.
 
 See also `pdf-annot-add-annotation'.
@@ -1135,7 +1137,6 @@ Return the new annotation."
        (pdf-annot-merge-alists
         (and icon `((icon . ,icon)))
         property-alist
-        pdf-annot-default-text-annotation-properties
         (cdr (assq 'text pdf-annot-default-annotation-properties))
         (cdr (assq t pdf-annot-default-annotation-properties))
         `((color . ,(car pdf-annot-color-history))))))))
@@ -1165,7 +1166,7 @@ TYPE should be one of `squiggly', `underline', `strike-out' or
 `highlight'.
 
 Merge COLOR as a color property with PROPERTY-ALIST and
-`pdf-annot-default-markup-annotation-properties' and apply the
+`pdf-annot-default-annotation-properties' and apply the
 result to the created annotation.
 
 See also `pdf-annot-add-annotation'.
@@ -1185,7 +1186,6 @@ Return the new annotation."
    (pdf-annot-merge-alists
     (and color `((color . ,color)))
     property-alist
-    pdf-annot-default-markup-annotation-properties
     (cdr (assq type pdf-annot-default-annotation-properties))
     (cdr (assq t pdf-annot-default-annotation-properties))
     (when pdf-annot-color-history
@@ -1238,12 +1238,10 @@ properties. See also `pdf-annot-add-markup-annotation'."
 
 Offer `pdf-annot-color-history' as default values."
   (let* ((defaults (append
-                    (delq nil
-                          (list
-                           (cdr (assq 'color
-                                      pdf-annot-default-markup-annotation-properties))
-                           (cdr (assq 'color
-                                      pdf-annot-default-text-annotation-properties))))
+                    (seq-map #'cdr
+                             (seq-filter (lambda (x) (eq 'color (car x)))
+                                         (seq-mapcat #'cdr
+                                                     pdf-annot-default-annotation-properties)))
                     pdf-annot-color-history))
          (prompt
           (format "%s%s: "
