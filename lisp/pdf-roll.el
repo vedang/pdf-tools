@@ -24,7 +24,7 @@
 ;;; Code:
 (require 'pdf-view)
 
-(put 'pdf-roll 'display '(space :width 25 :height 1000))
+(put 'pdf-roll 'display '(space :width 25 :height 5000))
 (put 'pdf-roll 'evaporate t)
 (put 'pdf-roll-margin 'evaporate t)
 (put 'pdf-roll-margin 'cursor t)
@@ -165,7 +165,7 @@ overlays."
             (inhibit-read-only t))
         (erase-buffer)
         (setq pdf-roll--state (list t))
-        (dotimes (i (* 2 pages))
+        (dotimes (i (* 2 (+ pages 1)))
           (insert " ")
           (let ((o (make-overlay (1- (point)) (point))))
             (overlay-put o 'category (if (eq 0 (mod i 2)) 'pdf-roll 'pdf-roll-margin))
@@ -207,7 +207,7 @@ It should be added to `pre-redisplay-functions' buffer locally."
                                pixel-scroll-interpolate-up pixel-scroll-interpolate-down)))
            (page (progn (when pscrolling
                           (setf (pdf-view-current-page win)
-                                (/ (min (+ (window-start win) 5) (point-max)) 4)))
+                                (/ (min (+ (window-start win) 5) (- (point-max) 4)) 4)))
                         (pdf-view-current-page win)))
            (height (window-pixel-height win))
            (vscroll (image-mode-window-get 'vscroll win))
@@ -217,7 +217,7 @@ It should be added to `pre-redisplay-functions' buffer locally."
            (vscroll-changed (not (eq vscroll (nth 3 state))))
            (start (pdf-roll-page-to-pos page)))
       (if (and pscrolling
-               (or (not (eq start (- (point-max) 3)))
+               (or (not (eq start (- (point-max) 7)))
                    (let ((visible-pixels (nth 4 (pos-visible-in-window-p start win t))))
                      (and visible-pixels (> visible-pixels (/ (window-text-height win t) 2))))
                    (prog1 nil (message "End of buffer"))))
@@ -285,7 +285,7 @@ If PIXELS is non-nil N is number of pixels instead of lines."
                                          (data (line-pixel-height))
                                          (t (pdf-roll-display-page
                                              (pdf-roll-page-at-current-pos) window)))))
-             (if (eq (point) (- (point-max) 3))
+             (if (eq (point) (- (point-max) 7))
                  (prog1 nil
                    (setq n (min n (max 0 (- occupied-pixels (/ (window-text-height window t) 2)))))
                    (message "End of buffer"))
