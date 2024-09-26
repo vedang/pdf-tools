@@ -1874,13 +1874,16 @@ See also `pdf-view-bookmark-make-record'."
                 (when-let ((size (bookmark-prop-get
                                   pdf-view--bookmark-to-restore 'size)))
                   (setq-local pdf-view-display-size size))
-                (when-let ((slice (bookmark-prop-get
-                                   pdf-view--bookmark-to-restore 'slice)))
-                  (apply 'pdf-view-set-slice slice))
                 (when-let ((page (bookmark-prop-get
                                   pdf-view--bookmark-to-restore 'page))
                            ((numberp page)))
-                  (pdf-view-goto-page page win))
+                  (pdf-view-goto-page page win)
+                  (when-let ((slice (bookmark-prop-get
+                                     pdf-view--bookmark-to-restore 'slice)))
+                    (apply 'pdf-view-set-slice
+                           (if (functionp slice)
+                               (funcall slice page)
+                             slice))))
                 (when-let ((origin (bookmark-prop-get
                                     pdf-view--bookmark-to-restore 'origin))
                            (size (pdf-view-image-size t win)))
