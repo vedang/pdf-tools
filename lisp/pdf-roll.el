@@ -216,10 +216,18 @@ It should be added to `pre-redisplay-functions' buffer locally."
            (page-changed (not (eq page (nth 0 state))))
            (vscroll-changed (not (eq vscroll (nth 3 state))))
            (start (pdf-roll-page-to-pos page)))
+      ;; When using pixel scroll precision mode we accept its values for vscroll and hscroll.
       (if (and pscrolling
+               ;; Except on the last page.
                (or (not (eq start (- (point-max) 7)))
+                   ;; Where we try to keep at least half the window occupied by pdf pages.
+                   ;; So we stop scrolling if it blanks too large a part of the window.
                    (let ((visible-pixels (nth 4 (pos-visible-in-window-p start win t))))
-                     (and visible-pixels (> visible-pixels (/ (window-text-height win t) 2))))
+                     (and visible-pixels
+                          (or (> visible-pixels (/ (window-text-height win t) 2))
+                              ;; However if vscroll has been set by other means
+                              ;; scrolling should be able to descrease it.
+                              (> vscroll (window-vscroll win t)))))
                    (prog1 nil (message "End of buffer"))))
           (progn (image-mode-window-put 'vscroll (window-vscroll win t) win)
                  (image-mode-window-put 'hscroll (window-hscroll win)) win)
