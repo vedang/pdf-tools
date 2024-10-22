@@ -8415,7 +8415,8 @@ static int _synctex_updater_print(synctex_updater_p updater, const char * format
     }
     return result;
 }
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#if defined(_WIN32)
+// define vasprintf as it’s available only on Linux and macOS.
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -8424,17 +8425,14 @@ static int vasprintf(char **ret,
                      const char *format,
                      va_list ap)
 {
-    int len;
-    len = _vsnprintf(NULL, 0, format, ap);
+    int len = vsnprintf(NULL, 0, format, ap);
     if (len < 0) return -1;
     *ret = malloc(len + 1);
     if (!*ret) return -1;
-    _vsnprintf(*ret, len+1, format, ap);
-    (*ret)[len] = '\0';
-    return len;
+    return vsnprintf(*ret, len + 1, format, ap);
 }
 
-#endif
+#endif // _WIN32
 
 /**
  *  gzvprintf is not available until OSX 10.10
