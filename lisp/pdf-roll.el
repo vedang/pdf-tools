@@ -184,7 +184,8 @@ overlays."
       (cl-callf2 cl-delete-if-not #'window-live-p pdf-roll--state :key #'car-safe)))
   ;; initial `pdf-roll-redisplay' needs to know which page(s) to display
   (cl-callf or (pdf-view-current-page win) 1)
-  (cl-callf or (image-mode-window-get 'vscroll win) 0))
+  (cl-callf or (image-mode-window-get 'vscroll win) 0)
+  (pdf-view--restore-origin))
 
 (defun pdf-roll-redisplay (&optional window)
   "Analogue of `pdf-view-redisplay' for WINDOW."
@@ -348,13 +349,10 @@ If PIXELS is non-nil N is number of pixels instead of lines."
 
 ;;; Minor mode
 (defun pdf-roll-initialize (&rest _args)
-  "Fun to initialize `pdf-view-roll-minor-mode'.
+  "Function to initialize `pdf-view-roll-minor-mode'.
 It is also added to `revert-buffer-function'."
-  (let ((inhibit-read-only t))
-    (erase-buffer)
-    (remove-overlays))
-  (image-mode-window-put 'displayed-pages nil)
-  (pdf-roll-new-window-function))
+  (remove-overlays)
+  (image-mode-window-put 'displayed-pages nil))
 
 ;;;###autoload
 (define-minor-mode pdf-view-roll-minor-mode

@@ -493,6 +493,9 @@ PNG images in Emacs buffers."
             'pdf-view-new-window-function nil t)
   (image-mode-setup-winprops)
 
+  ;; Restore the origin from bookmakrs.
+  (add-hook 'bookmark-after-jump-hook #'pdf-view--restore-origin nil t)
+
   ;; Issue a warning in the future about incompatible modes.
   (run-with-timer 1 nil (lambda (buffer)
                           (when (buffer-live-p buffer)
@@ -1326,7 +1329,8 @@ If WINDOW is t, redisplay pages in all windows."
       ;; happens when the buffer is displayed for the first time.
       (with-selected-window (car winprops)
         (pdf-view-goto-page
-         (or (image-mode-window-get 'page t) 1))))))
+         (or (image-mode-window-get 'page t) 1))))
+    (pdf-view--restore-origin)))
 
 (defun pdf-view-desired-image-size (&optional page window)
   ;; TODO: write documentation!
@@ -1819,34 +1823,50 @@ the selection styles."
 ;; * Bookmark + Register Integration
 ;; * ================================================================== *
 
-(defvar pdf-view--bookmark-to-restore nil
-  "Used to hold a bookmark that is still to be restored.")
 (defun pdf-view-bookmark-make-record  (&optional no-page no-slice no-size no-origin)
   ;; TODO: add NO-PAGE, NO-SLICE, NO-SIZE, NO-ORIGIN to the docstring.
   "Create a bookmark PDF record.
 
 The optional, boolean args exclude certain attributes."
-  (or pdf-view--bookmark-to-restore
-      (let ((win (car (cl-find-if #'window-live-p image-mode-winprops-alist
-                                  :key #'car-safe))))
-        (cons (buffer-name)
-              (append (bookmark-make-record-default
-                       nil t (if pdf-view-roll-minor-mode (point) 1))
-                      `(,(unless no-page
-                           (cons 'page (pdf-view-current-page win)))
-                        ,(unless no-slice
-                           (cons 'slice (and win (pdf-view-current-slice win))))
-                        ,(unless no-size
-                           (cons 'size pdf-view-display-size))
-                        ,(unless no-origin
-                           (cons 'origin
-                                 (and win
-                                      (let* ((edges (pdf-util-image-displayed-edges
-                                                     win (eq (window-buffer win) (current-buffer)))))
-                                        (pdf-util-scale-pixel-to-relative
-                                         (cons (car edges) (cadr edges)) nil
-                                         (eq (current-buffer) (window-buffer)) win)))))
-                        (handler . pdf-view-bookmark-jump-handler)))))))
+  (let ((win (or (car (cl-find-if #'windowp image-mode-winprops-alist
+                                  :key #'car-safe))
+                 t)))
+    (cons (buffer-name)
+          (append (bookmark-make-record-default
+                   nil t (if pdf-view-roll-minor-mode (point) 1))
+                  `(,(unless no-page
+                       (cons 'page (pdf-view-current-page win)))
+                    ,(unless no-slice
+                       (cons 'slice (and win (pdf-view-current-slice win))))
+                    ,(unless no-size
+                       (cons 'size pdf-view-display-size))
+                    ,(unless no-origin
+                       (cons 'origin
+                             (if-let ((origin (image-mode-window-get 'origin t)))
+                                 (image-mode-window-get 'origin t)
+                               (let ((size (pdf-view-image-size t win)))
+                                 `( ,(/ (or (image-mode-window-get 'hscroll win) 0)
+                                        (float (car size)))
+                                    . ,(/ (or (image-mode-window-get 'vscroll win) 0)
+                                          (float (cdr size))))))))
+                    (handler . pdf-view-bookmark-jump-handler))))))
+
+(defun pdf-view--restore-origin ()
+  "Restore the `origin' obtained from a bookmark."
+  (when-let ((origin (image-mode-window-get 'origin t))
+             ((eq (window-buffer (selected-window)) (current-buffer)))
+             (size (pdf-view-desired-image-size)))
+    (dolist (winprops image-mode-winprops-alist)
+      (setf (alist-get 'origin (cdr winprops) nil t) nil))
+    (image-set-window-hscroll
+     (round (/ (* (car origin) (car size))
+               (frame-char-width))))
+    (image-set-window-vscroll
+     (round (/ (* (cdr origin) (cdr size))
+               (if pdf-view-have-image-mode-pixel-vscroll
+                   1
+                 (frame-char-height)))))
+    (pdf-view-redisplay)))
 
 ;;;###autoload
 (defun pdf-view-bookmark-jump-handler (bmk)
@@ -1855,66 +1875,26 @@ The optional, boolean args exclude certain attributes."
 See also `pdf-view-bookmark-make-record'."
   (let* ((file (bookmark-prop-get bmk 'filename))
          (buf (or (find-buffer-visiting file)
-                  (find-file-noselect file)))
-         (buf-chg-fns-p (boundp 'window-buffer-change-functions))
-         (hook (if (and buf-chg-fns-p (not (get-buffer-window buf)))
-                   'window-buffer-change-functions
-                 'bookmark-after-jump-hook))
-         (show-fn-sym (make-symbol "pdf-show-buffer-function")))
-    (fset show-fn-sym
-          (lambda (&optional win)
-            (when (eq buf (current-buffer))
-              (with-selected-window
-                  (or win
-                      (get-buffer-window buf 0)
-                      (selected-window))
-                (remove-hook hook show-fn-sym buf-chg-fns-p)
-                (unless (derived-mode-p 'pdf-view-mode)
-                  (pdf-view-mode))
-                (when-let ((size (bookmark-prop-get
-                                  pdf-view--bookmark-to-restore 'size)))
-                  (setq-local pdf-view-display-size size))
-                (when-let ((page (bookmark-prop-get
-                                  pdf-view--bookmark-to-restore 'page))
-                           ((numberp page)))
-                  (pdf-view-goto-page page win)
-                  (when-let ((slice (bookmark-prop-get
-                                     pdf-view--bookmark-to-restore 'slice)))
-                    (apply 'pdf-view-set-slice
-                           (if (functionp slice)
-                               (funcall slice page)
-                             slice))))
-                (when-let ((origin (bookmark-prop-get
-                                    pdf-view--bookmark-to-restore 'origin))
-                           (size (pdf-view-image-size t win)))
-                  (image-set-window-hscroll
-                   (round (/ (* (car origin) (car size))
-                             (frame-char-width))))
-                  (image-set-window-vscroll
-                   (round (/ (* (cdr origin) (cdr size))
-                             (if pdf-view-have-image-mode-pixel-vscroll
-                                 1
-                               (frame-char-height))))))
-                (setq-local pdf-view--bookmark-to-restore nil)))))
+                  (find-file-noselect file))))
     (set-buffer buf)
-    (setq-local pdf-view--bookmark-to-restore bmk)
-    (add-hook hook show-fn-sym nil buf-chg-fns-p)))
+    (unless (derived-mode-p 'pdf-view-mode)
+      (pdf-view-mode))
+    (when-let ((size (bookmark-prop-get bmk 'size)))
+      (setq-local pdf-view-display-size size))
+    (when-let ((page (bookmark-prop-get bmk 'page))
+               ((numberp page)))
+      (setf (pdf-view-current-page) page))
+    (when-let ((slice (bookmark-prop-get bmk 'slice)))
+      (setf (pdf-view-current-slice) slice))
+    (when-let (origin (bookmark-prop-get bmk 'origin))
+      (image-mode-window-put 'origin origin) t)))
 
 (defun pdf-view-bookmark-jump (bmk)
   "Switch to bookmark BMK.
 
-This function is like `bookmark-jump', but it always uses the
-selected window for display and does not run any hooks.  Also, it
-works only with bookmarks created by
-`pdf-view-bookmark-make-record'."
+This function `bookmark-jump' with `switch-to-buffer' as DISPLAY-FUNC."
+  (bookmark-jump bmk #'switch-to-buffer))
 
-  (let* ((file (bookmark-prop-get bmk 'filename))
-         (buffer (or (find-buffer-visiting file)
-                     (find-file-noselect file))))
-    (switch-to-buffer buffer)
-    (let (bookmark-after-jump-hook)
-      (pdf-view-bookmark-jump-handler bmk)
-      (run-hooks 'bookmark-after-jump-hook))))
 
 ;; Register support using cl-defstruct (replaces obsolete registerv-make)
 (cl-defstruct (pdf-view-register
