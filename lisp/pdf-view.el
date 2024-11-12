@@ -1831,25 +1831,25 @@ The optional, boolean args exclude certain attributes."
   (let ((win (or (car (cl-find-if #'windowp image-mode-winprops-alist
                                   :key #'car-safe))
                  t)))
-    (cons (buffer-name)
-          (append (bookmark-make-record-default
-                   nil t (if pdf-view-roll-minor-mode (point) 1))
-                  `(,(unless no-page
-                       (cons 'page (pdf-view-current-page win)))
-                    ,(unless no-slice
-                       (cons 'slice (and win (pdf-view-current-slice win))))
-                    ,(unless no-size
-                       (cons 'size pdf-view-display-size))
-                    ,(unless no-origin
-                       (cons 'origin
-                             (if-let ((origin (image-mode-window-get 'origin t)))
-                                 (image-mode-window-get 'origin t)
-                               (let ((size (pdf-view-image-size t win)))
-                                 `( ,(/ (or (image-mode-window-get 'hscroll win) 0)
-                                        (float (car size)))
-                                    . ,(/ (or (image-mode-window-get 'vscroll win) 0)
-                                          (float (cdr size))))))))
-                    (handler . pdf-view-bookmark-jump-handler))))))
+    `(,(buffer-name)
+      ,@(bookmark-make-record-default
+         nil t (if pdf-view-roll-minor-mode (point) 1))
+      (handler . pdf-view-bookmark-jump-handler)
+      (,@(unless no-page
+          (cons 'page (pdf-view-current-page win))))
+      (,@(unless no-slice
+         (cons 'slice (and win (pdf-view-current-slice win)))))
+      (,@(unless no-size
+          (cons 'size pdf-view-display-size)))
+      (,@(unless no-origin
+          (cons 'origin
+                (if-let ((origin (image-mode-window-get 'origin t)))
+                    (image-mode-window-get 'origin t)
+                  (let ((size (pdf-view-image-size t win)))
+                    `(,(/ (or (image-mode-window-get 'hscroll win) 0)
+                          (float (car size)))
+                      . ,(/ (or (image-mode-window-get 'vscroll win) 0)
+                            (float (cdr size))))))))))))
 
 (defun pdf-view--restore-origin ()
   "Restore the `origin' obtained from a bookmark."
