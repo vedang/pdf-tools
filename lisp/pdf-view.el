@@ -1329,8 +1329,8 @@ If WINDOW is t, redisplay pages in all windows."
       ;; happens when the buffer is displayed for the first time.
       (with-selected-window (car winprops)
         (pdf-view-goto-page
-         (or (image-mode-window-get 'page t) 1))))
-    (pdf-view--restore-origin)))
+         (or (image-mode-window-get 'page t) 1))
+        (pdf-view--restore-origin)))))
 
 (defun pdf-view-desired-image-size (&optional page window)
   ;; TODO: write documentation!
@@ -1865,8 +1865,7 @@ The optional, boolean args exclude certain attributes."
      (round (/ (* (cdr origin) (cdr size))
                (if pdf-view-have-image-mode-pixel-vscroll
                    1
-                 (frame-char-height)))))
-    (pdf-view-redisplay)))
+                 (frame-char-height)))))))
 
 ;;;###autoload
 (defun pdf-view-bookmark-jump-handler (bmk)
