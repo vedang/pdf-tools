@@ -1015,8 +1015,11 @@ Returns a list (X Y WIDTH HEIGHT)."
   (let* ((margin (max 0 (or pdf-view-bounding-box-margin 0)))
          (halfmargin (/ margin 2)))
     (cl-destructuring-bind (left top right bottom) bb
-      (list (- left halfmargin) (- top halfmargin)
-            (+ (- right left) margin) (+ (- bottom top) margin)))))
+      (setq left (max 0 (- left halfmargin)))
+      (setq top (max 0 (- top halfmargin)))
+      (list left top
+            (min 1 (+ (- right left) halfmargin))
+            (min 1 (+ (- bottom top) halfmargin))))))
 
 (defun pdf-view-page-slice-from-bounding-box (page)
   "Return the slice for PAGE using its bounding box.

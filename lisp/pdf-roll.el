@@ -86,9 +86,7 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'. IMAGE
 should be for PAGE."
   (if-let ((slice (pdf-view-get-slice window page))
            ((not inhibit-slice-p)))
-      (list (cons 'slice
-                  (pdf-util-scale slice (image-size image t) 'round))
-            image)
+      `((slice . ,(pdf-util-scale slice (image-size image t) 'round)) ,image)
     image))
 
 (defun pdf-roll-display-image (image page &optional window inhibit-slice-p)
