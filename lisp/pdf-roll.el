@@ -246,7 +246,7 @@ It should be added to `pre-redisplay-functions' buffer locally."
           (pdf-roll-undisplay-pages (cl-set-difference old new) win)
           (image-mode-window-put 'displayed-pages new win))
         (setf (alist-get win pdf-roll--state)
-              `(,page ,height ,(window-pixel-width win) ,vscroll ,(point)))
+              `(,page ,height ,(window-pixel-width win) ,vscroll ,(window-point win)))
         (when page-changed (run-hooks 'pdf-view-after-change-page-hook))))))
 
 ;;; Page navigation commands
