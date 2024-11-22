@@ -343,6 +343,21 @@ If PIXELS is non-nil N is number of pixels instead of lines."
       (* next-screen-context-lines (frame-char-height)))
    nil t))
 
+(defun pdf-roll-scroll-to-end-of-page ()
+  "Scroll forward till the end of last displayed page is visible."
+  (interactive)
+  (let* ((this (pdf-roll-page-to-pos (pdf-view-current-page)))
+         (posinfo (pos-visible-in-window-p this nil t))
+         (rbot (nth 3 posinfo)))
+    (if (and (eq this (- (point-max) 7))
+             (or (not rbot) (eq rbot 0)))
+        (pdf-roll-scroll-backward
+         (- (window-text-height nil t) (nth 4 posinfo)) nil t)
+      (while (when-let ((next (pos-visible-in-window-p
+                               (setq this (+ this 4)) nil t)))
+               (setq rbot (nth 3 next)))))
+    (when rbot (pdf-roll-scroll-forward rbot nil t))))
+
 ;;; Minor mode
 (defun pdf-roll-initialize (&rest _args)
   "Function to initialize `pdf-view-roll-minor-mode'.
