@@ -288,22 +288,21 @@ If PIXELS is non-nil N is number of pixels instead of lines."
   (setq n (* (or n 1) (if pixels 1 (frame-char-height))))
   (setq window (or window (selected-window)))
   (when (> 0 n) (pdf-roll-scroll-backward (- n) window))
-  (let ((pos (goto-char (window-start window))))
-    (while (let* ((data (pos-visible-in-window-p (point) window t))
-                  (occupied-pixels (cond ((nth 2 data) (nth 4 data))
-                                         (data (line-pixel-height))
-                                         (t (pdf-roll-display-page
-                                             (pdf-roll-page-at-current-pos) window)))))
-             (if (eq (point) (- (point-max) 7))
+  (cl-callf + n (window-vscroll window t))
+  (goto-char (window-start window))
+  (while (let ((occupied-pixels (pdf-roll-display-page
+                                 (pdf-roll-page-at-current-pos) window)))
+           (if (eq (point) (- (point-max) 7))
+               (let ((m (- occupied-pixels (/ (window-text-height window t) 2))))
                  (prog1 nil
-                   (setq n (min n (max 0 (- occupied-pixels (/ (window-text-height window t) 2)))))
-                   (message "End of buffer"))
-               (when (>= n occupied-pixels)
-                 (cl-decf n occupied-pixels))))
-      (forward-char 4))
-    (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos))
-    (pdf-roll-set-vscroll (+ (if (eq pos (point)) (window-vscroll window t) 0) n)
-                          window)))
+                   (when (<= m n)
+                     (message "End of buffer"))
+                   (setq n (min n (max 0 m)))))
+             (when (>= n occupied-pixels)
+               (cl-decf n occupied-pixels))))
+    (forward-char 4))
+  (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos))
+  (pdf-roll-set-vscroll n window))
 
 (defun pdf-roll-scroll-backward (&optional n window pixels)
   "Scroll image N lines backwards in WINDOW.
@@ -315,36 +314,33 @@ If PIXELS is non-nil N is number of pixels instead of lines."
   (setq n (* (or n 1) (if pixels 1 (frame-char-height))))
   (setq window (or window (selected-window)))
   (when (> 0 n) (pdf-roll-scroll-backward (- n) window))
+  (cl-callf + n (- (cdr (pdf-view-image-size t window))
+                   (window-vscroll nil t)))
   (goto-char (window-start window))
-  (let* ((data (pos-visible-in-window-p (point) window t))
-         (pixels-top (if (nth 2 data) (nth 2 data) 0)))
-    (if (< n pixels-top)
-        (pdf-roll-set-vscroll (- (window-vscroll window t) n)
-                                window)
-      (cl-decf n pixels-top)
-      (while (and (if (bobp)
-                      (prog1 nil (message "Beginning of buffer."))
-                    t)
-                  (progn (forward-char -4)
-                         (pdf-roll-display-page
-                          (pdf-roll-page-at-current-pos) window)
-                         (cl-decf n (line-pixel-height)))
-                  (> n 0)))
-      (pdf-roll-set-vscroll (- n) window)))
-  (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos)))
+  (while (and (progn (cl-decf n (pdf-roll-display-page
+                                 (pdf-roll-page-at-current-pos) window))
+                     (> n 0))
+              (if (bobp)
+                  (prog1 nil (message "Beginning of buffer"))
+                t))
+    (forward-char -4))
+  (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos))
+  (pdf-roll-set-vscroll (max 0 (- n)) window))
 
 (defun pdf-roll-scroll-screen-forward (&optional arg)
   "Scroll forward by (almost) ARG many full screens."
   (interactive "p")
   (pdf-roll-scroll-forward
-   (- (* (window-text-height nil t) arg) (* next-screen-context-lines (frame-char-height)))
+   (- (* (window-text-height nil t) arg)
+      (* next-screen-context-lines (frame-char-height)))
    nil t))
 
 (defun pdf-roll-scroll-screen-backward (&optional arg)
   "Scroll backward by (almost) ARG many full screens."
   (interactive "p")
   (pdf-roll-scroll-backward
-   (- (* (window-text-height nil t) arg) (* next-screen-context-lines (frame-char-height)))
+   (- (* (window-text-height nil t) arg)
+      (* next-screen-context-lines (frame-char-height)))
    nil t))
 
 ;;; Minor mode
