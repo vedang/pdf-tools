@@ -285,24 +285,26 @@ scroll backward instead. With a prefix arg N is its numeric value.
 
 If PIXELS is non-nil N is number of pixels instead of lines."
   (interactive (list (prefix-numeric-value current-prefix-arg)))
-  (setq n (* (or n 1) (if pixels 1 (frame-char-height))))
-  (setq window (or window (selected-window)))
-  (when (> 0 n) (pdf-roll-scroll-backward (- n) window))
-  (cl-callf + n (window-vscroll window t))
-  (goto-char (window-start window))
-  (while (let ((occupied-pixels (pdf-roll-display-page
-                                 (pdf-roll-page-at-current-pos) window)))
-           (if (eq (point) (- (point-max) 7))
-               (let ((m (- occupied-pixels (/ (window-text-height window t) 2))))
-                 (prog1 nil
-                   (when (<= m n)
-                     (message "End of buffer"))
-                   (setq n (min n (max 0 m)))))
-             (when (>= n occupied-pixels)
-               (cl-decf n occupied-pixels))))
-    (forward-char 4))
-  (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos))
-  (pdf-roll-set-vscroll n window))
+  (if (> 0 n)
+      (pdf-roll-scroll-backward (- n) window pixels)
+    (setq n (* (or n 1) (if pixels 1 (frame-char-height))))
+    (setq window (or window (selected-window)))
+    (cl-callf + n (window-vscroll window t))
+    (goto-char (window-start window))
+    (while (let ((occupied-pixels (pdf-roll-display-page
+                                   (pdf-roll-page-at-current-pos) window)))
+             (if (eq (point) (- (point-max) 7))
+                 (let ((m (- occupied-pixels
+                             (/ (window-text-height window t) 2))))
+                   (prog1 nil
+                     (when (<= m n)
+                       (message "End of buffer"))
+                     (setq n (min n (max 0 m)))))
+               (when (>= n occupied-pixels)
+                 (cl-decf n occupied-pixels))))
+      (forward-char 4))
+    (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos))
+    (pdf-roll-set-vscroll n window)))
 
 (defun pdf-roll-scroll-backward (&optional n window pixels)
   "Scroll image N lines backwards in WINDOW.
@@ -311,21 +313,22 @@ scroll forward instead. With a prefix arg N is its numeric value.
 
 If PIXELS is non-nil N is number of pixels instead of lines."
   (interactive (list (prefix-numeric-value current-prefix-arg)))
-  (setq n (* (or n 1) (if pixels 1 (frame-char-height))))
-  (setq window (or window (selected-window)))
-  (when (> 0 n) (pdf-roll-scroll-backward (- n) window))
-  (cl-callf + n (- (cdr (pdf-view-image-size t window))
-                   (window-vscroll nil t)))
-  (goto-char (window-start window))
-  (while (and (progn (cl-decf n (pdf-roll-display-page
-                                 (pdf-roll-page-at-current-pos) window))
-                     (> n 0))
-              (if (bobp)
-                  (prog1 nil (message "Beginning of buffer"))
-                t))
-    (forward-char -4))
-  (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos))
-  (pdf-roll-set-vscroll (max 0 (- n)) window))
+  (if (> 0 n)
+      (pdf-roll-scroll-forward (- n) window pixels)
+    (setq n (* (or n 1) (if pixels 1 (frame-char-height))))
+    (setq window (or window (selected-window)))
+    (cl-callf + n (- (cdr (pdf-view-image-size t window))
+                     (window-vscroll nil t)))
+    (goto-char (window-start window))
+    (while (and (progn (cl-decf n (pdf-roll-display-page
+                                   (pdf-roll-page-at-current-pos) window))
+                       (> n 0))
+                (if (bobp)
+                    (prog1 nil (message "Beginning of buffer"))
+                  t))
+      (forward-char -4))
+    (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos))
+    (pdf-roll-set-vscroll (max 0 (- n)) window)))
 
 (defun pdf-roll-scroll-screen-forward (&optional arg)
   "Scroll forward by (almost) ARG many full screens."
