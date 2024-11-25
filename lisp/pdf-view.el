@@ -39,11 +39,8 @@
 
 (declare-function pdf-roll-scroll-forward "pdf-roll")
 (declare-function pdf-roll-scroll-backward "pdf-roll")
-(declare-function pdf-roll-next-page "pdf-roll")
 (declare-function pdf-roll-redisplay "pdf-roll")
-(declare-function pdf-roll-pre-redisplay "pdf-roll")
 (declare-function pdf-roll-page-overlay "pdf-roll")
-(declare-function pdf-roll-page-at-current-pos "pdf-roll")
 (declare-function pdf-roll-display-image "pdf-roll")
 
 (defvar pdf-view-roll-minor-mode nil)
@@ -294,6 +291,7 @@ regarding display of the region in the later function.")
   "Local, dedicated register for PDF positions.")
 
 (defun pdf-view-current-pagelabel (&optional window)
+  "Return label of the current page displayed in WINDOW."
   (nth (1- (pdf-view-current-page window)) (pdf-info-pagelabels)))
 
 (defun pdf-view-active-region-p nil
@@ -1184,7 +1182,7 @@ If PAGE is non-nil return its size instead of current page."
 
 (defun pdf-view-image-offset (&optional window page)
   ;; TODO: add WINDOW to docstring.
-  "Return the offset of the image for page.
+  "Return the offset of the top-left corner of image for PAGE in WINDOW.
 
 It is equal to \(LEFT . TOP\) of the current slice in pixel."
   (let* ((slice (pdf-view-get-slice window page)))
@@ -1336,7 +1334,8 @@ If WINDOW is t, redisplay pages in all windows."
         (pdf-view--restore-origin)))))
 
 (defun pdf-view-desired-image-size (&optional page window)
-  ;; TODO: write documentation!
+  "Compute size of PAGE appropriate for displaying it in WINDOW.
+The returned size takes `pdf-view-current-slice' into account."
   (let* ((pagesize (pdf-cache-pagesize
                     (or page (pdf-view-current-page window))))
          (slice (pdf-view-get-slice window page))
@@ -1415,7 +1414,7 @@ This tells the various modes to use their face's dark colors."
   "Apply a color-filter appropriate for past midnight reading.
 
 The colors are determined by the variable
-`pdf-view-midnight-colors', which see. "
+`pdf-view-midnight-colors', which see."
   :group 'pdf-view
   :lighter " Mid"
   (pdf-util-assert-pdf-buffer)
@@ -1576,7 +1575,7 @@ Create a rectangular region, if RECTANGLE-P is non-nil.
 Overwrite `pdf-view-selection-style' with SELECTION-STYLE,
 which is one of `glyph', `word', or `line'.
 
-Stores the region in `pdf-view-active-region'."
+Stores the region in the variable `pdf-view-active-region'."
   (interactive "@e")
   (setq pdf-view--have-rectangle-region rectangle-p)
   (unless (and (eventp event)
@@ -1744,10 +1743,10 @@ This is more useful for commands like
   ;; TODO: what is "resp."? Avoid contractions.
   "Create a PNG image of REGIONS.
 
-REGIONS should have the same form as `pdf-view-active-region',
-which see.  PAGE and SIZE are the page resp. base-size of the
-image from which the image-regions will be created; they default
-to `pdf-view-current-page' resp. `pdf-view-image-size'.
+REGIONS should have the same form as returned by function
+`pdf-view-active-region', which see. PAGE and SIZE are the page resp.
+base-size of the image from which the image-regions will be created;
+they default to `pdf-view-current-page' resp. `pdf-view-image-size'.
 
 Put the image in OUTPUT-BUFFER, defaulting to \"*PDF region
 image*\" and display it, unless NO-DISPLAY-P is non-nil.

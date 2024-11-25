@@ -361,6 +361,12 @@ If PIXELS is non-nil N is number of pixels instead of lines."
                (setq rbot (nth 3 next)))))
     (when rbot (pdf-roll-scroll-forward rbot nil t))))
 
+(defun pdf-roll-scroll-to-mouse-pos (event)
+  "Scroll to the position of mouse EVENT."
+  (interactive "e")
+  (let ((event (event-start event)))
+    (pdf-roll-scroll-forward (cdr (posn-x-y event)) (posn-window event) t)))
+
 ;;; Minor mode
 (defun pdf-roll-initialize (&rest _args)
   "Function to initialize `pdf-view-roll-minor-mode'.
