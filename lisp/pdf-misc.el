@@ -212,6 +212,9 @@
                    (lookup-key pdf-misc-menu-bar-minor-mode-map
                                [menu-bar pdf\ tools]))))))
 
+(define-derived-mode pdf-metadata-buffer-mode special-mode "PDF Metadata"
+  "View and traverse the metadata of a PDF file.")
+
 (defun pdf-misc-display-metadata ()
   "Display all available metadata in a separate buffer."
   (interactive)
@@ -219,6 +222,8 @@
   (let* ((buffer (current-buffer))
          (md (pdf-info-metadata)))
     (with-current-buffer (get-buffer-create "*PDF-Metadata*")
+      (unless (derived-mode-p 'pdf-metadata-buffer-mode)
+        (pdf-metadata-buffer-mode))
       (let* ((inhibit-read-only t)
              (pad (apply' max (mapcar (lambda (d)
                                         (length (symbol-name (car d))))
