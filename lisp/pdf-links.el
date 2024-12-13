@@ -522,11 +522,9 @@ is non-nil assume link to be at mouse position."
            (prefix (if (> win-width image-width)
                        (/ (- win-width image-width) 2)
                      0))
-           (slice (or (pdf-util-scale (pdf-view-get-slice nil .link-page)
-                                      (image-size image t) 'round)
-                      '(0 0)))
            (edges (pdf-util-scale .edges
                                   (image-size image t) 'round))
+           (image-offset (pdf-view-image-offset nil .link-page))
            (y-offset (+ (nth 1 win-edges)
                         (if (eq (pdf-view-current-page) .link-page)
                             (- (window-vscroll nil t))
@@ -538,11 +536,11 @@ is non-nil assume link to be at mouse position."
                           (+ (nth 1 (pos-visible-in-window-p
                                      (- (* 4 .link-page) 5) nil t))
                              (line-pixel-height)))
-                        (nth 1 slice)))
+                        (- (round (cdr image-offset)))))
            (x-offset (+ (nth 0 win-edges)
                         (- (* (frame-char-height) (window-hscroll)))
                         prefix
-                        (nth 0 slice))))
+                        (- (round (car image-offset))))))
       (list (+ (nth 0 edges) x-offset)
             (+ (nth 1 edges) y-offset)
             (+ (nth 2 edges) x-offset)
