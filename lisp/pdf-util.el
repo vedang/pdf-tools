@@ -394,6 +394,7 @@ pixels. This is because of a change that occurred to `image-mode' in 27."
   (pdf-util-assert-pdf-window)
   (if pdf-view-roll-minor-mode
       (max 0 (- (nth 1 edges)
+                (cdr (pdf-view-image-offset))
                 (or context-pixel
                     (* next-screen-context-lines (frame-char-height)))))
     (let* ((win (window-inside-pixel-edges))
