@@ -150,39 +150,21 @@ Replaces the display property of the overlay holding a page with a space."
 ;;; State Management
 (defun pdf-roll-new-window-function (&optional win)
   "Setup image roll in a new window WIN.
-If the buffer is newly created, then it does not contain any
-overlay and this function erases the buffer contents, after which
-it inserts empty spaces that each hold a overlay. If the buffer
-already has overlays (i.e. a second or subsequent window is
-created), the function simply copies the overlays and adds the
-new window as window overlay-property to each overlay.
+It makes overlays to hold pages and sets WIN as window property to each overlay.
 
 This function should be added to pdf-roll (continuous scroll)
 minor mode commands, after erasing the buffer to create the
 overlays."
   (setq win (or (and (windowp win) win) (selected-window)))
-  (if (not (overlays-at 1))
-      (let ((pages (pdf-cache-number-of-pages))
-            (inhibit-read-only t))
-        (erase-buffer)
-        (setq pdf-roll--state (list t))
-        (dotimes (i (* 2 (+ pages 1)))
-          (insert " ")
-          (let ((o (make-overlay (1- (point)) (point))))
-            (overlay-put o 'category (if (eq 0 (mod i 2)) 'pdf-roll 'pdf-roll-margin))
-            (overlay-put o 'window win))
-          (insert "\n"))
-        (delete-char -1)
-        (set-buffer-modified-p nil))
-    (unless (pdf-roll-page-overlay 1 win)
-      (dotimes (i (/ (point-max) 2))
-        (overlay-put (copy-overlay (car (overlays-at (1+ (* 2 i)))))
-                     'window win))
-      (dolist (win-st pdf-roll--state)
-        (when-let ((win-old (car-safe win-st))
-                   ((not (window-live-p win-old))))
-          (remove-overlays (point-min) (point-max) 'window win-old)))
-      (cl-callf2 cl-delete-if-not #'window-live-p pdf-roll--state :key #'car-safe)))
+  (unless (pdf-roll-page-overlay 1 win)
+    (dotimes (i (* 2 (+ (pdf-cache-number-of-pages) 1)))
+      (let ((o (make-overlay (+ 1 (* 2 i)) (+ 2 (* 2 i)))))
+        (overlay-put o 'category (if (eq 0 (mod i 2)) 'pdf-roll 'pdf-roll-margin))
+        (overlay-put o 'window win)))
+    (dolist (win-st pdf-roll--state)
+      (when-let ((win-old (car-safe win-st))
+                 ((not (window-live-p win-old))))
+        (remove-overlays (point-min) (point-max) 'window win-old))))
   ;; initial `pdf-roll-redisplay' needs to know which page(s) to display
   (cl-callf or (pdf-view-current-page win) 1)
   (cl-callf or (image-mode-window-get 'vscroll win) 0)
@@ -370,9 +352,19 @@ If PIXELS is non-nil N is number of pixels instead of lines."
 ;;; Minor mode
 (defun pdf-roll-initialize (&rest _args)
   "Function to initialize `pdf-view-roll-minor-mode'.
-It is also added to `revert-buffer-function'."
+It is also added to `revert-buffer-function'.
+
+It erases the buffer and adds one line containing a space for each page."
   (remove-overlays)
-  (image-mode-window-put 'displayed-pages nil))
+  (image-mode-window-put 'displayed-pages nil)
+  (let ((pages (pdf-cache-number-of-pages))
+        (inhibit-read-only t))
+    (erase-buffer)
+    (setq pdf-roll--state (list t))
+    (dotimes (_i (* 2 (+ pages 1)))
+      (insert " \n"))
+    (delete-char -1)
+    (set-buffer-modified-p nil)))
 
 (defun pdf-roll-dont-activate-mark ()
   "Function to inhibit activation of mark. Meant for `activate-mark-hook'."
