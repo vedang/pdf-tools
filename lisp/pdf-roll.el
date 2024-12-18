@@ -366,11 +366,6 @@ It erases the buffer and adds one line containing a space for each page."
     (delete-char -1)
     (set-buffer-modified-p nil)))
 
-(defun pdf-roll-dont-activate-mark ()
-  "Function to inhibit activation of mark. Meant for `activate-mark-hook'."
-  (let ((deactivate-mark-hook nil))
-    (deactivate-mark)))
-
 ;;;###autoload
 (define-minor-mode pdf-view-roll-minor-mode
   "If enabled display document on a virtual scroll providing continuous scrolling."
@@ -397,7 +392,6 @@ It erases the buffer and adds one line containing a space for each page."
 
          (add-hook 'pre-redisplay-functions 'pdf-roll-pre-redisplay nil t)
          (add-hook 'pdf-roll-after-change-page-hook 'pdf-history-before-change-page-hook nil t)
-         (add-hook 'activate-mark-hook #'pdf-roll-dont-activate-mark nil t)
 
          (add-function :after (local 'revert-buffer-function) #'pdf-roll-initialize)
 
@@ -420,13 +414,12 @@ It erases the buffer and adds one line containing a space for each page."
 
          (remove-hook 'pre-redisplay-functions 'pdf-roll-pre-redisplay t)
          (remove-hook 'pdf-roll-after-change-page-hook 'pdf-history-before-change-page-hook t)
-         (remove-hook 'activate-mark-hook #'pdf-roll-dont-activate-mark t)
 
          (kill-local-variable 'pdf-roll--state)
 
          (when (bound-and-true-p pixel-scroll-precision-mode)
-           (setq-local pixel-scroll-precision-mode nil)
-           (setq-local mwheel-coalesce-scroll-events t))
+             (setq-local pixel-scroll-precision-mode nil)
+             (setq-local mwheel-coalesce-scroll-events t))
 
          (let ((inhibit-read-only t))
            (remove-overlays)
