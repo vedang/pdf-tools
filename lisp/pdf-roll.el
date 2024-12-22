@@ -388,7 +388,7 @@ It erases the buffer and adds one line containing a space for each page."
 
          (remove-hook 'window-configuration-change-hook 'image-mode-reapply-winprops t)
          (remove-hook 'window-configuration-change-hook 'pdf-view-redisplay-some-windows t)
-         (remove-hook 'image-mode-new-window-functions#'pdf-view-new-window-function t)
+         (remove-hook 'image-mode-new-window-functions #'pdf-view-new-window-function t)
 
          (add-hook 'pre-redisplay-functions 'pdf-roll-pre-redisplay nil t)
          (add-hook 'pdf-roll-after-change-page-hook 'pdf-history-before-change-page-hook nil t)
@@ -418,8 +418,8 @@ It erases the buffer and adds one line containing a space for each page."
          (kill-local-variable 'pdf-roll--state)
 
          (when (bound-and-true-p pixel-scroll-precision-mode)
-             (setq-local pixel-scroll-precision-mode nil)
-             (setq-local mwheel-coalesce-scroll-events t))
+           (setq-local pixel-scroll-precision-mode nil)
+           (setq-local mwheel-coalesce-scroll-events t))
 
          (let ((inhibit-read-only t))
            (remove-overlays)
