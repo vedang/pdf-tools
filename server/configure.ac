@@ -36,7 +36,7 @@ AC_COMPILE_IFELSE(
 AM_CONDITIONAL(HAVE_W32, [test "$have_w32" = true])
 
 if test "$have_w32" = true; then
-  if test "$MSYSTEM" = MINGW32 -o "$MSYSTEM" = MINGW64; then
+  if test "$MSYSTEM" = MINGW32 -o "$MSYSTEM" = MINGW64 -o "$MSYSTEM" = UCRT64; then
   # glib won't work properly on msys2 without it.
     CFLAGS="-D__USE_MINGW_ANSI_STDIO=1 $CFLAGS"
   fi
