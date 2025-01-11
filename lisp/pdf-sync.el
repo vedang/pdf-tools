@@ -926,7 +926,6 @@ to do that we rely on the executable."
                     (when (looking-at rx)
                       (goto-char (match-end 0))))
                   pos)))
-    (re-search-forward (rx (* (* (or "\n" )))))
     (cl-destructuring-bind (windex _ swords)
         (pdf-sync--forward-get-source-context pos)
       (let* ((buf-words (pdf-sync--forward-get-text
