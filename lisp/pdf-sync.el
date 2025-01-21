@@ -72,6 +72,12 @@ The hook is run in the PDF's buffer."
   "Display action used when displaying PDF buffers."
   :type 'display-buffer--action-custom-type)
 
+(defcustom pdf-sync-forward-indication-method 'both
+  "Method to indicate the synced location in PDF.
+Can be the symbol `tooltip' in which location is indicated using a tooltip
+arrow. It can also be `highlight' which means highlight the word corresponding
+to the cursor location in the pdf. With any other value both methods are used."
+  :type '(choice tooltip highlight both))
 (defcustom pdf-sync-backward-display-action nil
   "Display action used when displaying TeX buffers."
   :type 'display-buffer--action-custom-type)
@@ -688,7 +694,7 @@ if the point is outside them."
   (interactive)
   (save-excursion
     (when pos (goto-char pos))
-    (cl-destructuring-bind (pdf page x1 y1 x2 y2)
+    (cl-destructuring-bind (pdf page . edges)
         (or (and pdf-sync-forward-use-heuristic
                  (pdf-sync--forward-correlate-heuristically))
             (pdf-sync-forward-correlate))
@@ -700,10 +706,11 @@ if the point is outside them."
           (pdf-util-assert-pdf-window)
           (when page
             (pdf-view-goto-page page (selected-window))
-            (when y1
-              (let ((top (* y1 (cdr (pdf-view-image-size)))))
-                (pdf-util-tooltip-arrow (round top))
-                (pdf-sync--forward-highlight `(,x1 ,y1 ,x2 ,y2) page)))))
+            (when-let ((y1 (nth 1 edges)))
+              (unless (eq pdf-sync-forward-indication-method 'highlight)
+                (pdf-util-tooltip-arrow y1))
+              (unless (eq pdf-sync-forward-indication-method 'tooltip)
+                (pdf-sync--forward-highlight edges page)))))
         (with-current-buffer buffer
           (run-hooks 'pdf-sync-forward-hook))))))
 
@@ -736,8 +743,15 @@ and Y2 may be nil, if the destination could not be found."
 (defun pdf-sync--forward-highlight (edges page)
   "Temporarily highlight EDGES on PAGE."
   (when pdf-sync--forward-timer (cancel-timer pdf-sync--forward-timer))
-  (setq pdf-sync--forward-timer
-        (run-with-timer 3 nil #'pdf-sync--forward-redisplay (selected-window)))
+  (setq-local pdf-sync--forward-timer
+              (run-with-timer 3 nil #'pdf-sync--forward-redisplay
+                              (current-buffer) (selected-window)))
+  (let* ((size (pdf-view-image-size nil nil page))
+         (edges (pdf-util-scale-to edges '(1.0 . 1.0) size #'round))
+         (vscroll (pdf-util-required-vscroll edges))
+         (hscroll (pdf-util-required-hscroll edges)))
+    (when vscroll (image-set-window-vscroll vscroll))
+    (when hscroll (image-set-window-hscroll hscroll)))
   (pdf-view-display-region `(,page ,edges) nil 'word))
 
 (defun pdf-sync--forward-redisplay (window)
