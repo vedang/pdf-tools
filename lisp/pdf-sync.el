@@ -754,12 +754,15 @@ and Y2 may be nil, if the destination could not be found."
     (when hscroll (image-set-window-hscroll hscroll)))
   (pdf-view-display-region `(,page ,edges) nil 'word))
 
-(defun pdf-sync--forward-redisplay (window)
-  "Remove highlight from PDF in WINDOW."
-  (when (window-live-p window)
-    (with-selected-window window
-      (when (derived-mode-p 'pdf-view-mode)
-        (pdf-view-redisplay window)))))
+(defun pdf-sync--forward-redisplay (buffer window)
+  "Remove highlight from PDF BUFFER in WINDOW."
+  (if (and (window-live-p window)
+           (eq (window-buffer window) buffer))
+      (with-selected-window window
+        (when (derived-mode-p 'pdf-view-mode)
+          (pdf-view-redisplay window)))
+    (with-current-buffer buffer
+      (pdf-view-redisplay))))
 
 (defun pdf-sync--compare-lists (l1 l2)
   "Compare lists L1 and L2 of numbers."

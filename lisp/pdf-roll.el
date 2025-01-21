@@ -172,12 +172,12 @@ overlays."
 
 (defun pdf-roll-redisplay (&optional window)
   "Analogue of `pdf-view-redisplay' for WINDOW."
-  (let ((window (or window (selected-window))))
-    (dolist (window (if (windowp window)
-                        `(,window)
-                      (get-buffer-window-list nil nil t)))
-      (setf (alist-get window pdf-roll--state) nil)
-      (pdf-roll-pre-redisplay window))))
+  (unless window (setq pdf-roll--state nil))
+  (dolist (window (if (windowp window)
+                      `(,window)
+                    (get-buffer-window-list nil nil t)))
+    (setf (alist-get window pdf-roll--state) nil)
+    (pdf-roll-pre-redisplay window)))
 
 (defun pdf-roll-pre-redisplay (win)
   "Handle modifications to the state in window WIN.
@@ -360,7 +360,6 @@ It erases the buffer and adds one line containing a space for each page."
   (let ((pages (pdf-cache-number-of-pages))
         (inhibit-read-only t))
     (erase-buffer)
-    (setq pdf-roll--state (list t))
     (dotimes (_i (* 2 (+ pages 1)))
       (insert " \n"))
     (delete-char -1)
