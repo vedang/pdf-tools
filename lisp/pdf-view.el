@@ -1164,6 +1164,13 @@ See also `pdf-view-use-imagemagick'."
       :map hotspots
       :pointer 'arrow)))
 
+
+(defun pdf-view-page-image (&optional page window)
+  "Return the image for diaplaying PAGE in WINDOW."
+  (if pdf-view-roll-minor-mode
+      (overlay-get (pdf-roll-page-overlay page window) 'display)
+    (image-get-display-property)))
+
 (defun pdf-view-image-size (&optional displayed-p window page)
   "Return the size in pixel of the current image in WINDOW.
 
@@ -1171,9 +1178,7 @@ If DISPLAYED-P is non-nil, return the size of the displayed
 image.  These values may be different, if slicing is used.
 
 If PAGE is non-nil return its size instead of current page."
-  (let ((display-prop (if pdf-view-roll-minor-mode
-                          (overlay-get (pdf-roll-page-overlay page window) 'display)
-                        (image-get-display-property))))
+  (let ((display-prop (pdf-view-page-image page window)))
     (if (eq (car display-prop) 'image)
         (image-size display-prop t)
       (if displayed-p

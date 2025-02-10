@@ -31,8 +31,6 @@
 
 
 
-(declare-function pdf-roll-page-overlay "pdf-roll")
-(declare-function pdf-roll-displayed-pages "pdf-roll")
 ;;; Code:
 
 
@@ -515,8 +513,7 @@ is non-nil assume link to be at mouse position."
   (let-alist link
     (let* ((win-edges (window-edges nil t nil t))
            (win-width (- (nth 2 win-edges) (nth 0 win-edges)))
-           (image (or (overlay-get (pdf-roll-page-overlay .link-page) 'display)
-                      (pdf-view-current-image)))
+           (image (pdf-view-page-image .link-page))
            (image-width (car (image-display-size image t)))
            (image (or (assoc 'image image) image))
            (prefix (if (> win-width image-width)
@@ -578,8 +575,7 @@ See `pdf-links-action-perform' for the interface."
       (unwind-protect
           (progn
             (dolist (page pages)
-              (let* ((image (or (overlay-get (pdf-roll-page-overlay page win) 'display)
-                                (pdf-view-current-image)))
+              (let* ((image (pdf-view-page-image page))
                      (image (or (assoc 'image image) image))
                      (height (cdr (image-size image t)))
                      (orig-image (create-image (plist-get (cdr image) :data)
