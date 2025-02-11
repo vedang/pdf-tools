@@ -357,6 +357,7 @@ It is also added to `revert-buffer-function'.
 It erases the buffer and adds one line containing a space for each page."
   (remove-overlays)
   (image-mode-window-put 'displayed-pages nil)
+  (setq pdf-roll--state nil)
   (let ((pages (pdf-cache-number-of-pages))
         (inhibit-read-only t))
     (erase-buffer)
