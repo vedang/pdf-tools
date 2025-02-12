@@ -37,13 +37,6 @@
 (declare-function cua-copy-region "cua-base")
 (declare-function pdf-tools-pdf-buffer-p "pdf-tools")
 
-(declare-function pdf-roll-scroll-forward "pdf-roll")
-(declare-function pdf-roll-scroll-backward "pdf-roll")
-(declare-function pdf-roll-redisplay "pdf-roll")
-(declare-function pdf-roll-page-overlay "pdf-roll")
-(declare-function pdf-roll-display-image "pdf-roll")
-
-(defvar pdf-view-roll-minor-mode nil)
 
 
 ;; * ================================================================== *
@@ -306,6 +299,60 @@ regarding display of the region in the later function.")
 (defconst pdf-view-have-image-mode-pixel-vscroll
   (>= emacs-major-version 27)
   "Whether `image-mode' scrolls vertically by pixels.")
+
+
+;; * ================================================================== *
+;; * Variable to control display of multiple pages
+;; * ================================================================== *
+(defvar pdf-view-displayed-pages-function nil
+  "A function to return a list of page numbers being displayed in a WINDOW.")
+
+(defsubst pdf-view-displayed-pages (&optional window)
+  "Return a list of pages being currently displayed in WINDOW."
+  (if pdf-view-displayed-pages-function
+      (funcall pdf-view-displayed-pages-function window)
+    (list (pdf-view-current-page window))))
+
+(defvar pdf-view-posn-page-function nil
+  "If non-nil, a function to return a page number given a posn object POS.")
+
+(defsubst pdf-view-posn-page (pos)
+  "Return page number corresponding to POS."
+  (if pdf-view-posn-page-function
+      (funcall pdf-view-posn-page-function pos)
+    (pdf-view-current-page)))
+
+(defvar pdf-view-page-image-function nil
+  "If non-nil, a function to return an image given a PAGE number and a WINDOW.
+The image should be the image for PAGE that is being displayed in WINDOW.")
+
+(defsubst pdf-view-page-image (&optional page window)
+  "Return the image for diaplaying PAGE in WINDOW."
+  (if pdf-view-page-image-function
+      (funcall pdf-view-page-image-function page window)
+    (image-get-display-property)))
+
+(defvar pdf-view-display-image-function #'pdf-view--display-image
+  "The function to display an image.
+See `pdf-view-display-page' for the signature.")
+
+(defun pdf-view-display-image (image page &optional window inhibit-slice-p)
+  "Display IMAGE which is for PAGE (represented by its page number) in WINDOW.
+Normally the IMAGE should be sliced according to `pdf-view-current-slice'.
+However if INHIBIT-SLICE-P is non-nil, no slicing should be done."
+  (funcall pdf-view-display-image-function image page window inhibit-slice-p))
+
+(defvar pdf-view-redisplay-function #'pdf-view--redisplay
+  "Function to redisplayed images being displayed in a WINDOW.")
+
+(defun pdf-view-redisplay (&optional window)
+  "Redisplay WINDOW showing a pdf buffer."
+  (funcall pdf-view-redisplay-function window))
+
+(defvar pdf-view-drag-region-function nil
+  "Function used drag the selected region to invisible portion of the page.
+Received a POSN event and the selected region as arguments.")
+
 
 
 ;; * ================================================================== *
@@ -875,7 +922,7 @@ to previous page only on typing DEL (ARG is nil)."
           (image-set-window-hscroll hscroll)))
     (image-scroll-down arg)))
 
-(defun pdf-view--next-line-or-next-page (&optional arg)
+(defun pdf-view-next-line-or-next-page (&optional arg)
   "Scroll upward by ARG lines if possible, else go to the next page.
 
 When `pdf-view-continuous' is non-nil, scrolling a line upward
@@ -893,13 +940,7 @@ at the bottom edge of the page moves to the next page."
           (image-set-window-hscroll hscroll)))
     (image-next-line arg)))
 
-(defun pdf-view-next-line-or-next-page (&optional arg)
-  (interactive "p")
-  (if pdf-view-roll-minor-mode
-      (dotimes (_ (or arg 1)) (pdf-roll-scroll-forward))
-    (pdf-view--next-line-or-next-page arg)))
-
-(defun pdf-view--previous-line-or-previous-page (&optional arg)
+(defun pdf-view-previous-line-or-previous-page (&optional arg)
   "Scroll downward by ARG lines if possible, else go to the previous page.
 
 When `pdf-view-continuous' is non-nil, scrolling a line downward
@@ -916,12 +957,6 @@ at the top edge of the page moves to the previous page."
             (image-bol 1))
           (image-set-window-hscroll hscroll)))
     (image-previous-line arg)))
-
-(defun pdf-view-previous-line-or-previous-page (&optional arg)
-  (interactive "p")
-  (if pdf-view-roll-minor-mode
-      (dotimes (_ (or arg 1)) (pdf-roll-scroll-backward))
-    (pdf-view--previous-line-or-previous-page arg)))
 
 (defun pdf-view-goto-label (label)
   "Go to the page corresponding to LABEL.
@@ -1165,12 +1200,6 @@ See also `pdf-view-use-imagemagick'."
       :pointer 'arrow)))
 
 
-(defun pdf-view-page-image (&optional page window)
-  "Return the image for diaplaying PAGE in WINDOW."
-  (if pdf-view-roll-minor-mode
-      (overlay-get (pdf-roll-page-overlay page window) 'display)
-    (image-get-display-property)))
-
 (defun pdf-view-image-size (&optional displayed-p window page)
   "Return the size in pixel of the current image in WINDOW.
 
@@ -1205,45 +1234,42 @@ It is equal to \(LEFT . TOP\) of the current slice in pixel."
   (pdf-view-display-image
    (pdf-view-create-page page window) page window))
 
-(defun pdf-view-display-image (image page &optional window inhibit-slice-p)
-  ;; TODO: write documentation!
-  (if pdf-view-roll-minor-mode
-      (pdf-roll-display-image
-       image page (or window (selected-window)) inhibit-slice-p)
-    (let ((ol (pdf-view-current-overlay window)))
-      (when (window-live-p (overlay-get ol 'window))
-        (let* ((size (image-size image t))
-               (slice (if (not inhibit-slice-p)
-                          (pdf-view-get-slice window page)))
-               (displayed-width (floor
-                                 (if slice
-                                     (* (nth 2 slice)
-                                        (car (image-size image)))
-                                   (car (image-size image))))))
-          (setf (pdf-view-current-image window) image)
-          (move-overlay ol (point-min) (point-max))
-          ;; In case the window is wider than the image, center the image
-          ;; horizontally.
-          (overlay-put ol 'before-string
-                       (when (> (window-width window)
-                                displayed-width)
-                         (propertize " " 'display
-                                     `(space :align-to
-                                       ,(/ (- (window-width window)
-                                              displayed-width) 2)))))
-          (overlay-put ol 'display
-                       (if slice
-                           (list (cons 'slice
-                                       (pdf-util-scale slice size 'round))
-                                 image)
-                         image))
-          (let* ((win (overlay-get ol 'window))
-                 (hscroll (image-mode-window-get 'hscroll win))
-                 (vscroll (image-mode-window-get 'vscroll win)))
-            ;; Reset scroll settings, in case they were changed.
-            (if hscroll (set-window-hscroll win hscroll))
-            (if vscroll (set-window-vscroll
-                         win vscroll pdf-view-have-image-mode-pixel-vscroll))))))))
+(defun pdf-view--display-image (image page &optional window inhibit-slice-p)
+  "See `pdf-view-display-image' for IMAGE, PAGE, WINDOW and INHIBIT-SLICE-P."
+  (let ((ol (pdf-view-current-overlay window)))
+    (when (window-live-p (overlay-get ol 'window))
+      (let* ((size (image-size image t))
+             (slice (if (not inhibit-slice-p)
+                        (pdf-view-get-slice window page)))
+             (displayed-width (floor
+                               (if slice
+                                   (* (nth 2 slice)
+                                      (car (image-size image)))
+                                 (car (image-size image))))))
+        (setf (pdf-view-current-image window) image)
+        (move-overlay ol (point-min) (point-max))
+        ;; In case the window is wider than the image, center the image
+        ;; horizontally.
+        (overlay-put ol 'before-string
+                     (when (> (window-width window)
+                              displayed-width)
+                       (propertize " " 'display
+                                   `(space :align-to
+                                           ,(/ (- (window-width window)
+                                                  displayed-width) 2)))))
+        (overlay-put ol 'display
+                     (if slice
+                         (list (cons 'slice
+                                     (pdf-util-scale slice size 'round))
+                               image)
+                       image))
+        (let* ((win (overlay-get ol 'window))
+               (hscroll (image-mode-window-get 'hscroll win))
+               (vscroll (image-mode-window-get 'vscroll win)))
+          ;; Reset scroll settings, in case they were changed.
+          (if hscroll (set-window-hscroll win hscroll))
+          (if vscroll (set-window-vscroll
+                       win vscroll pdf-view-have-image-mode-pixel-vscroll)))))))
 
 (defun pdf-view--redisplay (&optional window)
   "Redisplay page in WINDOW.
@@ -1266,18 +1292,12 @@ If WINDOW is t, redisplay pages in all windows."
             (setf (pdf-view-window-needs-redisplay window) t)))))
     (force-mode-line-update)))
 
-(defun pdf-view-redisplay (&optional window)
-  (if pdf-view-roll-minor-mode
-      (pdf-roll-redisplay window)
-    (pdf-view--redisplay window)))
-
 (defun pdf-view-redisplay-pages (&rest pages)
   "Redisplay PAGES in all windows."
   (pdf-util-assert-pdf-buffer)
   (dolist (window (get-buffer-window-list nil nil t))
     (when (cl-some (lambda (page) (memq page pages))
-                   (or (image-mode-window-get 'displayed-pages window)
-                       (list (pdf-view-current-page window))))
+                   (pdf-view-displayed-pages window))
       (pdf-view-redisplay window))))
 
 (defun pdf-view-maybe-redisplay-resized-windows ()
@@ -1511,7 +1531,7 @@ The colors are determined by the `face-foreground' and
 
 FN will be called in the PDF buffer with the page-number and the
 image size \(WIDTH . HEIGHT\) as arguments.  It should return a
-list of hotspots applicable to the the :map image-property.
+list of hotspots applicable to the the :map image property.
 
 LAYER determines the order: Functions in a higher LAYER will
 supersede hotspots in lower ones."
@@ -1601,10 +1621,7 @@ Stores the region in the variable `pdf-view-active-region'."
                   (setq begin-inside-image-p nil)
                   (posn-x-y pos)))
          (abs-begin (posn-x-y pos))
-         (page (if pdf-view-roll-minor-mode
-                   (/ (+ 3 (posn-point pos)) 4)
-                 (pdf-view-current-page)))
-         (margin (frame-char-height))
+         (page (pdf-view-posn-page pos))
          (selection-style (or selection-style pdf-view-selection-style))
          pdf-view-continuous
          region)
@@ -1654,25 +1671,15 @@ Stores the region in the variable `pdf-view-active-region'."
                                           (max (car begin) (car end))
                                           (max (cdr begin) (cdr end)))
                                   (list (car begin) (cdr begin)
-                                        (car end) (cdr end))))
-                       (y (cdr (posn-x-y pos)))
-                       (dy (- y (cdr abs-begin))))
+                                        (car end) (cdr end)))))
                   (setq region
                         (pdf-util-scale-pixel-to-relative iregion))
                   (pdf-view-display-region
                    (cons page (cons region (cdr pdf-view-active-region)))
                    rectangle-p
                    selection-style)
-                  (if pdf-view-roll-minor-mode
-                      (cond
-                       ((and (> dy 0) (< (- (window-text-height window t) y) margin))
-                        (pdf-roll-scroll-forward
-                         (min margin
-                              (or (nth 3 (pos-visible-in-window-p (posn-point pos) window t)) 0))))
-                       ((and (< dy 0) (< (- y (window-header-line-height window)) margin))
-                        (pdf-roll-scroll-backward
-                         (min margin
-                              (or (nth 2 (pos-visible-in-window-p (posn-point pos) window t)) 0)))))
+                  (if pdf-view-drag-region-function
+                      (funcall pdf-view-drag-region-function pos iregion)
                     (pdf-util-scroll-to-edges iregion))))))
       (cl-callf append (cdr pdf-view-active-region) (list region))
       (pdf-view--push-mark))))
@@ -1713,7 +1720,7 @@ This is more useful for commands like
             page width nil selection-style nil
             `(,(car colors) ,(cdr colors) ,@(cdr region))))
        :width width)
-     (when pdf-view-roll-minor-mode page))))
+     page)))
 
 (defun pdf-view-kill-ring-save ()
   "Copy the region to the `kill-ring'."
@@ -1840,7 +1847,7 @@ The optional, boolean args exclude certain attributes."
                  t)))
     `(,(buffer-name)
       ,@(bookmark-make-record-default
-         nil t (if pdf-view-roll-minor-mode (point) 1))
+         nil t (point))
       (handler . pdf-view-bookmark-jump-handler)
       (,@(unless no-page
           (cons 'page (pdf-view-current-page win))))

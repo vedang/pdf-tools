@@ -1013,7 +1013,7 @@ other annotations."
              :map (pdf-view-apply-hotspot-functions
                    window page size)
              :width (car size))
-           (when pdf-view-roll-minor-mode page)))
+           page))
         (pdf-util-scroll-to-edges
          (pdf-util-scale-relative-to-pixel (car edges)))))))
 
@@ -1129,9 +1129,7 @@ Return the new annotation."
      (list posn)))
   (pdf-util-assert-pdf-window)
   (when (posnp pos)
-    (setq page (or page
-                   (when pdf-view-roll-minor-mode
-                     (1+ (/ (posn-point pos) 4)))))
+    (setq page (pdf-view-posn-page pos))
     (setq pos (posn-object-x-y pos)))
   (let ((isize (pdf-view-image-size))
         (x (car pos))
@@ -1617,7 +1615,7 @@ See `pdf-annot-edit' for the interface."
              (car size) image-data 'pdf-annot-read-annot))
           (pdf-view-display-image
            (create-image image-data (pdf-view-image-type) t)
-           (when pdf-view-roll-minor-mode (pdf-view-current-page)))
+           page)
           (pdf-links-read-link-action--read-chars prompt alist))
       (pdf-view-redisplay))))
 

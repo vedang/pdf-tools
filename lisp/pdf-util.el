@@ -41,8 +41,6 @@
 (declare-function image-set-window-vscroll "image-mode")
 (declare-function image-set-window-hscroll "image-mode")
 
-(defvar pdf-view-roll-minor-mode)
-
 
 ;; * ================================================================== *
 ;; * Transforming coordinates
@@ -312,6 +310,10 @@ depending on the input."
 ;; * Scrolling
 ;; * ================================================================== *
 
+(defvar pdf-util-scroll-to-edges-function nil
+  "If non-nil the function used to scroll to EDGES.
+See `pdf-util-scroll-to-edges' for signature.")
+
 (defun pdf-util-image-displayed-edges (&optional window displayed-p)
   "Return the visible region of the image in WINDOW.
 
@@ -392,47 +394,40 @@ needed.
 Note: For versions of emacs before 27 this will return lines instead of
 pixels. This is because of a change that occurred to `image-mode' in 27."
   (pdf-util-assert-pdf-window)
-  (if pdf-view-roll-minor-mode
-      (max 0 (- (nth 1 edges)
-                (cdr (pdf-view-image-offset))
-                (or context-pixel
-                    (* next-screen-context-lines (frame-char-height)))))
-    (let* ((win (window-inside-pixel-edges))
-           (image-height (cdr (pdf-view-image-size
-                               (unless pdf-view-roll-minor-mode
-                                 t))))
-           (image-top (window-vscroll nil t))
-           (edges (pdf-util-translate
-                   edges
-                   (pdf-view-image-offset) t)))
-      (pdf-util-with-edges (win edges)
-        (let* ((context-pixel (or context-pixel
-                                  (* next-screen-context-lines
-                                     (frame-char-height))))
-               ;;Be careful not to modify edges.
-               (edges-top (- edges-top context-pixel))
-               (edges-bot (+ edges-bot context-pixel))
-               (vscroll
-                (cond ((< edges-top image-top)
-                       (max 0 (if eager-p
-                                  (- edges-bot win-height)
-                                edges-top)))
-                      ((> (min image-height
-                               edges-bot)
-                          (+ image-top win-height))
-                       (min (- image-height win-height)
-                            (if eager-p
-                                edges-top
-                              (- edges-bot win-height)))))))
+  (let* ((win (window-inside-pixel-edges))
+         (image-height (cdr (pdf-view-image-size t)))
+         (image-top (window-vscroll nil t))
+         (edges (pdf-util-translate
+                 edges
+                 (pdf-view-image-offset) t)))
+    (pdf-util-with-edges (win edges)
+      (let* ((context-pixel (or context-pixel
+                                (* next-screen-context-lines
+                                   (frame-char-height))))
+             ;;Be careful not to modify edges.
+             (edges-top (- edges-top context-pixel))
+             (edges-bot (+ edges-bot context-pixel))
+             (vscroll
+              (cond ((< edges-top image-top)
+                     (max 0 (if eager-p
+                                (- edges-bot win-height)
+                              edges-top)))
+                    ((> (min image-height
+                             edges-bot)
+                        (+ image-top win-height))
+                     (min (- image-height win-height)
+                          (if eager-p
+                              edges-top
+                            (- edges-bot win-height)))))))
 
 
-          (when vscroll
-            (round
-             ;; `image-set-window-vscroll' changed in version 27 to using
-             ;; pixels, not lines.
-             (if (version< emacs-version "27")
-                 (/ vscroll (float (frame-char-height)))
-               vscroll))))))))
+        (when vscroll
+          (round
+           ;; `image-set-window-vscroll' changed in version 27 to using
+           ;; pixels, not lines.
+           (if (version< emacs-version "27")
+               (/ vscroll (float (frame-char-height)))
+             vscroll)))))))
 
 (defun pdf-util-scroll-to-edges (edges &optional eager-p)
   "Scroll window such that image EDGES are visible.
@@ -440,12 +435,14 @@ pixels. This is because of a change that occurred to `image-mode' in 27."
 Scroll as little as necessary.  Unless EAGER-P is non-nil, in
 which case scroll as much as possible."
 
-  (let ((vscroll (pdf-util-required-vscroll edges eager-p))
-        (hscroll (pdf-util-required-hscroll edges eager-p)))
-    (when vscroll
-      (image-set-window-vscroll vscroll))
-    (when hscroll
-      (image-set-window-hscroll hscroll))))
+  (if pdf-util-scroll-to-edges-function
+      (funcall pdf-util-scroll-to-edges-function edges eager-p)
+    (let ((vscroll (pdf-util-required-vscroll edges eager-p))
+          (hscroll (pdf-util-required-hscroll edges eager-p)))
+      (when vscroll
+        (image-set-window-vscroll vscroll))
+      (when hscroll
+        (image-set-window-hscroll hscroll)))))
 
 
 
