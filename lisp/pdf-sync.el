@@ -295,9 +295,7 @@ Has no effect if `pdf-sync-backward-use-heuristic' is nil."
     (unless image
       (error "Outside of image area"))
     (pdf-sync-backward-search
-     (car xy) (cdr xy)
-     (and (bound-and-true-p pdf-view-roll-minor-mode)
-          (/ (+ (posn-point posn) 3) 4)))))
+     (car xy) (cdr xy) (pdf-view-posn-page posn))))
 
 (defun pdf-sync-backward-search (x y &optional page)
   "Go to the source corresponding to image coordinates X, Y on PAGE.
@@ -747,11 +745,8 @@ and Y2 may be nil, if the destination could not be found."
               (run-with-timer 3 nil #'pdf-sync--forward-redisplay
                               (current-buffer) (selected-window)))
   (let* ((size (pdf-view-image-size nil nil page))
-         (edges (pdf-util-scale-to edges '(1.0 . 1.0) size #'round))
-         (vscroll (pdf-util-required-vscroll edges))
-         (hscroll (pdf-util-required-hscroll edges)))
-    (when vscroll (image-set-window-vscroll vscroll))
-    (when hscroll (image-set-window-hscroll hscroll)))
+         (edges (pdf-util-scale-to edges '(1.0 . 1.0) size #'round)))
+    (pdf-util-scroll-to-edges edges))
   (pdf-view-display-region `(,page ,edges) nil 'word))
 
 (defun pdf-sync--forward-redisplay (buffer window)

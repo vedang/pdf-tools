@@ -249,8 +249,7 @@ This is a Isearch interface function."
   (when (> (length string) 0)
     (let ((same-search-p (pdf-isearch-same-search-p))
           (oldpage pdf-isearch-current-page)
-          (pages (or (image-mode-window-get 'displayed-pages (selected-window))
-                     (list (pdf-view-current-page))))
+          (pages (reverse (pdf-view-displayed-pages (selected-window))))
           matches
           next-match)
       (dolist (page pages)
@@ -284,20 +283,11 @@ This is a Isearch interface function."
         ;; Don't get off track.
         (when (or (and (bobp) (not isearch-forward))
                   (and (eobp) isearch-forward))
-          (unless pdf-view-roll-minor-mode
-            (goto-char (1+ (/ (buffer-size) 2)))))
-        ;; Signal success to isearch.
-        ;; Moving the point is for `pdf-roll'. It ensures that
-        ;; `re-search-forward' takes us back to the starting point. Otherwise
-        ;; every call to `isearch-repeat' will increment/decrement the point
-        ;; and that causes recentering.
+          (goto-char (1+ (/ (buffer-size) 2))))
         (if isearch-forward
-            (progn (unless (bobp) (forward-char -1))
-                   (re-search-forward "."))
-          (unless (eobp) (forward-char 1))
+            (re-search-forward ".")
           (re-search-backward ".")))
-       ((and (or (not pdf-isearch-narrow-to-page) pdf-view-roll-minor-mode)
-             (not (pdf-isearch-empty-match-p pdf-isearch-current-matches)))
+       ((not (pdf-isearch-empty-match-p pdf-isearch-current-matches))
         (let ((next-page (pdf-isearch-find-next-matching-page
                           string pdf-isearch-current-page t)))
           (when (and next-page
@@ -326,9 +316,7 @@ This is a Isearch interface function."
           (pdf-isearch-hl-matches
            pdf-isearch-current-match
            pdf-isearch-current-matches
-           nil (image-mode-window-get 'displayed-pages (selected-window)))
-        (when pdf-view-roll-minor-mode
-          (pdf-view-redisplay)))
+           nil (image-mode-window-get 'displayed-pages (selected-window))))
       (image-set-window-hscroll hscroll)
       (image-set-window-vscroll vscroll))))
 
@@ -364,8 +352,7 @@ This is a Isearch interface function."
         pdf-isearch-current-match nil
         pdf-isearch-current-matches nil
         pdf-isearch-current-parameter nil)
-  (unless pdf-view-roll-minor-mode
-    (goto-char (1+ (/ (buffer-size) 2)))))
+  (goto-char (1+ (/ (buffer-size) 2))))
 
 (defun pdf-isearch-same-search-p (&optional ignore-search-string-p)
   "Return non-nil, if search parameter have not changed.
@@ -407,8 +394,7 @@ there was no previous search, this function returns t."
    pdf-isearch-current-match
    pdf-isearch-current-matches
    nil
-   (or (image-mode-window-get 'displayed-pages (selected-window))
-       (list (pdf-view-current-page)))))
+   (pdf-view-displayed-pages (selected-window))))
 
 (defun pdf-isearch-update ()
   "Update search and redisplay, if necessary."
@@ -746,9 +732,7 @@ MATCH-BG LAZY-FG LAZY-BG\)."
   (cl-destructuring-bind (fg1 bg1 fg2 bg2)
       (pdf-isearch-current-colors)
     (let* ((window (selected-window))
-           (pages (or pages
-                      (image-mode-window-get 'displayed-pages (selected-window))
-                      (list (pdf-view-current-page))))
+           (pages (or pages (pdf-view-displayed-pages window)))
            (buffer (current-buffer))
            (tick (cl-incf pdf-isearch--hl-matches-tick)))
       (dolist (page pages)
@@ -765,8 +749,7 @@ MATCH-BG LAZY-FG LAZY-BG\)."
                       (when (and (derived-mode-p 'pdf-view-mode)
                                  (or isearch-mode occur-hack-p
                                      (memq last-command '(isearch-repeat-forward isearch-repeat-backward)))
-                                 (or (eq page (pdf-view-current-page))
-                                     (memq page (image-mode-window-get 'displayed-pages window))))
+                                 (memq page (pdf-view-displayed-pages window)))
                         (pdf-view-display-image
                          (pdf-view-create-image data :width width)
                          page window)))))))

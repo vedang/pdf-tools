@@ -561,9 +561,7 @@ See `pdf-links-action-perform' for the interface."
 
   (pdf-util-assert-pdf-window)
   (let* ((win (selected-window))
-         (pages (if pdf-view-roll-minor-mode
-                    (reverse (image-mode-window-get 'displayed-pages win))
-                  (list (pdf-view-current-page))))
+         (pages (pdf-view-displayed-pages win))
          (links (pdf-links--links-for-pages pages))
          (keys (pdf-links-read-link-action--create-keys
                 (apply #'+ (mapcar #'length links))))
@@ -655,8 +653,7 @@ If non-nil ACTION should be function of one argument: the selected link."
     (isearch-forward)
     (unless (or quit-p (null pdf-isearch-current-match))
       (let* ((page (when (memq pdf-isearch-current-page
-                               (or (image-mode-window-get 'displayed-pages)
-                                   (list (pdf-view-current-page))))
+                               (pdf-view-displayed-pages))
                      pdf-isearch-current-page))
              (match (car pdf-isearch-current-match))
              (size (pdf-view-image-size))

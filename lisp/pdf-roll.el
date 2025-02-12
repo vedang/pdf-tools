@@ -57,6 +57,10 @@
   "Get the buffer position displaing PAGE."
   (- (* 4 page) 3))
 
+(defun pdf-roll-posn-page (pos)
+  "Return the page number at POS."
+  (/ (+ 3 (posn-point pos)) 4))
+
 (defun pdf-roll--pos-overlay (pos window)
   "Return an overlay for WINDOW at POS."
   (cl-find window (overlays-at pos) :key (lambda (ov) (overlay-get ov 'window))))
@@ -66,6 +70,14 @@
   (pdf-roll--pos-overlay
    (pdf-roll-page-to-pos (or page (pdf-view-current-page)))
    (or window (selected-window))))
+
+(defun pdf-roll-page-image (page window)
+  "Return the image for PAGE that is being displayed in WINDOW."
+  (overlay-get (pdf-roll-page-overlay page window) 'display))
+
+(defun pdf-roll-displayed-pages (&optional window)
+  "Return the pages being displayed in WINDOW."
+  (reverse (image-mode-window-get 'displayed-pages window)))
 
 (defun pdf-roll-page-at-current-pos ()
   "Page at point."
@@ -78,6 +90,33 @@
   (image-mode-winprops win t)
   (image-mode-window-put 'vscroll vscroll win)
   (set-window-vscroll win vscroll t))
+
+(defun pdf-roll-scroll-to-edges (edges eager-p)
+  "See `pdf-util-scroll-to-edges' for EDGES and EAGER-P."
+  (let ((vscroll (max 0 (- (nth 1 edges)
+                           (cdr (pdf-view-image-offset))
+                           (* next-screen-context-lines (frame-char-height)))))
+        (hscroll (pdf-util-required-hscroll edges eager-p)))
+    (when vscroll (image-set-window-vscroll vscroll))
+    (when hscroll (image-set-window-hscroll hscroll))))
+
+(defun pdf-roll-drag-region (pos region)
+  "Scroll if POS and REGION have moved too close to the edge of the window."
+  (let* ((window (posn-window pos))
+         (margin (* next-screen-context-lines (frame-char-height)))
+         (y (cdr (posn-x-y pos)))
+         (dy (- y (nth 1 region))))
+    (cond
+     ((and (> dy 0) (< (- (window-text-height window t) y) margin))
+      (pdf-roll-scroll-forward
+       (min margin
+            (or (nth 3 (pos-visible-in-window-p (posn-point pos) window t)) 0))
+       nil t))
+     ((and (< dy 0) (< (- y (window-header-line-height window)) margin))
+      (pdf-roll-scroll-backward
+       (min margin
+            (or (nth 2 (pos-visible-in-window-p (posn-point pos) window t)) 0))
+       nil t)))))
 
 ;;; Displaying/Undisplaying pages
 (defun pdf-roll-maybe-slice-image (image &optional page window inhibit-slice-p)
@@ -386,6 +425,14 @@ It erases the buffer and adds one line containing a space for each page."
                      mwheel-scroll-up-function #'pdf-roll-scroll-forward
                      mwheel-scroll-down-function #'pdf-roll-scroll-backward)
 
+         (setq-local pdf-view-posn-page-function #'pdf-roll-posn-page
+                     pdf-view-page-image-function #'pdf-roll-page-image
+                     pdf-view-displayed-pages-function #'pdf-roll-displayed-pages
+                     pdf-view-redisplay-function #'pdf-roll-redisplay
+                     pdf-view-display-image-function #'pdf-roll-display-image
+                     pdf-view-drag-region-function #'pdf-roll-drag-region
+                     pdf-util-scroll-to-edges-function #'pdf-roll-scroll-to-edges)
+
          (remove-hook 'window-configuration-change-hook 'image-mode-reapply-winprops t)
          (remove-hook 'window-configuration-change-hook 'pdf-view-redisplay-some-windows t)
          (remove-hook 'image-mode-new-window-functions #'pdf-view-new-window-function t)
@@ -420,6 +467,12 @@ It erases the buffer and adds one line containing a space for each page."
          (when (bound-and-true-p pixel-scroll-precision-mode)
            (setq-local pixel-scroll-precision-mode nil)
            (setq-local mwheel-coalesce-scroll-events t))
+
+         (mapc #'kill-local-variable
+               '( pdf-view-posn-page-function pdf-view-page-image-function
+                  pdf-view-redisplay-function pdf-view-display-image-function
+                  pdf-view-displayed-pages-function pdf-view-drag-region-function
+                  pdf-util-scroll-to-edges-function))
 
          (let ((inhibit-read-only t))
            (remove-overlays)
