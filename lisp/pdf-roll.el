@@ -92,7 +92,9 @@
   (set-window-vscroll win vscroll t))
 
 (defun pdf-roll-scroll-to-edges (edges eager-p)
-  "See `pdf-util-scroll-to-edges' for EDGES and EAGER-P."
+  "See `pdf-util-scroll-to-edges' for EDGES and EAGER-P.
+`pdf-roll' ignores EAGER-P for vertical motion and always scrolls so that the
+top of EDGE is `next-screen-context-lines' down from the top the window."
   (let ((vscroll (max 0 (- (nth 1 edges)
                            (cdr (pdf-view-image-offset))
                            (* next-screen-context-lines (frame-char-height)))))
@@ -188,12 +190,7 @@ Replaces the display property of the overlay holding a page with a space."
 
 ;;; State Management
 (defun pdf-roll-new-window-function (&optional win)
-  "Setup image roll in a new window WIN.
-It makes overlays to hold pages and sets WIN as window property to each overlay.
-
-This function should be added to pdf-roll (continuous scroll)
-minor mode commands, after erasing the buffer to create the
-overlays."
+  "Make overlays to hold pages and set WIN as window property to each overlay."
   (setq win (or (and (windowp win) win) (selected-window)))
   (unless (pdf-roll-page-overlay 1 win)
     (dotimes (i (* 2 (+ (pdf-cache-number-of-pages) 1)))
@@ -291,7 +288,7 @@ It should be added to `pre-redisplay-functions' buffer locally."
 (defun pdf-roll-next-page (&optional n)
   "Go to next page or next Nth page."
   (interactive "p")
-  (pdf-roll-goto-page (+ (pdf-roll-page-at-current-pos) n)))
+  (pdf-roll-goto-page (+ (pdf-view-current-page) n)))
 
 (defun pdf-roll-previous-page (&optional n)
   "Go to previous page or previous Nth page."
@@ -370,23 +367,20 @@ If PIXELS is non-nil N is number of pixels instead of lines."
 (defun pdf-roll-scroll-to-end-of-page ()
   "Scroll forward till the end of last displayed page is visible."
   (interactive)
-  (let* ((this (pdf-roll-page-to-pos (pdf-view-current-page)))
-         (posinfo (pos-visible-in-window-p this nil t))
-         (rbot (nth 3 posinfo)))
-    (if (and (eq this (- (point-max) 7))
-             (or (not rbot) (eq rbot 0)))
-        (pdf-roll-scroll-backward
-         (- (window-text-height nil t) (nth 4 posinfo)) nil t)
-      (while (when-let ((next (pos-visible-in-window-p
-                               (setq this (+ this 4)) nil t)))
-               (setq rbot (nth 3 next)))))
-    (when rbot (pdf-roll-scroll-forward rbot nil t))))
+  (let ((pos (posn-at-x-y (/ (window-text-width nil t) 2)
+                          (window-text-height nil t))))
+    (if (not (posn-object pos))
+        (pdf-roll-scroll-backward (cdr (posn-object-x-y pos)) nil t)
+      (pdf-roll-scroll-forward
+       (or (nth 3 (pos-visible-in-window-p (posn-point pos) nil t)) 0) nil t))))
 
 (defun pdf-roll-scroll-to-mouse-pos (event)
   "Scroll to the position of mouse EVENT."
   (interactive "e")
   (let ((event (event-start event)))
-    (pdf-roll-scroll-forward (cdr (posn-x-y event)) (posn-window event) t)))
+    (pdf-roll-scroll-forward
+     (- (cdr (posn-x-y event)) (* next-screen-context-lines (frame-char-height)))
+     (posn-window event) t)))
 
 ;;; Minor mode
 (defun pdf-roll-initialize (&rest _args)
