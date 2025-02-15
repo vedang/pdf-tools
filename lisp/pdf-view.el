@@ -1215,7 +1215,6 @@ If PAGE is non-nil return its size instead of current page."
         (image-size (nth 1 display-prop) t)))))
 
 (defun pdf-view-image-offset (&optional window page)
-  ;; TODO: add WINDOW to docstring.
   "Return the offset of the top-left corner of image for PAGE in WINDOW.
 
 It is equal to \(LEFT . TOP\) of the current slice in pixel."
@@ -1224,7 +1223,7 @@ It is equal to \(LEFT . TOP\) of the current slice in pixel."
      (slice
       (pdf-util-scale-relative-to-pixel
        (cons (nth 0 slice) (nth 1 slice))
-       window))
+       #'round))
      (t
       (cons 0 0)))))
 

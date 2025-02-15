@@ -533,11 +533,11 @@ is non-nil assume link to be at mouse position."
                           (+ (nth 1 (pos-visible-in-window-p
                                      (- (* 4 .link-page) 5) nil t))
                              (line-pixel-height)))
-                        (- (round (cdr image-offset)))))
+                        (- (cdr image-offset))))
            (x-offset (+ (nth 0 win-edges)
                         (- (* (frame-char-height) (window-hscroll)))
                         prefix
-                        (- (round (car image-offset))))))
+                        (- (car image-offset)))))
       (list (+ (nth 0 edges) x-offset)
             (+ (nth 1 edges) y-offset)
             (+ (nth 2 edges) x-offset)
