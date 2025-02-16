@@ -65,6 +65,10 @@
   "Return an overlay for WINDOW at POS."
   (cl-find window (overlays-at pos) :key (lambda (ov) (overlay-get ov 'window))))
 
+(defun pdf-roll--window-end-posn (&optional win)
+  "Return a position object for the end of visible region of window WIN."
+  (posn-at-x-y (/ (window-text-width win t) 2) (1- (window-text-height win t))))
+
 (defun pdf-roll-page-overlay (&optional page window)
   "Return overlay displaying PAGE in WINDOW."
   (pdf-roll--pos-overlay
@@ -143,7 +147,7 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
     (overlay-put overlay 'display image)
     (overlay-put overlay 'line-prefix offset)
     (overlay-put margin-overlay 'display `(space :width (,(car size))
-                                                 :height (,pdf-roll-vertical-margin)))
+                                                 :height (pdf-roll-vertical-margin)))
     (overlay-put margin-overlay 'line-prefix offset)
     (cdr size)))
 
@@ -155,14 +159,11 @@ With FORCE non-nil display fetch page again even if it is already displayed."
         (pdf-roll-display-image (pdf-view-create-page page window) page window)
       (cdr (image-display-size display t)))))
 
-(defun pdf-roll-display-pages (page &optional window force pscrolling)
+(defun pdf-roll-display-pages (page &optional window force)
   "Display pages to fill the WINDOW starting from PAGE.
 If FORCE is non-nill redisplay a page even if it is already displayed."
   (let (displayed
         (available-height (window-text-height window t)))
-    (when (and pscrolling (> page 1))
-      (pdf-roll-display-page (1- page) window force)
-      (push (1- page) displayed))
     (let ((vscroll (image-mode-window-get 'vscroll window))
           (im-height (pdf-roll-display-page page window force)))
       (pdf-roll-set-vscroll (min vscroll (1- im-height)) window)
@@ -172,9 +173,6 @@ If FORCE is non-nill redisplay a page even if it is already displayed."
                                 (if (>= available-height pdf-roll-vertical-margin) 2 0)))
     (while (and (> available-height 0) (< page (pdf-cache-number-of-pages)))
       (cl-callf - available-height (pdf-roll-display-page (cl-incf page) window force))
-      (push page displayed))
-    (when (and pscrolling (< page (pdf-cache-number-of-pages)))
-      (pdf-roll-display-page (cl-incf page) window force)
       (push page displayed))
     ;; store displayed images for determining which images to update when update
     ;; is triggered
@@ -238,17 +236,16 @@ It should be added to `pre-redisplay-functions' buffer locally."
            (start (pdf-roll-page-to-pos page)))
       ;; When using pixel scroll precision mode we accept its values for vscroll and hscroll.
       (if (and pscrolling
-               ;; Except on the last page.
-               (or (not (eq start (- (point-max) 7)))
-                   ;; Where we try to keep at least half the window occupied by pdf pages.
-                   ;; So we stop scrolling if it blanks too large a part of the window.
-                   (let ((visible-pixels (nth 4 (pos-visible-in-window-p start win t))))
-                     (and visible-pixels
-                          (or (> visible-pixels (/ (window-text-height win t) 2))
-                              ;; However if vscroll has been set by other means
-                              ;; scrolling should be able to descrease it.
-                              (> vscroll (window-vscroll win t)))))
-                   (prog1 nil (message "End of buffer"))))
+               (let ((pos (pdf-roll--window-end-posn win)))
+                 ;; Except on window is visible beyonf the last page.
+                 (or (< (posn-point pos) (- (point-max) 4))
+                     ;; Then we try to keep at least half the window occupied by pdf pages.
+                     ;; So we stop scrolling if it blanks too large a part of the window.
+                     (< (cdr (posn-object-x-y pos)) (/ (window-text-height win t) 2))
+                     ;; However if vscroll has been set by other means scrolling should be
+                     ;; able to descrease it.
+                     (> vscroll (window-vscroll win t))
+                     (prog1 nil (message "End of buffer")))))
           (progn (image-mode-window-put 'vscroll (window-vscroll win t) win)
                  (image-mode-window-put 'hscroll (window-hscroll win)) win)
         (set-window-vscroll win vscroll t)
@@ -258,7 +255,7 @@ It should be added to `pre-redisplay-functions' buffer locally."
       (setq disable-point-adjustment t)
       (when (or size-changed page-changed vscroll-changed)
         (let ((old (image-mode-window-get 'displayed-pages win))
-              (new (pdf-roll-display-pages page win size-changed pscrolling)))
+              (new (pdf-roll-display-pages page win size-changed)))
           ;; If images/pages are small enough (or after jumps), there
           ;; might be multiple image that need to get updated
           (pdf-roll-undisplay-pages (cl-set-difference old new) win)
@@ -367,8 +364,7 @@ If PIXELS is non-nil N is number of pixels instead of lines."
 (defun pdf-roll-scroll-to-end-of-page ()
   "Scroll forward till the end of last displayed page is visible."
   (interactive)
-  (let ((pos (posn-at-x-y (/ (window-text-width nil t) 2)
-                          (window-text-height nil t))))
+  (let ((pos (pdf-roll--window-end-posn)))
     (if (not (posn-object pos))
         (pdf-roll-scroll-backward (cdr (posn-object-x-y pos)) nil t)
       (pdf-roll-scroll-forward
