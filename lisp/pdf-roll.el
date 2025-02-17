@@ -54,16 +54,18 @@
 
 ;;; Utility Macros and functions
 (defsubst pdf-roll-page-to-pos (page)
-  "Get the buffer position displaing PAGE."
+  "Get the buffer position displaying PAGE."
   (- (* 4 page) 3))
 
 (defun pdf-roll-posn-page (pos)
   "Return the page number at POS."
   (/ (+ 3 (posn-point pos)) 4))
 
-(defun pdf-roll--pos-overlay (pos window)
-  "Return an overlay for WINDOW at POS."
-  (cl-find window (overlays-at pos) :key (lambda (ov) (overlay-get ov 'window))))
+(defun pdf-roll--pos-overlay (pos window category)
+  "Return an overlay for WINDOW with CATEGORY at POS."
+  (cl-find-if (lambda (ov) (and (eq (overlay-get ov 'window) window)
+                                (eq (overlay-get ov 'category) category)))
+              (overlays-at pos)))
 
 (defun pdf-roll--window-end-posn (&optional win)
   "Return a position object for the end of visible region of window WIN."
@@ -73,7 +75,7 @@
   "Return overlay displaying PAGE in WINDOW."
   (pdf-roll--pos-overlay
    (pdf-roll-page-to-pos (or page (pdf-view-current-page)))
-   (or window (selected-window))))
+   (or window (selected-window)) 'pdf-roll))
 
 (defun pdf-roll-page-image (page window)
   "Return the image for PAGE that is being displayed in WINDOW."
@@ -137,11 +139,12 @@ should be for PAGE."
 (defun pdf-roll-display-image (image page &optional window inhibit-slice-p)
   "Display IMAGE for PAGE in WINDOW.
 If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
-  (let* ((image (pdf-roll-maybe-slice-image image page window inhibit-slice-p))
+  (let* ((window (or window (selected-window)))
+         (image (pdf-roll-maybe-slice-image image page window inhibit-slice-p))
          (size (image-display-size image t))
          (overlay (pdf-roll-page-overlay page window))
          (margin-pos (+ (pdf-roll-page-to-pos page) 2))
-         (margin-overlay (pdf-roll--pos-overlay margin-pos window))
+         (margin-overlay (pdf-roll--pos-overlay margin-pos window 'pdf-roll-margin))
          (offset (when (> (window-width window t) (car size))
                    `(space :width (,(/ (- (window-width window t) (car size)) 2))))))
     (overlay-put overlay 'display image)
