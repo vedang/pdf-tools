@@ -768,6 +768,9 @@ and Y2 may be nil, if the destination could not be found."
       (setq e2 (pop l2)))
     (and e1 e2 (< e1 e2))))
 
+
+(declare-function TeX-master-directory nil)
+(declare-function TeX-master-output-file nil)
 (defun pdf-sync--forward-get-records (&optional pos)
   "Obtain the synctex records for POS."
   (save-excursion

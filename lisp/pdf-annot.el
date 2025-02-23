@@ -1574,6 +1574,11 @@ scroll the current page."
 
 ;; TODO 'merge' this function with `pdf-links-read-link-action' into a single
 ;; universal 'read-action' function (in `pdf-util'?)
+
+(autoload 'pdf-links-read-link-action--create-keys "pdf-links")
+(declare-function pdf-links-read-link-action--read-chars "pdf-links")
+(defvar pdf-links-convert-pointsize-scale)
+(defvar pdf-links-read-link-convert-commands)
 (defun pdf-annot-read-annot (prompt)
   "Using PROMPT, interactively read an annot-action.
 
@@ -1615,7 +1620,7 @@ See `pdf-annot-edit' for the interface."
              (car size) image-data 'pdf-annot-read-annot))
           (pdf-view-display-image
            (create-image image-data (pdf-view-image-type) t)
-           page)
+           (pdf-view-current-page))
           (pdf-links-read-link-action--read-chars prompt alist))
       (pdf-view-redisplay))))
 
