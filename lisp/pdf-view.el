@@ -1245,7 +1245,9 @@ It is equal to \(LEFT . TOP\) of the current slice in pixel."
                                    (* (nth 2 slice)
                                       (car (image-size image)))
                                  (car (image-size image))))))
-        (image-flush (pdf-view-current-image window))
+        (when-let* ((image (pdf-view-current-image window))
+                    ((imagep image)))
+          (image-flush (pdf-view-current-image window)))
         (setf (pdf-view-current-image window) image)
         (move-overlay ol (point-min) (point-max))
         ;; In case the window is wider than the image, center the image
