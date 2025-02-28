@@ -666,7 +666,9 @@ string."
 
 (defvar pdf-util--face-colors-cache (make-hash-table))
 
-(advice-add 'enable-theme :after #'pdf-util--clear-faces-cache)
+(if (< emacs-major-version 29)
+    (advice-add 'enable-theme :after #'pdf-util--clear-faces-cache)
+  (add-hook 'enable-theme-functions #'pdf-util--clear-faces-cache))
 (defun pdf-util--clear-faces-cache (&rest _)
   (clrhash pdf-util--face-colors-cache))
 
