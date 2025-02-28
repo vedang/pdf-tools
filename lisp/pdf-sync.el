@@ -78,6 +78,7 @@ Can be the symbol `tooltip' in which location is indicated using a tooltip
 arrow. It can also be `highlight' which means highlight the word corresponding
 to the cursor location in the pdf. With any other value both methods are used."
   :type '(choice tooltip highlight both))
+
 (defcustom pdf-sync-backward-display-action nil
   "Display action used when displaying TeX buffers."
   :type 'display-buffer--action-custom-type)

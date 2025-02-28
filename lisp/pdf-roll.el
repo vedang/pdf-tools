@@ -103,12 +103,14 @@
   "See `pdf-util-scroll-to-edges' for EDGES and EAGER-P.
 `pdf-roll' ignores EAGER-P for vertical motion and always scrolls so that the
 top of EDGE is `next-screen-context-lines' down from the top the window."
-  (let ((vscroll (max 0 (- (nth 1 edges)
-                           (cdr (pdf-view-image-offset))
-                           (* next-screen-context-lines (frame-char-height)))))
-        (hscroll (pdf-util-required-hscroll edges eager-p)))
+  (let* ((offset (pdf-view-image-offset))
+         (vscroll (max 0 (- (nth 1 edges) (cdr offset)
+                            (* next-screen-context-lines (frame-char-height)))))
+         (hscroll (pdf-util-required-hscroll edges eager-p)))
     (when vscroll (image-set-window-vscroll vscroll))
-    (when hscroll (image-set-window-hscroll hscroll))))
+    (when hscroll (image-set-window-hscroll hscroll))
+    `(,(- (nth 0 edges) (car offset) (or hscroll 0))
+      . ,(- (nth 1 edges) (cdr offset) (or vscroll 0)))))
 
 (defun pdf-roll-drag-region (pos region)
   "Scroll if POS and REGION have moved too close to the edge of the window."

@@ -432,8 +432,9 @@ pixels. This is because of a change that occurred to `image-mode' in 27."
 (defun pdf-util-scroll-to-edges (edges &optional eager-p)
   "Scroll window such that image EDGES are visible.
 
-Scroll as little as necessary.  Unless EAGER-P is non-nil, in
-which case scroll as much as possible."
+Scroll as little as necessary.  Unless EAGER-P is non-nil, in which case
+scroll as much as possible. Return a cons `(DX . DY)'of the coordinates
+in pixel of the left and top of the edges in the selected window."
 
   (if pdf-util-scroll-to-edges-function
       (funcall pdf-util-scroll-to-edges-function edges eager-p)
@@ -442,7 +443,9 @@ which case scroll as much as possible."
       (when vscroll
         (image-set-window-vscroll vscroll))
       (when hscroll
-        (image-set-window-hscroll hscroll)))))
+        (image-set-window-hscroll hscroll))
+      `(,(- (nth 0 edges) (or hscroll 0)) .
+        ,(- (nth 1 edges) (or vscroll 0))))))
 
 
 
@@ -636,19 +639,12 @@ string."
                 (car (window-fringes))))
          (dy image-top)
          (pos (list dx dy dx (+ dy (* 2 (frame-char-height)))))
-         (vscroll
-          (pdf-util-required-vscroll pos))
+         (hvscroll (pdf-util-scroll-to-edges pos))
          (tooltip-frame-parameters
           `((border-width . 0)
             (internal-border-width . 0)
             ,@tooltip-frame-parameters))
          (tooltip-hide-delay (or timeout 3)))
-    (when vscroll
-      (image-set-window-vscroll vscroll))
-    (setq dy (max 0 (- dy
-                       (cdr (pdf-view-image-offset))
-                       (window-vscroll nil t)
-                       (frame-char-height))))
     (let* ((e (window-inside-pixel-edges))
            (xw (pdf-util-with-edges (e) e-width)))
       (cl-incf dx (/ (- xw (car (pdf-view-image-size t))) 2)))
@@ -666,7 +662,7 @@ string."
                               ((bound-and-true-p pdf-view-themed-minor-mode)
                                (face-background 'default nil))
                               (t "white")))))
-     dx dy)))
+     dx (cdr hvscroll))))
 
 (defvar pdf-util--face-colors-cache (make-hash-table))
 
