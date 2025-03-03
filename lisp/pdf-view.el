@@ -1360,12 +1360,13 @@ If WINDOW is t, redisplay pages in all windows."
          (or (image-mode-window-get 'page t) 1))
         (pdf-view--restore-origin)))))
 
-(defun pdf-view-desired-image-size (&optional page window)
+(defun pdf-view-desired-image-size (&optional page window slice)
   "Compute size of PAGE appropriate for displaying it in WINDOW.
-The returned size takes `pdf-view-current-slice' into account."
+SLICE is the slice of image that will be actually visible and
+default to `pdf-view-current-slice'."
   (let* ((pagesize (pdf-cache-pagesize
                     (or page (pdf-view-current-page window))))
-         (slice (pdf-view-get-slice window page))
+         (slice (or slice (pdf-view-get-slice window page)))
          (width-scale (/ (/ (float (window-body-width window t))
                             (or (nth 2 slice) 1.0))
                          (float (car pagesize))))
@@ -1840,32 +1841,32 @@ the selection styles."
 ;; * ================================================================== *
 
 (defun pdf-view-bookmark-make-record  (&optional no-page no-slice no-size no-origin)
-  ;; TODO: add NO-PAGE, NO-SLICE, NO-SIZE, NO-ORIGIN to the docstring.
   "Create a bookmark PDF record.
 
-The optional, boolean args exclude certain attributes."
-  (let ((win (or (car (cl-find-if #'windowp image-mode-winprops-alist
-                                  :key #'car-safe))
-                 t)))
+The optional, boolean args NO-PAGE, NO-SLICE, NO-SIZE, NO-ORIGIN exclude
+the corresponding attribute from the bookmark."
+  (let* ((win (or (car (cl-find-if #'windowp image-mode-winprops-alist
+                                   :key #'car-safe))
+                  t))
+         (page (pdf-view-current-page win)))
     `(,(buffer-name)
       ,@(bookmark-make-record-default
          nil t (point))
       (handler . pdf-view-bookmark-jump-handler)
-      (,@(unless no-page
-          (cons 'page (pdf-view-current-page win))))
+      (,@(unless no-page (cons 'page page)))
       (,@(unless no-slice
-         (cons 'slice (and win (pdf-view-current-slice win)))))
+           (cons 'slice (and win (pdf-view-current-slice win)))))
       (,@(unless no-size
-          (cons 'size pdf-view-display-size)))
+           (cons 'size pdf-view-display-size)))
       (,@(unless no-origin
-          (cons 'origin
-                (if-let ((origin (image-mode-window-get 'origin t)))
-                    (image-mode-window-get 'origin t)
-                  (let ((size (pdf-view-image-size t win)))
-                    `(,(/ (or (image-mode-window-get 'hscroll win) 0)
-                          (float (car size)))
-                      . ,(/ (or (image-mode-window-get 'vscroll win) 0)
-                            (float (cdr size))))))))))))
+           (cons 'origin
+                 (if-let ((origin (image-mode-window-get 'origin t)))
+                     (image-mode-window-get 'origin t)
+                   (let ((size (pdf-view-desired-image-size page win '(0 0 1 1))))
+                     `(,(/ (or (image-mode-window-get 'hscroll win) 0)
+                           (float (- (car size) )))
+                       . ,(/ (or (image-mode-window-get 'vscroll win) 0)
+                             (float (cdr size))))))))))))
 
 (defun pdf-view--restore-origin ()
   "Restore the `origin' obtained from a bookmark."
