@@ -135,6 +135,7 @@ The following Operating Systems / package managers are supported. *Note*: The pa
 - Ubuntu: https://packages.ubuntu.com/impish/elpa-pdf-tools-server
 - MSYS2 / MINGW (Windows): https://packages.msys2.org/package/mingw-w64-x86_64-emacs-pdf-tools-server?repo=mingw64
 - FreeBSD: https://repology.org/metapackages/?search=pdf-tools&inrepo=freebsd
+- GNU Guix: https://hpc.guix.info/package/emacs-pdf-tools
 
 *** Installing the epdfinfo server from source on Windows (+ Gotchas)
 :PROPERTIES:
