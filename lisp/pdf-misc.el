@@ -403,7 +403,7 @@ Extracts information from calling `pdffonts' utility on PDF document
           (remove ""
                  (split-string
                   (shell-command-to-string
-                   (concat "pdffonts " doc))
+                   (concat "pdffonts \"" doc "\""))
                   "\n")))
          (body (cddr raw))
          (pdffont-values nil))
