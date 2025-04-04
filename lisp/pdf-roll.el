@@ -238,7 +238,8 @@ It should be added to `pre-redisplay-functions' buffer locally."
     (let* ((state (alist-get win pdf-roll--state))
            (pscrolling (memq last-command
                              '( pixel-scroll-precision pixel-scroll-start-momentum
-                                pixel-scroll-interpolate-up pixel-scroll-interpolate-down)))
+                                pixel-scroll-interpolate-up pixel-scroll-interpolate-down
+                                ultra-scroll ultra-scroll-up ultra-scroll-down)))
            (page (progn (when pscrolling
                           (setf (pdf-view-current-page win)
                                 (/ (min (+ (window-start win) 5) (- (point-max) 4)) 4)))
