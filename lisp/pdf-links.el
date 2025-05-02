@@ -416,6 +416,7 @@ is non-nil assume link to be at mouse position."
           (set-window-buffer window buffer)
           (with-current-buffer buffer
             (erase-buffer)
+            (setq-local image-scaling-factor 1)
             (insert-image page nil nil
                           (pdf-util-scale slice (image-size page t) 'round))
             (setq mode-line-format nil
