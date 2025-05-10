@@ -1862,11 +1862,13 @@ the corresponding attribute from the bookmark."
            (cons 'origin
                  (if-let ((origin (image-mode-window-get 'origin t)))
                      (image-mode-window-get 'origin t)
-                   (let ((size (pdf-view-desired-image-size page win '(0 0 1 1))))
-                     `(,(/ (or (image-mode-window-get 'hscroll win) 0)
-                           (float (- (car size) )))
-                       . ,(/ (or (image-mode-window-get 'vscroll win) 0)
-                             (float (cdr size))))))))))))
+                   (if-let (((window-live-p win))
+                            (size (pdf-view-desired-image-size page win '(0 0 1 1))))
+                       `(,(/ (or (image-mode-window-get 'hscroll win) 0)
+                             (float (car size)))
+                         . ,(/ (or (image-mode-window-get 'vscroll win) 0)
+                               (float (cdr size))))
+                     `(0 . 0)))))))))
 
 (defun pdf-view--restore-origin ()
   "Restore the `origin' obtained from a bookmark."
