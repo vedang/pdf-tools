@@ -114,6 +114,7 @@ The following Operating Systems / package managers are supported. *Note*: The pa
 - macOS: ~brew~
 - Windows (MSYS2/ MingW): ~pacman~
 - NixOS: ~nix-shell~
+- GuixSystem: ~guix~
 - openSUSE (Tumbleweed and Leap): ~zypper~
 - Void Linux: ~xbps-install~
 - Apline Linux: ~apk~
