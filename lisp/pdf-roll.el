@@ -427,24 +427,24 @@ It erases the buffer and adds one line containing a space for each page."
     (delete-char -1)
     (set-buffer-modified-p nil)))
 
+(defvar pdf-view-roll-minor-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [remap pdf-view-previous-line-or-previous-page] 'pdf-roll-scroll-backward)
+    (define-key map [remap pdf-view-next-line-or-next-page] 'pdf-roll-scroll-forward)
+    (define-key map [remap pdf-view-scroll-down-or-previous-page] 'pdf-roll-scroll-screen-backward)
+    (define-key map [remap pdf-view-scroll-up-or-next-page] 'pdf-roll-scroll-screen-forward)
+    (define-key map [remap mouse-set-point] 'ignore)
+    (define-key map (kbd "S-<next>") 'pdf-roll-scroll-screen-forward)
+    (define-key map (kbd "S-<prior>") 'pdf-roll-scroll-screen-backward)
+    map))
+
 ;;;###autoload
 (define-minor-mode pdf-view-roll-minor-mode
   "If enabled display document on a virtual scroll providing continuous scrolling."
   :lighter " Continuous"
-  :keymap (let ((map (make-sparse-keymap)))
-            (define-key map [remap pdf-view-previous-line-or-previous-page] 'pdf-roll-scroll-backward)
-            (define-key map [remap pdf-view-next-line-or-next-page] 'pdf-roll-scroll-forward)
-            (define-key map [remap pdf-view-scroll-down-or-previous-page] 'pdf-roll-scroll-screen-backward)
-            (define-key map [remap pdf-view-scroll-up-or-next-page] 'pdf-roll-scroll-screen-forward)
-            (define-key map [remap mouse-set-point] 'ignore)
-            (define-key map (kbd "S-<next>") 'pdf-roll-scroll-screen-forward)
-            (define-key map (kbd "S-<prior>") 'pdf-roll-scroll-screen-backward)
-            map)
-  :version 28.1
 
   (cond (pdf-view-roll-minor-mode
-         (setq-local face-remapping-alist '((default . pdf-roll-default))
-                     mwheel-scroll-up-function #'pdf-roll-scroll-forward
+         (setq-local mwheel-scroll-up-function #'pdf-roll-scroll-forward
                      mwheel-scroll-down-function #'pdf-roll-scroll-backward)
 
          (setq-local pdf-view-posn-page-function #'pdf-roll-posn-page
@@ -454,6 +454,9 @@ It erases the buffer and adds one line containing a space for each page."
                      pdf-view-display-image-function #'pdf-roll-display-image
                      pdf-view-drag-region-function #'pdf-roll-drag-region
                      pdf-util-scroll-to-edges-function #'pdf-roll-scroll-to-edges)
+
+         (face-remap-set-base 'default 'pdf-roll-default)
+         (face-remap-set-base 'isearch 'default)
 
          (remove-hook 'window-configuration-change-hook 'image-mode-reapply-winprops t)
          (remove-hook 'window-configuration-change-hook 'pdf-view-redisplay-some-windows t)
