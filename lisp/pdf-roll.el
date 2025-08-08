@@ -114,21 +114,25 @@ top of EDGE is `next-screen-context-lines' down from the top the window."
 
 (defun pdf-roll-drag-region (pos region)
   "Scroll if POS and REGION have moved too close to the edge of the window."
-  (let* ((window (posn-window pos))
-         (margin (* next-screen-context-lines (frame-char-height)))
-         (y (cdr (posn-x-y pos)))
-         (dy (- y (nth 1 region))))
-    (cond
-     ((and (> dy 0) (< (- (window-text-height window t) y) margin))
-      (pdf-roll-scroll-forward
-       (min margin
-            (or (nth 3 (pos-visible-in-window-p (posn-point pos) window t)) 0))
-       nil t))
-     ((and (< dy 0) (< y  margin))
-      (pdf-roll-scroll-backward
-       (min margin
-            (or (nth 2 (pos-visible-in-window-p (posn-point pos) window t)) 0))
-       nil t)))))
+  (when-let ((window (posn-window pos))
+             ((windowp window)))
+    (let* ((window (posn-window pos))
+           (margin (* next-screen-context-lines (frame-char-height)))
+           (posspec (pos-visible-in-window-p (posn-point pos) window t))
+           (y (cdr (posn-x-y pos)))
+           (top (or (nth 2 posspec) 0))
+           (dy (- (+ y top) (nth 1 region))))
+      (cond
+       ((and (> dy 0) (< (- (window-text-height window t) y top) margin))
+        (pdf-roll-scroll-forward
+         (min margin
+              (or (nth 3 posspec) 0))
+         nil t))
+       ((and (< dy 0) (< y  margin))
+        (pdf-roll-scroll-backward
+         (min margin
+              (or (nth 2 posspec) 0))
+         nil t))))))
 
 ;;; Displaying/Undisplaying pages
 (defun pdf-roll--flush-spec (spec)
