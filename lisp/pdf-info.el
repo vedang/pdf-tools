@@ -572,6 +572,8 @@ interrupted."
            (cl-case key
              ((:render/printed)
               (setq value (equal value "1")))
+             ((:render/gammabeforeinvert)
+              (setq value (equal value "1")))
              ((:render/usecolors)
               (setq value (ignore-errors
                             (let ((int-val (cl-parse-integer value)))
@@ -1733,6 +1735,8 @@ Returns a list \(LEFT TOP RIGHT BOT\)."
              (push (pdf-util-hexcolor value)
                    soptions))
             ((:render/printed)
+             (push (if value 1 0) soptions))
+            ((:render/gammabeforeinvert)
              (push (if value 1 0) soptions))
             ((:render/usecolors)
              ;; 0 -> original color

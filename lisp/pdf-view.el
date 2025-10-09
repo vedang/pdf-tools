@@ -132,6 +132,29 @@ Nevertheless, this seems to work well in most cases."
   :group 'pdf-view
   :type 'boolean)
 
+(defcustom pdf-view-midnight-gamma 1.0
+  "In midnight mode, nonlinearly scale lightness.
+
+Values less than 1 increase lightness, values more than 1 decrease
+lightness (unless `pdf-view-midnight-gamma-before-invert' is non-nil, in
+which reverses the effect direction)."
+  :group 'pdf-view
+  :type 'float)
+
+(defcustom pdf-view-midnight-gamma-before-invert nil
+  "In midnight mode, whether to scale lightness before inverting.
+
+If non-nil, this inverts the direction of the effect of
+`pdf-view-midnight-gamma', i.e. values more than 1 increase lightness
+instead of decreasing it. This option is provided because it results in
+different behaviors near the ends of the lightness scale. For example,
+if this option is nil (the default), then a gamma values less than 1
+significantly lighten colors very close to black. One gets a less
+extreme effect by setting this option to non-nil and using gamma values
+greater than 1."
+  :group 'pdf-view
+  :type 'boolean)
+
 (defcustom pdf-view-change-page-hook nil
   "Hook run after changing to another page, but before displaying it.
 
@@ -1283,6 +1306,8 @@ The colors are determined by the variable
                   (pdf-info-setoptions
                    :render/foreground (or (car pdf-view-midnight-colors) "black")
                    :render/background (or (cdr pdf-view-midnight-colors) "white")
+                   :render/gamma pdf-view-midnight-gamma
+                   :render/gammabeforeinvert pdf-view-midnight-gamma-before-invert
                    :render/usecolors
                    (if pdf-view-midnight-invert
                        ;; If midnight invert is enabled, pass "2" indicating

@@ -469,7 +469,8 @@ static inline gboolean color_equal(struct color a, struct color b)
 
 static void
 image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
-               const PopplerColor * bg, int usecolors)
+               const PopplerColor * bg, int usecolors,
+               double gamma, int gammabeforeinvert)
 {
   /* Performs one of two kinds of image recoloring depending on the value of usecolors:
 
@@ -529,9 +530,9 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
               {
                 /* Careful. data color components blue, green, red. */
                 struct color rgb = {
-                  .r = (double) data[2] / 256.,
-                  .g = (double) data[1] / 256.,
-                  .b = (double) data[0] / 256.
+                  .r = (double) data[2] / 255.,
+                  .g = (double) data[1] / 255.,
+                  .b = (double) data[0] / 255.
                 };
 
                 /* Linear interpolation between bg and fg based on the
@@ -557,14 +558,13 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
            white->background and black->foreground and have a single entry cache to
            speed up computation */
         const struct color white = {.r = 1.0, .g = 1.0, .b = 1.0};
+        const struct color black = {.r = 0.0, .g = 0.0, .b = 0.0};
         struct color precomputed_rgb = white;
         struct color precomputed_inv_rgb = rgb_bg;
 
         /* Must match the transformation of colors below. */
         struct color oklab_fg = rgb2oklab(rgb_fg);
         struct color oklab_bg = rgb2oklab(rgb_bg);
-
-        const double oklab_diff_l = oklab_fg.l - oklab_bg.l;
 
         unsigned int y;
         for (y = 0; y < page_height * rowstride; y += rowstride)
@@ -576,9 +576,9 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
               {
                 /* Careful. data color components blue, green, red. */
                 struct color rgb = {
-                  .r = (double) data[2] / 256.,
-                  .g = (double) data[1] / 256.,
-                  .b = (double) data[0] / 256.
+                  .r = (double) data[2] / 255.,
+                  .g = (double) data[1] / 255.,
+                  .b = (double) data[0] / 255.
                 };
 
                 /* Convert to Oklab coordinates, invert perceived lightness,
@@ -586,6 +586,10 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
                 if (color_equal(white, rgb))
                   {
                     rgb = rgb_bg;
+                  }
+                else if (color_equal(black, rgb))
+                  {
+                    rgb = rgb_fg;
                   }
                 else if (color_equal(precomputed_rgb, rgb))
                   {
@@ -599,7 +603,20 @@ image_recolor (cairo_surface_t * surface, const PopplerColor * fg,
                     /* Invert the perceived lightness, and scales it */
                     double l = oklab.l;
                     double inv_l = 1.0 - l;
-                    oklab.l = oklab_bg.l + oklab_diff_l * inv_l;
+
+                    /* Nonlinearly scale lightness */
+                    if (gammabeforeinvert)
+                      {
+                        l = pow(l, gamma);
+                        inv_l = 1.0 - l;
+                      }
+                    else
+                      {
+                        inv_l = pow(inv_l, gamma);
+                        l = 1.0 - inv_l;
+                      }
+
+                    oklab.l = oklab_bg.l * l + oklab_fg.l * inv_l;
 
                     /* Have a and b parameters (which encode hue and saturation)
                        start at the background value and interpolate up to
@@ -692,7 +709,8 @@ image_render_page(PopplerDocument *pdf, PopplerPage *page,
   cairo_paint (cr);
 
   if (options && (options->usecolors))
-    image_recolor (surface, &options->fg, &options->bg, options->usecolors);
+    image_recolor (surface, &options->fg, &options->bg, options->usecolors,
+                   options->gamma, options->gammabeforeinvert);
 
   cairo_destroy (cr);
 
@@ -1105,6 +1123,15 @@ command_arg_parse_arg (const epdfinfo_t *ctx, const char *arg,
                      error_msg, "Expected 0 or 1:%s", arg);
       cmd_arg->value.flag = *arg == '1';
       break;
+    case ARG_DOUBLE:
+      {
+        char *endptr;
+        double n = strtod (arg, &endptr);
+        cerror_if_not (! (*endptr),
+                       error_msg, "Expected double (floating point): %s", arg);
+        cmd_arg->value.scalar = n;
+      }
+      break;
     case ARG_NONEMPTY_STRING:
       cerror_if_not (*arg, error_msg, "Non-empty string expected");
       /* fall through */
@@ -1246,6 +1273,9 @@ command_arg_print(const command_arg_t *arg)
     case ARG_BOOL:
       printf ("%d", arg->value.flag ? 1 : 0);
       break;
+    case ARG_DOUBLE:
+      printf ("%f", arg->value.scalar);
+      break;
     case ARG_NONEMPTY_STRING:   /* fall */
     case ARG_STRING:
       print_response_string (arg->value.string, NONE);
@@ -1297,6 +1327,7 @@ command_arg_type_size(command_arg_type_t type)
     case ARG_INVALID: return 0;
     case ARG_DOC: return sizeof (arg.value.doc);
     case ARG_BOOL: return sizeof (arg.value.flag);
+    case ARG_DOUBLE: return sizeof (arg.value.scalar);
     case ARG_NONEMPTY_STRING:   /* fall */
     case ARG_STRING: return sizeof (arg.value.string);
     case ARG_NATNUM: return sizeof (arg.value.natnum);
@@ -3653,6 +3684,8 @@ const document_option_t document_options [] =
     DEC_DOPT (":render/printed", ARG_BOOL, render.printed),
     DEC_DOPT (":render/foreground", ARG_COLOR, render.fg),
     DEC_DOPT (":render/background", ARG_COLOR, render.bg),
+    DEC_DOPT (":render/gamma", ARG_DOUBLE, render.gamma),
+    DEC_DOPT (":render/gammabeforeinvert", ARG_BOOL, render.gammabeforeinvert),
   };
 
 const command_arg_type_t cmd_getoptions_spec[] =
