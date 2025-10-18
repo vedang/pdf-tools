@@ -496,7 +496,7 @@ point to the correct position."
                         (pdf-sync--propertize-translation
                          string
                          (cdr (assq (aref string 0)
-                                   translation))))
+                                    translation))))
                    string)))
             words
             (windex -1)
@@ -729,15 +729,15 @@ and Y2 may be nil, if the destination could not be found."
            (sfilename (pdf-sync-synctex-file-name
                        (buffer-file-name) pdf)))
       (cons pdf
-	    (condition-case error
-	        (let-alist (pdf-info-synctex-forward-search
-			    (or sfilename
-			        (buffer-file-name))
-			    line column pdf)
-		  (cons .page .edges))
-	      (error
-	       (message "%s" (error-message-string error))
-	       (list nil nil nil nil nil)))))))
+	   (condition-case error
+	       (let-alist (pdf-info-synctex-forward-search
+			 (or sfilename
+			     (buffer-file-name))
+			 line column pdf)
+		(cons .page .edges))
+	     (error
+	      (message "%s" (error-message-string error))
+	      (list nil nil nil nil nil)))))))
 
 (defun pdf-sync--forward-highlight (edges page)
   "Temporarily highlight EDGES on PAGE."
@@ -825,18 +825,6 @@ and Y2 may be nil, if the destination could not be found."
     (when current (push current res))
     (reverse res)))
 
-(defun pdf-sync--forward-relatives-edges (&optional pos)
-  "Return the list of edges for POS obtain from synctex."
-  (when-let* ((records (pdf-sync--forward-get-records pos))
-              (buffer (find-buffer-visiting (car records))))
-    (with-current-buffer buffer
-      (dolist (rec (cdr records))
-        (let ((height (cdr (pdf-cache-pagesize (car rec)))))
-          (setf (nth 1 rec) (/ (nth 1 rec) height))
-          (setf (nth 2 rec) (/ (nth 2 rec) height)))))
-    (cl-callf pdf-sync--forward-merge-rectangles (cdr records))
-    records))
-
 (defun pdf-sync--forward-get-edges-text (page-edges)
   "Return text corresponding to PAGE-EDGES (a cons cell (PAGE . EDGES))."
   (let* ((page (car page-edges))
@@ -850,14 +838,22 @@ and Y2 may be nil, if the destination could not be found."
                 text)
      'page page)))
 
-(defun pdf-sync--forward-get-text (records)
-  "Get the text for RECORDS obtained from `pdf-sync--get-records'."
-  (when-let* ((buf (find-buffer-visiting (car records)))
-              (edges (cdr records)))
-    (with-current-buffer buf
-      `(,buf
+(defun pdf-sync--forward-get-text (&optional pos)
+  "Get the text for edges around POS obtained from synctex."
+  (when-let* ((records (pdf-sync--forward-get-records pos))
+              (pdf (car records))
+              (buffer (or (find-buffer-visiting pdf)
+                          (find-file-noselect pdf)))
+              (rectangles (cdr records)))
+    (with-current-buffer buffer
+      (dolist (rec rectangles)
+        (let ((height (cdr (pdf-cache-pagesize (car rec)))))
+          (setf (nth 1 rec) (/ (nth 1 rec) height))
+          (setf (nth 2 rec) (/ (nth 2 rec) height))))
+      (cl-callf pdf-sync--forward-merge-rectangles rectangles)
+      `(,buffer
         . ,(nth 2 (pdf-sync-backward--tokenize
-                   (mapconcat #'pdf-sync--forward-get-edges-text edges "")
+                   (mapconcat #'pdf-sync--forward-get-edges-text rectangles "")
                    nil
                    pdf-sync-backward-text-flush-regexp
                    pdf-sync-backward-text-translations))))))
@@ -944,8 +940,7 @@ to do that we rely on the executable."
                   pos)))
     (cl-destructuring-bind (windex _ swords)
         (pdf-sync--forward-get-source-context pos)
-      (let* ((buf-words (pdf-sync--forward-get-text
-                         (pdf-sync--forward-relatives-edges pos)))
+      (let* ((buf-words (pdf-sync--forward-get-text pos))
              (words (cdr buf-words))
              (alignment (pdf-util-seq-alignment
                          swords words #'pdf-sync--similarity-function 'infix)))
