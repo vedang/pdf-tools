@@ -124,15 +124,9 @@ top of EDGE is `next-screen-context-lines' down from the top the window."
            (dy (- (+ y top) (nth 1 region))))
       (cond
        ((and (> dy 0) (< (- (window-text-height window t) y top) margin))
-        (pdf-roll-scroll-forward
-         (min margin
-              (or (nth 3 posspec) 0))
-         nil t))
+        (pdf-roll-scroll-forward (min margin (or (nth 3 posspec) 0)) nil t))
        ((and (< dy 0) (< y  margin))
-        (pdf-roll-scroll-backward
-         (min margin
-              (or (nth 2 posspec) 0))
-         nil t))))))
+        (pdf-roll-scroll-backward (min margin top) nil t))))))
 
 ;;; Displaying/Undisplaying pages
 (defun pdf-roll--flush-spec (spec)
@@ -142,21 +136,19 @@ top of EDGE is `next-screen-context-lines' down from the top the window."
   (when (imagep spec)
     (image-flush spec)))
 
-(defun pdf-roll-maybe-slice-image (image &optional page window inhibit-slice-p)
-  "Return a sliced IMAGE if `pdf-view-current-slice' in WINDOW is non-nil.
-If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'. IMAGE
-should be for PAGE."
-  (if-let ((slice (pdf-view-get-slice window page))
-           ((not inhibit-slice-p)))
-      `((slice . ,(pdf-util-scale slice (image-size image t) 'round)) ,image)
-    image))
-
-(defun pdf-roll-display-image (image page &optional window inhibit-slice-p)
-  "Display IMAGE for PAGE in WINDOW.
+(defun pdf-roll-display-image (image page &optional window inhibit-slice-p size)
+  "Display IMAGE for PAGE of SIZE in WINDOW.
 If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
   (let* ((window (or window (selected-window)))
-         (image (pdf-roll-maybe-slice-image image page window inhibit-slice-p))
-         (size (image-display-size image t))
+         (slice (and (not inhibit-slice-p ) (pdf-view-get-slice window page)))
+         (size (or size (image-size image t)))
+         (slice (and slice (pdf-util-scale slice size 'round)))
+         (image (if slice
+                    `((slice . ,slice) ,image)
+                  image))
+         (size (if slice
+                   `(,(nth 2 slice) . ,(nth 3 slice))
+                 size))
          (overlay (pdf-roll-page-overlay page window))
          (margin-pos (+ (pdf-roll-page-to-pos page) 2))
          (margin-overlay (pdf-roll--pos-overlay margin-pos window 'pdf-roll-margin))
@@ -165,6 +157,7 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
     (pdf-roll--flush-spec (overlay-get overlay 'display))
     (overlay-put overlay 'display image)
     (overlay-put overlay 'line-prefix offset)
+    (overlay-put overlay 'image-height (cdr size))
     (overlay-put margin-overlay 'display `(space :width (,(car size))
                                                  :height (pdf-roll-vertical-margin)))
     (overlay-put margin-overlay 'line-prefix offset)
@@ -173,10 +166,14 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
 (defun pdf-roll-display-page (page window &optional force)
   "Display PAGE in WINDOW.
 With FORCE non-nil display fetch page again even if it is already displayed."
-  (let* ((display (overlay-get (pdf-roll-page-overlay page window) 'display)))
+  (let* ((overlay (pdf-roll-page-overlay page window))
+         (display (overlay-get overlay 'display)))
     (if (or force (not display) (eq (car display) 'space))
-        (pdf-roll-display-image (pdf-view-create-page page window) page window)
-      (cdr (image-display-size display t)))))
+        (let ((size (pdf-view-desired-image-size page window)))
+          (pdf-roll-display-image (pdf-view-create-page page window size)
+                                  page window nil size))
+      (or (overlay-get overlay 'image-height)
+          (cdr (image-display-size display t))))))
 
 (defun pdf-roll-display-pages (page &optional window force)
   "Display pages to fill the WINDOW starting from PAGE.
