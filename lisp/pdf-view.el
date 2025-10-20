@@ -1183,9 +1183,9 @@ See also `pdf-view-use-imagemagick'."
                           (= (pdf-util-frame-scale-factor) 2))
                  (list :data-2x ,image-data)))))))
 
-(defun pdf-view-create-page (page &optional window)
-  "Create an image of PAGE for display on WINDOW."
-  (let* ((size (pdf-view-desired-image-size page window))
+(defun pdf-view-create-page (page &optional window size)
+  "Create an image of PAGE of SIZE for display on WINDOW."
+  (let* ((size (or size (pdf-view-desired-image-size page window)))
          (data (pdf-cache-renderpage
                 page (car size)
                 (if pdf-view-use-scaling
@@ -1197,6 +1197,7 @@ See also `pdf-view-use-imagemagick'."
       :width (car size)
       :rotation (or pdf-view--current-rotation 0)
       :map hotspots
+      :original-map t
       :pointer 'arrow)))
 
 
