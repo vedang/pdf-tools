@@ -1126,7 +1126,7 @@ See also `pdf-view-use-imagemagick'."
       :width (car size)
       :rotation (or pdf-view--current-rotation 0)
       :map hotspots
-      :original-map t
+      :original-map hotspots
       :pointer 'arrow)))
 
 
