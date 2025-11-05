@@ -271,7 +271,7 @@ regarding display of the region in the later function.")
 (defvar pdf-view-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map image-mode-map)
-    (define-key map (kbd "Q")         'kill-this-buffer)
+    (define-key map (kbd "Q")         'kill-current-buffer)
     ;; Navigation in the document
     (define-key map (kbd "n")         'pdf-view-next-page-command)
     (define-key map (kbd "p")         'pdf-view-previous-page-command)
