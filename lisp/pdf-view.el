@@ -212,6 +212,16 @@ Must be one of `glyph', `word', or `line'."
                  (const word)
                  (const line)))
 
+(defcustom pdf-view-mode-line-position-prefix "P"
+  "Prefix for page number shown in the mode line."
+  :group 'pdf-view
+  :type 'string)
+
+(defcustom pdf-view-mode-line-position-use-labels nil
+  "Whether current page should come from page labels."
+  :group 'pdf-view
+  :type 'boolean)
+
 
 ;; * ================================================================== *
 ;; * Internal variables and macros
@@ -388,7 +398,13 @@ PNG images in Emacs buffers."
 
   ;; Setup other local variables.
   (setq-local mode-line-position
-              '(" P" (:eval (number-to-string (pdf-view-current-page)))
+              '(" " pdf-view-mode-line-position-prefix
+                ;; Show page label when enabled and available,
+                ;; otherwise show numeric page. Guard against errors.
+                (:eval
+                 (or (and pdf-view-mode-line-position-use-labels
+                          (ignore-errors (pdf-view-current-pagelabel)))
+                     (number-to-string (pdf-view-current-page))))
                 ;; Avoid errors during redisplay.
                 "/" (:eval (or (ignore-errors
                                  (number-to-string (pdf-cache-number-of-pages)))
