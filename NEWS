@@ -4,11 +4,45 @@
 - Allow creation of markup annotations without a text selection @astoff #191
   + This means that you can now highlight an exact region, for example on OCR PDFs! Just select the region by holding down the Meta key and dragging the mouse. Then invoke ~pdf-annot-add-highlight-markup-annotation~ (with ~C-c C-a h~) and voila!
   + Please note that *only the highlight markup annotation* is supported on rectangular regions.
+- Add option to display page labels in mode line @rafaelbeirigo #331
+  + PDFs with custom page labels (Roman numerals, section numbering) can now show these labels in the mode-line. Enable with ~pdf-view-mode-line-position-use-labels~.
+- Add ~pdf-metadata-buffer-mode~ for the metadata buffer @aidan-hall #305
+  + The metadata buffer now has its own major mode derived from ~special-mode~, allowing you to press ~q~ to close it.
+- Add horizontal scrolling support via mouse wheel @aikrahguzar #234
+  + ~mwheel-scroll-left-function~ and ~mwheel-scroll-right-function~ are now properly set in ~pdf-view-mode~.
+- Allow ~scroll-other-window~ to work in pdf-view buffers @whatacold #280
+  + You can now scroll a PDF buffer from another window using ~C-M-v~ and ~C-M-S-v~.
+- Add gamma correction option to midnight mode @vizziv #329
+  + New customization options for gamma correction to improve contrast of colorful text in midnight mode. Also fixes a color conversion bug (dividing by 256 instead of 255).
 
 ** Functionality improvements and fixes
 - Allow setting ~selection-style~ via the Easy Menu @astoff #190
 - Improve the experience of editing Annotations @astoff #192
 - Enable ~pdf-view-dark-minor-mode~ automatically if the current Emacs theme is dark #166
+- Fix: Use ~kill-current-buffer~ instead of deprecated ~kill-this-buffer~ @michaelmhoffman #330
+  + Fixes keybinding issue in Emacs 30. Closes #287.
+- Fix: Use absolute line number in ~pdf-sync-forward-correlate~ @haselwarter #222
+  + Forward sync now works correctly in narrowed buffers.
+- Fix: Support pdf-buffer bookmarks in workspace managers @aikrahguzar #188
+  + Bookmark restoration no longer assumes the buffer is displayed, fixing errors with workspace managers like ~activities.el~, ~burly.el~, and ~tabspaces.el~.
+- Fix: Suppress errors when scrolling past document boundaries with ~C-n~ / ~C-p~ @benthamite #303
+  + ~pdf-view-next-line-or-next-page~ and ~pdf-view-previous-line-or-previous-page~ no longer throw errors at document boundaries when ~debug-on-error~ is enabled.
+- Fix: Set slice to common bounding box across all pages @tpapp #326
+  + ~pdf-view-set-slice-from-bounding-box~ now computes the bounding box from all pages, not just the current page. Closes #325.
+- Fix: Annotation sync error "No such annotation" @bramadams #260
+  + Refreshes annotations on the current page to keep buffer and file in sync. Closes #246.
+
+** Installation and platform compatibility improvements
+- Add support for MSYS2 UCRT64 environment on Windows @legends2k #308
+  + UCRT64 is the recommended default MSYS2 environment. This change adds proper detection and fixes build issues with GCC 14+. Closes #282, #286.
+- Fix: Replace deprecated ~tempnam~ with ~mkstemp~ / ~_tempnam~ @wyuenho #309
+  + Uses platform-appropriate secure temp file creation. Closes #110.
+- Add support for Android Emacs using Termux @johanwiden #230
+  + ~pdf-tools-install~ now works on Android Emacs via Termux. Note: This is not an officially supported platform, and touchscreen gestures have limitations.
+- Add support for Nobara Linux (Fedora derivative) @gs-101 #301
+- Add GNU Guix installation instructions to README @bird-dancer #315
+- Update README with clearer installation prerequisites @CalumFreeman #289
+- Add Makefile target to generate autoloads @Thaodan #238
 
 * Version 1.1.0
 ** New functionality to improve overall user experience
