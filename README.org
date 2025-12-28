@@ -289,15 +289,16 @@ Note that ~pdf-tools~ renders the PDF as images inside Emacs. This means that al
 :CREATED:  [2021-12-30 Thu 18:33]
 :ID:       73a18ea8-aa21-48d4-9d8b-dc64e3601000
 :END:
-| Display                                  |                 |
-|------------------------------------------+-----------------|
-| Zoom in / Zoom out                       | ~+~ / ~-~       |
-| Fit Height / Fit Width / Fit Page        | ~H~ / ~W~ / ~P~ |
-| Trim Margins (set slice to bounding box) | ~s b~           |
-| Reset Margins                            | ~s r~           |
-| Reset Zoom                               | ~0~             |
-| Rotate Page                              | ~R~             |
-|------------------------------------------+-----------------|
+| Display                                          |                 |
+|--------------------------------------------------+-----------------|
+| Zoom in / Zoom out                               | ~+~ / ~-~       |
+| Fit Height / Fit Width / Fit Page                | ~H~ / ~W~ / ~P~ |
+| Trim Margins (set slice to bounding box)         | ~s b~           |
+| Trim Margins to common bounding box of all pages | ~s c~           |
+| Reset Margins                                    | ~s r~           |
+| Reset Zoom                                       | ~0~             |
+| Rotate Page                                      | ~R~             |
+|--------------------------------------------------+-----------------|
 
 ** Annotations
 :PROPERTIES:

@@ -32,6 +32,7 @@
 (require 'jka-compr)
 (require 'bookmark)
 (require 'password-cache)
+(require 'cl-macs)
 
 (declare-function cua-copy-region "cua-base")
 (declare-function pdf-tools-pdf-buffer-p "pdf-tools")
@@ -308,6 +309,7 @@ regarding display of the region in the later function.")
     (define-key map (kbd "s m")       'pdf-view-set-slice-using-mouse)
     (define-key map (kbd "s b")       'pdf-view-set-slice-from-bounding-box)
     (define-key map (kbd "s r")       'pdf-view-reset-slice)
+    (define-key map (kbd "s c")       'pdf-view-set-slice-common-bounding-box)
     ;; Rotation.
     (define-key map (kbd "R")              #'pdf-view-rotate)
     ;; Reconvert
@@ -928,6 +930,14 @@ dragging it to its bottom-right corner.  See also
             (cons (/ 1.0 (float (car size)))
                   (/ 1.0 (float (cdr size))))))))
 
+(defun pdf-view--bounding-box-to-slice (bb)
+  "Convert a '(LEFT TOP RIGHT BOTTOM) bounding box to '(X Y WIDTH HEIGHT), the format accepted by `pdf-view-set-slice'."
+  (let* ((margin (max 0 (or pdf-view-bounding-box-margin 0)))
+         (halfmargin (/ margin 2)))
+    (cl-destructuring-bind (left top right bottom) bb
+      (list (- left halfmargin) (- top halfmargin)
+            (+ (- right left) margin) (+ (- bottom top) margin)))))
+
 (defun pdf-view-set-slice-from-bounding-box (&optional window)
   "Set the slice from the page's bounding-box.
 
@@ -940,17 +950,37 @@ much more accurate than could be done manually using
 See also `pdf-view-bounding-box-margin'."
   (interactive)
   (let* ((bb (pdf-cache-boundingbox (pdf-view-current-page window)))
-         (margin (max 0 (or pdf-view-bounding-box-margin 0)))
-         (slice (list (- (nth 0 bb)
-                         (/ margin 2.0))
-                      (- (nth 1 bb)
-                         (/ margin 2.0))
-                      (+ (- (nth 2 bb) (nth 0 bb))
-                         margin)
-                      (+ (- (nth 3 bb) (nth 1 bb))
-                         margin))))
+         (slice (pdf-view--bounding-box-to-slice bb)))
     (apply 'pdf-view-set-slice
            (append slice (and window (list window))))))
+
+(defun pdf-document-common-bounding-box (&optional file-or-buffer)
+  "Return the common bounding for all pages in document FILE-OR-BUFFER, as '(LEFT TOP RIGHT BOTTOM)."
+  (let ((left 1.0)
+        (top 1.0)
+        (right 0.0)
+        (bottom 0.0))
+    (dotimes (i (pdf-info-number-of-pages file-or-buffer))
+      (cl-destructuring-bind (b-left b-top b-right b-bottom) (pdf-info-boundingbox (1+ i) file-or-buffer)
+        (setq left (min left b-left)
+              top (min top b-top)
+              right (max right b-right)
+              bottom (max bottom b-bottom))))
+    (list left top right bottom)))
+
+(defun pdf-view-set-slice-common-bounding-box (&optional window)
+  "Set the slice from the common bounding box, combined from all pages.
+
+The bounding box is calculated using the document in WINDOW, which defaults to `selected-window`.
+
+A margin is added from `pdf-view-bounding-box-margin'."
+  (interactive)
+  (let* ((bb (pdf-document-common-bounding-box))
+         (slice (pdf-view--bounding-box-to-slice bb)))
+    (when window
+      (push slice window))
+    (message (prin1-to-string slice))
+    (apply 'pdf-view-set-slice slice)))
 
 (defun pdf-view-reset-slice (&optional window)
   "Reset the current slice and redisplay WINDOW.
