@@ -670,7 +670,7 @@ Returns a list \(PDF PAGE X1 Y1 X2 Y2\), where PAGE, X1, Y1, X2
 and Y2 may be nil, if the destination could not be found."
   (unless (fboundp 'TeX-master-file)
     (error "This function works only with AUCTeX"))
-  (unless line (setq line (line-number-at-pos)))
+  (unless line (setq line (line-number-at-pos nil t)))
   (unless column (setq column (current-column)))
 
   (let* ((pdf (expand-file-name
