@@ -165,6 +165,7 @@ typedef enum
     ARG_INVALID = 0,
     ARG_DOC,
     ARG_BOOL,
+    ARG_DOUBLE,
     ARG_STRING,
     ARG_NONEMPTY_STRING,
     ARG_NATNUM,
@@ -188,6 +189,8 @@ typedef struct
   PopplerColor bg, fg;
   gboolean usecolors;
   gboolean printed;
+  gboolean gammabeforeinvert;
+  gdouble gamma;
 } render_options_t;
 
 typedef struct
@@ -214,6 +217,7 @@ typedef struct
   union
   {
     gboolean flag;
+    gdouble scalar;
     const char *string;
     long natnum;
     document_t *doc;
