@@ -503,6 +503,30 @@ os_alpine() {
     return 0
 }
 
+# Nobara
+os_nobara() {
+    if ! [ -e "/etc/nobara-release" ]; then
+        return 1
+    fi
+    PKGCMD=dnf
+    PKGARGS=install
+    PACKAGES="autoconf
+              automake
+              gcc
+              libpng-devel
+              make
+              poppler-devel
+              poppler-glib-devel
+              zlib-devel"
+    VERSION=$(source_var /etc/os-release VERSION_ID)
+    if [ -n "$VERSION" ] && [ "$VERSION" -ge 26 ]; then
+        PACKAGES="$PACKAGES pkgconf"
+    else
+        PACKAGES="$PACKAGES pkgconfig"
+    fi
+    return 0
+}
+
 # By Parameter --os
 os_argument() {
     [ -z "$OS" ] && return 1
@@ -521,6 +545,7 @@ os_argument() {
         void)    os_void    "$@";;
         opensuse) os_opensuse "$@";;
         alpine)  os_alpine  "$@";;
+        nobara)  os_nobara  "$@";;
         *)       echo "Invalid --os argument: $OS"
                  exit 1
     esac || {
@@ -551,6 +576,7 @@ os_nixos    "$@" || \
 os_void     "$@" || \
 os_opensuse "$@" || \
 os_alpine   "$@" || \
+os_nobara   "$@" || \
 {
     OS_IS_HANDLED=
     if [ -z "$DRY_RUN" ]; then
