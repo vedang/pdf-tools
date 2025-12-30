@@ -800,7 +800,8 @@ unless the FILE-OR-BUFFER argument denotes a VPDF document."
                link
              `((edges .  ,(pdf-util-edges-transform region .edges t))
                ,@(pdf-virtual--transform-goto-dest link filename region)))))
-       (pdf-virtual--filter-edges region (car links) 'car)))))
+       (pdf-virtual--filter-edges region (car links)
+                                  (lambda (link) (cdr (assq 'edges link))))))))
 
 (pdf-virtual-define-adapter number-of-pages (&optional file-or-buffer)
   (pdf-info-compose-queries nil (pdf-virtual-document-number-of-pages)))
