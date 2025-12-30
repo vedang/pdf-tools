@@ -1843,21 +1843,22 @@ works only with bookmarks created by
       (pdf-view-bookmark-jump-handler bmk)
       (run-hooks 'bookmark-after-jump-hook))))
 
-(defun pdf-view-registerv-make ()
-  "Create a PDF register entry of the current position."
-  (registerv-make
-   (pdf-view-bookmark-make-record nil t t)
-   :print-func 'pdf-view-registerv-print-func
-   :jump-func 'pdf-view-bookmark-jump
-   :insert-func (lambda (bmk)
-                  (insert (format "%S" bmk)))))
+;; Register support using cl-defstruct (replaces obsolete registerv-make)
+(cl-defstruct (pdf-view-register
+               (:constructor nil)
+               (:constructor pdf-view-register--make (bookmark))
+               (:copier nil))
+  "A PDF position register entry."
+  bookmark)
 
-(defun pdf-view-registerv-print-func (bmk)
-  "Print a textual representation of bookmark BMK.
+(cl-defmethod register-val-jump-to ((val pdf-view-register) _arg)
+  "Jump to the PDF position stored in VAL."
+  (pdf-view-bookmark-jump (pdf-view-register-bookmark val)))
 
-This function is used as the `:print-func' property with
-`registerv-make'."
-  (let* ((file (bookmark-prop-get bmk 'filename))
+(cl-defmethod register-val-describe ((val pdf-view-register) _verbose)
+  "Print a description of the PDF position stored in VAL."
+  (let* ((bmk (pdf-view-register-bookmark val))
+         (file (bookmark-prop-get bmk 'filename))
          (buffer (find-buffer-visiting file))
          (page (bookmark-prop-get bmk 'page))
          (origin (bookmark-prop-get bmk 'origin)))
@@ -1869,6 +1870,15 @@ This function is used as the `:print-func' property with
                    (if origin
                        (round (* 100 (cdr origin)))
                      0)))))
+
+(cl-defmethod register-val-insert ((val pdf-view-register))
+  "Insert the PDF bookmark stored in VAL."
+  (insert (format "%S" (pdf-view-register-bookmark val))))
+
+(defun pdf-view-registerv-make ()
+  "Create a PDF register entry of the current position."
+  (pdf-view-register--make
+   (pdf-view-bookmark-make-record nil t t)))
 
 (defmacro pdf-view-with-register-alist (&rest body)
   "Setup the proper binding for `register-alist' in BODY.
