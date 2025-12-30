@@ -980,7 +980,9 @@ dragging it to its bottom-right corner.  See also
                   (/ 1.0 (float (cdr size))))))))
 
 (defun pdf-view--bounding-box-to-slice (bb)
-  "Convert a '(LEFT TOP RIGHT BOTTOM) bounding box to '(X Y WIDTH HEIGHT), the format accepted by `pdf-view-set-slice'."
+  "Convert bounding box BB to slice format for `pdf-view-set-slice'.
+BB is a list (LEFT TOP RIGHT BOTTOM).
+Returns a list (X Y WIDTH HEIGHT)."
   (let* ((margin (max 0 (or pdf-view-bounding-box-margin 0)))
          (halfmargin (/ margin 2)))
     (cl-destructuring-bind (left top right bottom) bb
@@ -1004,7 +1006,8 @@ See also `pdf-view-bounding-box-margin'."
            (append slice (and window (list window))))))
 
 (defun pdf-document-common-bounding-box (&optional file-or-buffer)
-  "Return the common bounding for all pages in document FILE-OR-BUFFER, as '(LEFT TOP RIGHT BOTTOM)."
+  "Return the common bounding box for all pages in FILE-OR-BUFFER.
+Returns a list (LEFT TOP RIGHT BOTTOM)."
   (let ((left 1.0)
         (top 1.0)
         (right 0.0)
@@ -1018,10 +1021,9 @@ See also `pdf-view-bounding-box-margin'."
     (list left top right bottom)))
 
 (defun pdf-view-set-slice-common-bounding-box (&optional window)
-  "Set the slice from the common bounding box, combined from all pages.
+  "Set the slice from the common bounding box of all pages.
 
-The bounding box is calculated using the document in WINDOW, which defaults to `selected-window`.
-
+WINDOW specifies which document to use; defaults to `selected-window'.
 A margin is added from `pdf-view-bounding-box-margin'."
   (interactive)
   (let* ((bb (pdf-document-common-bounding-box))
