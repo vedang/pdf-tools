@@ -411,6 +411,11 @@ Once you have read through the features provided by ~pdf-tools~, you probably wa
 :END:
 This mode is an alternative to ~linum-mode~ and is available since Emacs 26. ~pdf-tools~ does not work well with it. For example, it makes horizontal navigation (such as ~C-f~, ~C-b~, ~C-x <~ or ~C-x >~ ) in a document impossible.
 
+If you use ~display-line-numbers-mode~ globally, you should disable it for ~pdf-view-mode~:
+#+begin_src elisp
+  (add-hook 'pdf-view-mode-hook (lambda () (display-line-numbers-mode -1)))
+#+end_src
+
 ** auto-revert
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:34]
@@ -649,3 +654,22 @@ If your Emacs is compiled for x86, the =Code Type= will be =x86_64=.
 :ID:       2D173424-C211-4474-B0D0-83F4381CAFFA
 :END:
 Thank you for taking the time to contribute back to the code. You may find some useful notes in the [[id:fd64c10c-4ea5-4ece-8d95-b723098dd4f6][Tips and Tricks for Developers]] section. Please be sure to check it out!
+
+** How do I print a PDF?
+:PROPERTIES:
+:CREATED:  [2024-12-30 Mon 20:00]
+:ID:       D5345C45-2EB7-45B3-B547-E95CB9F81155
+:END:
+Use ~C-c C-p~ (~pdf-misc-print-document~) to print the current PDF. By default, this command prompts for a print program. To avoid the prompt, configure the print program:
+#+begin_src elisp
+  (setq pdf-misc-print-program-executable "lpr")
+#+end_src
+
+Note: ~print-buffer~ does not work with ~pdf-tools~ because it prints buffer text, which ~pdf-tools~ hides using overlays while displaying rendered page images.
+
+** How do I open the current PDF in an external application?
+:PROPERTIES:
+:CREATED:  [2024-12-30 Mon 20:05]
+:ID:       11A36424-B728-4A8E-853E-3AE876E3C6CD
+:END:
+Use ~M-x browse-url-of-file~ to open the current PDF in your system's default external PDF viewer.
