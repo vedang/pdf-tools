@@ -36,6 +36,9 @@
 (declare-function pdf-view-image-offset "pdf-view")
 (declare-function pdf-cache-pagesize "pdf-cache")
 (declare-function pdf-view-image-type "pdf-view")
+(declare-function image-mode-window-get "image-mode")
+(declare-function image-set-window-vscroll "image-mode")
+(declare-function image-set-window-hscroll "image-mode")
 
 
 
