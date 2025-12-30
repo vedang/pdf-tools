@@ -95,10 +95,12 @@ exec_privileged() {
         retval=$?
         sudo -k
         return $retval
+    elif which doas >/dev/null 2>&1; then
+        doas -- "$@"
     elif which su >/dev/null 2>&1; then
         su -c "$(quote "$@")"
     else
-        echo "No such program: sudo or su"
+        echo "No such program: sudo, doas or su"
         exit 1
     fi
 }
