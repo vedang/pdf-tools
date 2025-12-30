@@ -51,6 +51,13 @@
 (require 'tq)
 (require 'cl-lib)
 
+;; Silence native-comp warnings about functions defined elsewhere
+(declare-function pdf-util-frame-scale-factor "pdf-util")
+(declare-function pdf-util-hexcolor "pdf-util")
+(declare-function pdf-util-munch-file "pdf-util")
+(declare-function pdf-util-highlight-regexp-in-string "pdf-util")
+(declare-function pdf-view-buffer-file-name "pdf-view")
+
 
 
 ;; * ================================================================== *
