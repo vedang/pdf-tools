@@ -1,5 +1,7 @@
 -*- org -*-
-* Version 1.2.0 (Under Development)
+* Version 1.3.0 (Under Development)
+
+* Version 1.2.0
 ** New functionality to improve overall user experience
 - Allow creation of markup annotations without a text selection @astoff #191
   + This means that you can now highlight an exact region, for example on OCR PDFs! Just select the region by holding down the Meta key and dragging the mouse. Then invoke ~pdf-annot-add-highlight-markup-annotation~ (with ~C-c C-a h~) and voila!
