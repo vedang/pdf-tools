@@ -378,7 +378,7 @@ os_msys2() {
             exit 1 ;;
     esac
     PKGCMD=pacman
-    PKGARGS="-S --needed"
+    PKGARGS="-S --needed --noconfirm"
     PKG_INSTALL_AS_ROOT=
     return 0
 }
