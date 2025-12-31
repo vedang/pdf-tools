@@ -34,6 +34,9 @@ The ~pdf-tools~ Wiki is maintained at https://pdftools.wiki. Head to the site if
     - [[#keybindings-for-miscellaneous-features-in-pdf-tools][Keybindings for miscellaneous features in PDF tools]]
   - [[#easy-help-for-pdf-tools-features][Easy Help for PDF Tools features]]
   - [[#configuring-pdf-tools-features][Configuring PDF Tools features]]
+- [[#related-packages][Related packages]]
+  - [[#pdf-tools-extending-packages][PDF Tools extending packages]]
+  - [[#other-document-view-packages][Other document view packages]]
 - [[#known-problems][Known problems]]
   - [[#linum-mode][linum-mode]]
   - [[#display-line-numbers-mode][display-line-numbers-mode]]
@@ -396,7 +399,7 @@ Once you have read through the features provided by ~pdf-tools~, you probably wa
 :ID:       06685ece-d8da-4b53-abe8-30ef34c62ecb
 :CREATED:  [2025-12-31 Wed 15:11]
 :END:
-** Extensions
+** PDF Tools extending packages
 :PROPERTIES:
 :ID:       017f3203-772e-4784-ba95-ac2c70ffbd33
 :CREATED:  [2025-12-31 Wed 15:30]
