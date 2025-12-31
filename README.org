@@ -391,6 +391,36 @@ Once you have read through the features provided by ~pdf-tools~, you probably wa
   M-x pdf-tools-customize RET
 #+end_src
 
+* Related packages
+:PROPERTIES:
+:ID:       06685ece-d8da-4b53-abe8-30ef34c62ecb
+:CREATED:  [2025-12-31 Wed 15:11]
+:END:
+** Extensions
+:PROPERTIES:
+:ID:       017f3203-772e-4784-ba95-ac2c70ffbd33
+:CREATED:  [2025-12-31 Wed 15:30]
+:END:
+Emacs packages which extend or complement PDF Tools.
+
+- [[https://github.com/fuxialexander/org-pdftools][org-pdftools]]: A custom org link type for pdf-tools.
+- [[https://github.com/emacsomancer/pdffontetc][PDF Fonts Etc.]]: An Emacs interface to pdffonts and other PDF metadata, formatted with org-mode, like an extended version of PDF Tools' ~pdf-misc-display-metadata~ command.
+- [[https://github.com/krisbalintona/pdf-meta-edit][pdf-meta-edit]]: An Emacs interface for display and easy modification of PDF metadata including the PDF title, bookmarks (i.e., outline), labels (document pagination), pagination style(s).
+- [[https://github.com/emacselements/pdf-tools-tweaks][pdf-tools-tweaks]]: Custom Emacs Lisp tweaks and bugfixes to improve PDF reading, annotation, and usability in pdf-tools. 
+
+** Other document view packages
+:PROPERTIES:
+:ID:       c9f6041d-52d8-4808-b82a-88b7e0d5951c
+:CREATED:  [2025-12-31 Wed 15:42]
+:END:
+Emacs packages providing related functionality, i.e., displaying document formats in Emacs.
+
+- [[https://depp.brause.cc/nov.el/][nov.el]]: Major mode for reading EPUBs in Emacs.
+  - [[https://github.com/chenyanming/nov-xwidget][nov-xwidget]]: extends nov.el with the built-in xwidget webkit (requires an Emacs compiled with xwidget support) to render the epub html/xhtml files with customised CSS styles or JavaScript.
+- [[https://github.com/bddean/emacs-ereader][emacs-ereader]]:  Epub reader for emacs with org-mode integration (not maintained; last updated in 2017) .
+- [[https://github.com/dalanicolai/image-roll.el][image-roll.el]]: An experimental virtual scroll engine for displaying books/documents in Emacs, for continuous scroll view of documents in Emacs; includes a fork of pdf-tools with a branch incorporating ~image-roll~ integration.
+- [[https://codeberg.org/divyaranjan/emacs-reader][Emacs Reader]]: A document reader in Emacs leveraging MuPDF (as opposed to Poppler, used by PDF Tools), supporting PDFs as well as other file formats including EPUB, MOBI, FB2, XPS, CBZ, thus being an alternative to ~doc-view~, ~nov.el~, ~pdf-tools~ [as of [2025-12-31 Wed] lacks the comparable text-selection, text-search, annotations functions of PDF Tools & nov.el].
+
 * Known problems
 :PROPERTIES:
 :CREATED:  [2021-12-29 Wed 18:29]
