@@ -560,30 +560,21 @@ operating on a local copy of a remote file."
 (defun pdf-view--write-contents-function ()
   "Function for `write-contents-functions' to save the buffer."
   (when (pdf-util-pdf-buffer-p)
-    (let ((tempfile (pdf-info-save pdf-view--server-file-name)))
+    (let ((tempfile (pdf-info-save pdf-view--server-file-name))
+          (inhibit-read-only t))
       (unwind-protect
           (progn
-            ;; Order matters here: We need to first copy the new
-            ;; content (tempfile) to the PDF, and then close the PDF.
+            ;; Order matters here: We need to first read the new
+            ;; content (tempfile) into the buffer, and then close the PDF.
             ;; Since while closing the file (and freeing its resources
             ;; in the process), it may be immediately reopened due to
             ;; redisplay happening inside the pdf-info-close function
             ;; (while waiting for a response from the process.).
-            (copy-file tempfile (or (buffer-file-name)
-                                    (read-file-name
-                                     "File name to save PDF to: "))
-                       t)
-            (pdf-info-close pdf-view--server-file-name)
-
-            (when pdf-view--buffer-file-name
-              (copy-file tempfile pdf-view--buffer-file-name t))
-            (clear-visited-file-modtime)
-            (set-buffer-modified-p nil)
-            (setq pdf-view--server-file-name
-                  (pdf-view-buffer-file-name))
-            t)
+            (insert-file-contents tempfile nil nil nil t)
+            (pdf-info-close pdf-view--server-file-name))
         (when (file-exists-p tempfile)
-          (delete-file tempfile))))))
+          (delete-file tempfile)))))
+  nil)
 
 (defun pdf-view--after-revert ()
   "Reload the local copy in case of a remote file, and close the document."
