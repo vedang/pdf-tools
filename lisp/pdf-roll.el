@@ -43,7 +43,9 @@
 (defcustom pdf-roll-margin-color "gray"
   "Background color of overlay, i.e. page separation color."
   :type 'color
-  :set (lambda (_ color) (put 'pdf-roll-margin 'face `(:background ,color))))
+  :set (lambda (sym color)
+         (set-default sym color)
+         (put 'pdf-roll-margin 'face `(:background ,color))))
 
 ;;; Variables
 (defvar pdf-roll--state nil
