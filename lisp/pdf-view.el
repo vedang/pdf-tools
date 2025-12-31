@@ -383,7 +383,11 @@ PNG images in Emacs buffers."
   (when (and (or jka-compr-really-do-compress
                  (let ((file-name-handler-alist nil))
                    (not (and buffer-file-name
-                             (file-readable-p buffer-file-name)))))
+                             (file-readable-p buffer-file-name)
+			     (or (not (boundp 'epa-inhibit))
+				 epa-inhibit
+				 (not (string-match epa-file-name-regexp
+						    buffer-file-name)))))))
              (pdf-tools-pdf-buffer-p))
     (let ((tempfile (pdf-util-make-temp-file)))
       (write-region nil nil tempfile nil 'no-message)
