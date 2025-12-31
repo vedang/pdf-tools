@@ -4,10 +4,10 @@
 #+Maintainer: Vedang Manerikar
 #+Maintainer_Email: vedang.manerikar@gmail.com
 
-[[https://app.circleci.com/pipelines/github/vedang/pdf-tools][https://circleci.com/gh/vedang/pdf-tools.svg?style=svg]]
+[[https://github.com/vedang/pdf-tools/actions/workflows/test.yml][https://github.com/vedang/pdf-tools/actions/workflows/test.yml/badge.svg]]
 [[https://elpa.nongnu.org/nongnu/pdf-tools.html][http://elpa.nongnu.org/nongnu/pdf-tools.svg]]
 [[https://stable.melpa.org/#/pdf-tools][http://stable.melpa.org/packages/pdf-tools-badge.svg]]
-[[https://melpa.org/#/pdf-tools][http://melpa.org/packages/pdf-tools-badge.svg]] [[https://ci.appveyor.com/project/vedang/pdf-tools][https://ci.appveyor.com/api/projects/status/yqic2san0wi7o5v8/branch/master?svg=true]]
+[[https://melpa.org/#/pdf-tools][http://melpa.org/packages/pdf-tools-badge.svg]]
 
 The ~pdf-tools~ Wiki is maintained at https://pdftools.wiki. Head to the site if you find it easier to navigate a website for reading a manual. All the topics on the site are listed at https://pdftools.wiki/impulse.
 
