@@ -28,6 +28,7 @@
 (require 'pdf-macs)
 (require 'cl-lib)
 (require 'format-spec)
+(require 'image-mode)
 (require 'faces)
 
 ;; These functions are only used after a PdfView window was asserted,
@@ -40,6 +41,7 @@
 (declare-function image-set-window-vscroll "image-mode")
 (declare-function image-set-window-hscroll "image-mode")
 
+(defvar pdf-view-roll-minor-mode)
 
 
 ;; * ================================================================== *
@@ -161,7 +163,7 @@ See also `pdf-util-scale'."
 
 The result depends on the currently displayed page in WINDOW.
 See also `pdf-util-scale'."
-  (pdf-util-assert-pdf-window window)
+  (when displayed-p (pdf-util-assert-pdf-window window))
   (pdf-util-scale-to
    list-of-pixel-edges
    (pdf-view-image-size displayed-p window)
@@ -314,15 +316,19 @@ depending on the input."
   "Return the visible region of the image in WINDOW.
 
 Returns a list of pixel edges."
-  (pdf-util-assert-pdf-window)
+  (when displayed-p (pdf-util-assert-pdf-window window))
   (let* ((edges (window-inside-pixel-edges window))
          (isize (pdf-view-image-size displayed-p window))
          (offset (if displayed-p
                      `(0 . 0)
                    (pdf-view-image-offset window)))
-         (hscroll (* (window-hscroll window)
+         (hscroll (* (if displayed-p
+                         (window-hscroll window)
+                       (or (image-mode-window-get 'hscroll window) 0))
                      (frame-char-width (window-frame window))))
-         (vscroll (window-vscroll window t))
+         (vscroll (if displayed-p
+                      (window-vscroll window t)
+                    (or (image-mode-window-get 'vscroll window) 0)))
          (x0 (+ hscroll (car offset)))
          (y0 (+ vscroll (cdr offset)))
          (x1 (min (car isize)
@@ -386,40 +392,46 @@ needed.
 Note: For versions of emacs before 27 this will return lines instead of
 pixels. This is because of a change that occurred to `image-mode' in 27."
   (pdf-util-assert-pdf-window)
-  (let* ((win (window-inside-pixel-edges))
-         (image-height (cdr (pdf-view-image-size t)))
-         (image-top (window-vscroll nil t))
-         (edges (pdf-util-translate
-                 edges
-                 (pdf-view-image-offset) t)))
-    (pdf-util-with-edges (win edges)
-      (let* ((context-pixel (or context-pixel
-                                (* next-screen-context-lines
-                                   (frame-char-height))))
-             ;;Be careful not to modify edges.
-             (edges-top (- edges-top context-pixel))
-             (edges-bot (+ edges-bot context-pixel))
-             (vscroll
-              (cond ((< edges-top image-top)
-                     (max 0 (if eager-p
-                                (- edges-bot win-height)
-                              edges-top)))
-                    ((> (min image-height
-                             edges-bot)
-                        (+ image-top win-height))
-                     (min (- image-height win-height)
-                          (if eager-p
-                              edges-top
-                            (- edges-bot win-height)))))))
+  (if pdf-view-roll-minor-mode
+      (max 0 (- (nth 1 edges)
+                (or context-pixel
+                    (* next-screen-context-lines (frame-char-height)))))
+    (let* ((win (window-inside-pixel-edges))
+           (image-height (cdr (pdf-view-image-size
+                               (unless pdf-view-roll-minor-mode
+                                 t))))
+           (image-top (window-vscroll nil t))
+           (edges (pdf-util-translate
+                   edges
+                   (pdf-view-image-offset) t)))
+      (pdf-util-with-edges (win edges)
+        (let* ((context-pixel (or context-pixel
+                                  (* next-screen-context-lines
+                                     (frame-char-height))))
+               ;;Be careful not to modify edges.
+               (edges-top (- edges-top context-pixel))
+               (edges-bot (+ edges-bot context-pixel))
+               (vscroll
+                (cond ((< edges-top image-top)
+                       (max 0 (if eager-p
+                                  (- edges-bot win-height)
+                                edges-top)))
+                      ((> (min image-height
+                               edges-bot)
+                          (+ image-top win-height))
+                       (min (- image-height win-height)
+                            (if eager-p
+                                edges-top
+                              (- edges-bot win-height)))))))
 
 
-        (when vscroll
-          (round
-           ;; `image-set-window-vscroll' changed in version 27 to using
-           ;; pixels, not lines.
-           (if (version< emacs-version "27")
-               (/ vscroll (float (frame-char-height)))
-               vscroll)))))))
+          (when vscroll
+            (round
+             ;; `image-set-window-vscroll' changed in version 27 to using
+             ;; pixels, not lines.
+             (if (version< emacs-version "27")
+                 (/ vscroll (float (frame-char-height)))
+               vscroll))))))))
 
 (defun pdf-util-scroll-to-edges (edges &optional eager-p)
   "Scroll window such that image EDGES are visible.
@@ -639,10 +651,9 @@ string."
                        (cdr (pdf-view-image-offset))
                        (window-vscroll nil t)
                        (frame-char-height))))
-    (when (overlay-get (pdf-view-current-overlay) 'before-string)
-      (let* ((e (window-inside-pixel-edges))
-             (xw (pdf-util-with-edges (e) e-width)))
-        (cl-incf dx (/ (- xw (car (pdf-view-image-size t))) 2))))
+    (let* ((e (window-inside-pixel-edges))
+           (xw (pdf-util-with-edges (e) e-width)))
+      (cl-incf dx (/ (- xw (car (pdf-view-image-size t))) 2)))
     (pdf-util-tooltip-in-window
      (propertize
       " " 'display (propertize
@@ -787,8 +798,8 @@ respective sequence."
 
   (cl-macrolet ((make-matrix (rows columns)
                   `(apply #'vector
-                          (cl-loop for i from 1 to ,rows
-                                   collect (make-vector ,columns nil))))
+                    (cl-loop for i from 1 to ,rows
+                             collect (make-vector ,columns nil))))
                 (mset (matrix row column newelt)
                   `(aset (aref ,matrix ,row) ,column ,newelt))
                 (mref (matrix row column)
@@ -803,21 +814,21 @@ respective sequence."
                                 (if (equal a b) 1 -1)))))
 
       (cl-loop for i from 0 to len1 do
-        (mset d i 0 (- i)))
+               (mset d i 0 (- i)))
       (cl-loop for j from 0 to len2 do
-        (mset d 0 j (if suffix-p 0 (- j))))
+               (mset d 0 j (if suffix-p 0 (- j))))
 
       (cl-loop for i from 1 to len1 do
-        (cl-loop for j from 1 to len2 do
-          (let ((max (max
-                      (1- (mref d (1- i) j))
-                      (+ (mref d i (1- j))
-                         (if (and prefix-p (= i len1)) 0 -1))
-                      (+ (mref d (1- i) (1- j))
-                         (funcall similarity-fn
-                                  (elt seq1 (1- i))
-                                  (elt seq2 (1- j)))))))
-            (mset d i j max))))
+               (cl-loop for j from 1 to len2 do
+                        (let ((max (max
+                                    (1- (mref d (1- i) j))
+                                    (+ (mref d i (1- j))
+                                       (if (and prefix-p (= i len1)) 0 -1))
+                                    (+ (mref d (1- i) (1- j))
+                                       (funcall similarity-fn
+                                                (elt seq1 (1- i))
+                                                (elt seq2 (1- j)))))))
+                          (mset d i j max))))
 
       (let ((i len1)
             (j len2)
@@ -1042,8 +1053,8 @@ Returns the convert process."
         (set-process-sentinel proc callback))
       proc)))
 
-(defun pdf-util-convert-page (&rest specs)
-  "Convert image of current page according to SPECS.
+(defun pdf-util-convert-image (image &rest specs)
+  "Convert IMAGE page according to SPECS.
 
 Return the converted PNG image as a string.  See also
 `pdf-util-convert'."
@@ -1053,7 +1064,7 @@ Return the converted PNG image as a string.  See also
         (out-file (make-temp-file "pdf-util-convert" nil ".png")))
     (unwind-protect
         (let ((image-data
-               (plist-get (cdr (pdf-view-current-image)) :data)))
+               (plist-get (cdr image) :data)))
           (with-temp-file in-file
             (set-buffer-multibyte nil)
             (set-buffer-file-coding-system 'binary)
@@ -1066,6 +1077,14 @@ Return the converted PNG image as a string.  See also
       (when (file-exists-p out-file)
         (delete-file out-file)))))
 
+(defun pdf-util-convert-page (&rest specs)
+  "Convert image of current page according to SPECS.
+
+Return the converted PNG image as a string.  See also
+`pdf-util-convert'."
+
+  (pdf-util-assert-pdf-window)
+  (apply #'pdf-util-convert-image (pdf-view-current-image) specs))
 
 (defun pdf-util-convert--create-commands (spec)
   (let ((fg "red")

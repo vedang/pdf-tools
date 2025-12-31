@@ -629,9 +629,9 @@ matches linked with PAGE."
     (setq pdf-occur-number-of-matches 0)
     (setq pdf-occur-search-pages-left
           (apply #'+ (mapcar (lambda (elt)
-                              (1+ (- (cdr (nth 1 elt))
-                                     (car (nth 1 elt)))))
-                            batches)))))
+                               (1+ (- (cdr (nth 1 elt))
+                                      (car (nth 1 elt)))))
+                             batches)))))
 
 
 

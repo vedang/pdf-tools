@@ -456,10 +456,7 @@ WINDOW and IMAGE-WIDTH decide the page and scale of the final image."
                         (image-size (pdf-view-create-page page))
                         (pdf-util-debug
                           (message "Prefetched page %s." page))
-                        ;; Avoid max-lisp-eval-depth
-                        (run-with-timer
-                         0.001 nil
-                         #'pdf-cache--prefetch-pages window image-width)))))))
+                        (pdf-cache--prefetch-pages window image-width)))))))
           (condition-case err
               (pdf-info-renderpage page image-width)
             (error
