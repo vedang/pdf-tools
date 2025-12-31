@@ -1,5 +1,31 @@
 -*- org -*-
-* Version 1.3.0 (Under Development)
+* Version 1.3.0
+** New functionality to improve overall user experience
+- Add ~pdf-view-roll-minor-mode~ for continuous scrolling @dalanicolai @aikrahguzar #224
+  + This highly requested feature enables smooth, continuous scrolling through PDF documents with multiple pages visible simultaneously. Enable with ~M-x pdf-view-roll-minor-mode~.
+  + Smooth pixel-level scrolling across page boundaries
+  + Multiple pages visible at once in tall windows
+  + Works with ~pixel-scroll-precision-mode~ for trackpad scrolling
+  + Configurable page margins via ~pdf-roll-vertical-margin~ and ~pdf-roll-margin-color~
+  + Closes #18, #104
+- Add ~pdf-annot-edit~ command for avy-style annotation editing @dalanicolai #224
+  + Press ~e~ in ~pdf-annot-list-mode~ or use ~M-x pdf-annot-edit~ to quickly select and edit annotations using keyboard labels.
+
+** Functionality improvements and fixes
+- Isearch now searches across all visible pages in roll mode #224
+  + When ~pdf-view-roll-minor-mode~ is active, isearch highlights matches on all displayed pages simultaneously.
+- Link following works with multiple visible pages #224
+  + ~pdf-links-action-perform~ (bound to ~F~) now shows labels for links on all visible pages.
+- Annotations work correctly on the right page in roll mode #224
+  + Text and markup annotations are added to the correct page when multiple pages are visible.
+- SyncTeX jumps work with continuous scroll mode #224
+  + Forward and backward sync correctly navigate in roll mode.
+
+** API changes (for package developers)
+- ~pdf-view-active-region~ now returns page information
+  + The region format includes the page number for multi-page awareness.
+- ~pdf-isearch-hl-matches~ signature changed
+  + Now accepts a list of pages parameter for multi-page highlighting.
 
 * Version 1.2.1
 ** Functionality fixes
