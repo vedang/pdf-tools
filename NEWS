@@ -1,6 +1,27 @@
 -*- org -*-
 * Version 1.3.0 (Under Development)
 
+* Version 1.2.1
+** Functionality fixes
+- Fix: Replace obsolete ~registerv-make~ with ~cl-defstruct~ #333
+  + The ~registerv-make~ function was removed in Emacs 30. This change updates pdf-tools to use the modern ~cl-defstruct~ approach for register support, ensuring compatibility with Emacs 30+.
+- Fix: Use correct key function for filtering page links in pdf-virtual #327
+  + Fixes an issue where virtual PDF page links were not filtered correctly.
+
+** Native compilation fixes
+- Fix: Resolve all native-comp warnings across multiple files #333
+  + Added ~declare-function~ declarations to pdf-cache, pdf-info, pdf-util, and pdf-view to eliminate byte-compilation and native-comp warnings.
+  + Fixed docstring formatting issues that caused native-comp warnings.
+
+** Installation and platform compatibility improvements
+- Add ~doas~ as privilege escalation fallback in autobuild #323
+  + The autobuild script now supports ~doas~ (used on Alpine Linux and OpenBSD) as an alternative to ~sudo~ for installing dependencies.
+
+** Infrastructure
+- Move CI from CircleCI/AppVeyor to GitHub Actions
+  + All testing now runs on GitHub Actions with a unified workflow for Ubuntu, macOS, and Windows.
+  + Pre-built Windows binaries are now available as artifacts from CI runs.
+
 * Version 1.2.0
 ** New functionality to improve overall user experience
 - Allow creation of markup annotations without a text selection @astoff #191
