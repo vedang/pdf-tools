@@ -399,7 +399,7 @@ os_macos() {
         # explanation has to do with 'keg-only' installs). If you do,
         # please update:
         # https://github.com/vedang/pdf-tools/issues/270
-        export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:$(brew --prefix libffi)/lib/pkgconfig/:$(brew --prefix zlib)/lib/pkgconfig/:$(brew --prefix glib)/lib/pkgconfig/"
+        export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:$(brew --prefix poppler)/lib/pkgconfig/:$(brew --prefix libffi)/lib/pkgconfig/:$(brew --prefix zlib)/lib/pkgconfig/:$(brew --prefix glib)/lib/pkgconfig/:$(brew --prefix pcre2)/lib/pkgconfig/"
     elif which port >/dev/null 2>&1; then
         PKGCMD=port
         PKGARGS=install
