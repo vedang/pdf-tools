@@ -639,6 +639,49 @@ This seems like a lot of work, but it is not. If you need a reference, search fo
 
 When you make your changes, please be sure to test [[id:1CBE7325-A5A1-479B-9A98-BEEFBAC9D8FF][the elisp changes]] as well as [[id:5327945D-9D92-4462-8172-7237DEF4C359][the server code changes]] as described in the linked articles.
 
+** On macOS (Homebrew), pkg-config cannot find poppler when building epdfinfo
+:PROPERTIES:
+:CREATED:  [2026-01-08 Thu 19:22]
+:ID:       B4D4AEC3-870E-46BA-A4B8-4812A55046F0
+:END:
+If =make -s= or =M-x pdf-tools-install= fails with errors like =Package 'poppler' not found= or =Package 'gpgmepp', required by 'poppler', not found=, the most common cause is that *a non-Homebrew =pkg-config= is being used* (e.g., from Anaconda/Miniconda).
+
+*Step 1: Check which =pkg-config= is being used*
+#+begin_src sh
+  which pkg-config
+#+end_src
+
+If this shows something other than =/opt/homebrew/bin/pkg-config= (Intel Macs: =/usr/local/bin/pkg-config=), that's likely the problem.
+
+*Step 2a: Fix for command-line builds*
+
+Force Homebrew's =pkg-config= before running the build:
+#+begin_src sh
+  export PKG_CONFIG=/opt/homebrew/bin/pkg-config
+  ./server/autobuild
+#+end_src
+
+*Step 2b: Fix for =M-x pdf-tools-install= within Emacs*
+
+If Emacs is picking up the wrong =pkg-config=, add this to your init file (thanks to @eli-tziperman):
+#+begin_src elisp
+  ;; Fix pdf-tools build on macOS when another pkg-config shadows Homebrew's
+  (when (eq system-type 'darwin)
+    (let* ((brew-prefix (string-trim (shell-command-to-string "brew --prefix")))
+           (brew-bin (concat brew-prefix "/bin"))
+           (brew-sbin (concat brew-prefix "/sbin"))
+           (pc-path (concat brew-prefix "/lib/pkgconfig:"
+                            brew-prefix "/share/pkgconfig")))
+      (setenv "PATH" (concat brew-bin ":" brew-sbin ":" (getenv "PATH")))
+      (setq exec-path (append (list brew-bin brew-sbin) exec-path))
+      (setenv "PKG_CONFIG" (concat brew-bin "/pkg-config"))
+      (setenv "PKG_CONFIG_PATH" pc-path)))
+#+end_src
+
+Then restart Emacs and run =M-x pdf-tools-install= again.
+
+*Note*: The =./server/autobuild= script already adjusts =PKG_CONFIG_PATH= on macOS for keg-only packages, so prefer running it directly if you encounter path-related issues.
+
 ** I am on a Macbook M1 and pdf-tools installation fails with a stack-trace
 :PROPERTIES:
 :CREATED:  [2022-05-09 Mon 20:29]
