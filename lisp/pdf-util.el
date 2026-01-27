@@ -357,10 +357,7 @@ needed."
   (let* ((win (window-inside-pixel-edges))
          (image-width (car (pdf-view-image-size t)))
          (image-left (* (frame-char-width)
-                        (window-hscroll)))
-         (edges (pdf-util-translate
-                 edges
-                 (pdf-view-image-offset) t)))
+                        (window-hscroll))))
     (pdf-util-with-edges (win edges)
       (let* ((edges-left (- edges-left context-pixel))
              (edges-right (+ edges-right context-pixel)))
@@ -396,10 +393,7 @@ pixels. This is because of a change that occurred to `image-mode' in 27."
   (pdf-util-assert-pdf-window)
   (let* ((win (window-inside-pixel-edges))
          (image-height (cdr (pdf-view-image-size t)))
-         (image-top (window-vscroll nil t))
-         (edges (pdf-util-translate
-                 edges
-                 (pdf-view-image-offset) t)))
+         (image-top (window-vscroll nil t)))
     (pdf-util-with-edges (win edges)
       (let* ((context-pixel (or context-pixel
                                 (* next-screen-context-lines
@@ -436,16 +430,19 @@ Scroll as little as necessary.  Unless EAGER-P is non-nil, in which case
 scroll as much as possible. Return a cons `(DX . DY)'of the coordinates
 in pixel of the left and top of the edges in the selected window."
 
-  (if pdf-util-scroll-to-edges-function
-      (funcall pdf-util-scroll-to-edges-function edges eager-p)
-    (let ((vscroll (pdf-util-required-vscroll edges eager-p))
-          (hscroll (pdf-util-required-hscroll edges eager-p)))
-      (when vscroll
-        (image-set-window-vscroll vscroll))
-      (when hscroll
-        (image-set-window-hscroll hscroll))
-      `(,(- (nth 0 edges) (or hscroll 0)) .
-        ,(- (nth 1 edges) (or vscroll 0))))))
+  (let ((edges (pdf-util-translate
+                edges
+                (pdf-view-image-offset) t)))
+    (if pdf-util-scroll-to-edges-function
+        (funcall pdf-util-scroll-to-edges-function edges eager-p)
+      (let ((vscroll (pdf-util-required-vscroll edges eager-p))
+            (hscroll (pdf-util-required-hscroll edges eager-p)))
+        (when vscroll
+          (image-set-window-vscroll vscroll))
+        (when hscroll
+          (image-set-window-hscroll hscroll))
+        `(,(- (nth 0 edges) (or hscroll 0)) .
+          ,(- (nth 1 edges) (or vscroll 0)))))))
 
 
 
@@ -611,8 +608,8 @@ string."
 
 (defun pdf-util-tooltip-in-window (text x y &optional window)
   (let* ((we (window-inside-absolute-pixel-edges window))
-         (dx (round (+ x (nth 0 we))))
-         (dy (round (+ y (nth 1 we))))
+         (dx (round (+ (max 0 x) (nth 0 we))))
+         (dy (round (+ (max 0 y) (nth 1 we))))
          (tooltip-frame-parameters
           `((left . ,dx)
             (top . ,dy)
@@ -628,7 +625,7 @@ string."
   ;; The x-gtk prefix has been dropped Emacs 29
   (defvaralias 'x-gtk-use-system-tooltips 'use-system-tooltips))
 
-(defun pdf-util-tooltip-arrow (image-top &optional timeout)
+(defun pdf-util-tooltip-arrow (image-top &optional timeout dont-scroll)
   (pdf-util-assert-pdf-window)
   (when (floatp image-top)
     (setq image-top
@@ -637,9 +634,11 @@ string."
          ;; ^ allow for display text property in tooltip
          (dx (+ (or (car (window-margins)) 0)
                 (car (window-fringes))))
+         (hscroll (* (window-hscroll) (frame-char-width)))
          (dy image-top)
-         (pos (list dx dy dx (+ dy (* 2 (frame-char-height)))))
-         (hvscroll (pdf-util-scroll-to-edges pos))
+         (pos (list hscroll dy hscroll (+ dy (* 2 (frame-char-height)))))
+         (hvscroll (unless dont-scroll (pdf-util-scroll-to-edges pos)))
+         (dy (or (cdr hvscroll) image-top))
          (tooltip-frame-parameters
           `((border-width . 0)
             (internal-border-width . 0)
@@ -652,7 +651,7 @@ string."
      (propertize
       " " 'display (propertize
                     "\u2192" ;;right arrow
-                    'display '(height 2)
+                    'display '(height 2 raise gt)
                     'face `(:foreground
                             "orange red"
                             :background
@@ -662,7 +661,7 @@ string."
                               ((bound-and-true-p pdf-view-themed-minor-mode)
                                (face-background 'default nil))
                               (t "white")))))
-     dx (cdr hvscroll))))
+     dx dy)))
 
 (defvar pdf-util--face-colors-cache (make-hash-table))
 

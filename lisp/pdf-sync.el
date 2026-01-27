@@ -688,6 +688,14 @@ if the point is outside them."
     syntax-table))
 
 (defvar pdf-sync--forward-timer nil)
+(defun pdf-sync--forward-scroll-to-edges (edges size)
+  "Scroll to EDGES after scaling them to SIZE."
+  (let ((edges (copy-sequence edges)))
+    (if pdf-sync-forward-use-heuristic
+        (setf (nth 2 edges) (+ (nth 0 edges) 0.1)))
+    (let ((pixel-edges (pdf-util-scale-to edges '(1.0 . 1.0) size #'round)))
+      (pdf-util-scroll-to-edges pixel-edges))))
+
 (defun pdf-sync-forward-search (&optional pos)
   "Display the PDF location corresponding to buffer position POS."
   (interactive)
@@ -705,9 +713,11 @@ if the point is outside them."
           (pdf-util-assert-pdf-window)
           (when page
             (pdf-view-goto-page page (selected-window))
-            (when-let ((y1 (nth 1 edges)))
+            (when-let ((y1 (nth 1 edges))
+                       (size (pdf-view-image-size nil nil page))
+                       (top-right (pdf-sync--forward-scroll-to-edges edges size)))
               (unless (eq pdf-sync-forward-indication-method 'highlight)
-                (pdf-util-tooltip-arrow y1))
+                (pdf-util-tooltip-arrow (cdr top-right) nil t))
               (unless (eq pdf-sync-forward-indication-method 'tooltip)
                 (pdf-sync--forward-highlight edges page)))))
         (with-current-buffer buffer
@@ -745,9 +755,6 @@ and Y2 may be nil, if the destination could not be found."
   (setq-local pdf-sync--forward-timer
               (run-with-timer 3 nil #'pdf-sync--forward-redisplay
                               (current-buffer) (selected-window)))
-  (let* ((size (pdf-view-image-size nil nil page))
-         (edges (pdf-util-scale-to edges '(1.0 . 1.0) size #'round)))
-    (pdf-util-scroll-to-edges edges))
   (pdf-view-display-region `(,page ,edges) nil 'word))
 
 (defun pdf-sync--forward-redisplay (buffer window)
@@ -858,7 +865,7 @@ and Y2 may be nil, if the destination could not be found."
                    pdf-sync-backward-text-flush-regexp
                    pdf-sync-backward-text-translations))))))
 
-(declare-function reftex-what-macro "reftex-parse")
+(autoload 'reftex-what-macro "reftex-parse")
 (defun pdf-sync--forward-source-string (pos)
   "Get the source string around POS to use for context."
   (save-excursion
