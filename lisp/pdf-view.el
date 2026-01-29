@@ -1259,7 +1259,8 @@ It is equal to \(LEFT . TOP\) of the current slice in pixel."
                        (propertize " " 'display
                                    `(space :align-to
                                            ,(/ (- (window-width window)
-                                                  displayed-width) 2)))))
+                                                  displayed-width)
+                                               2)))))
         (overlay-put ol 'display
                      (if slice
                          (list (cons 'slice
@@ -1346,7 +1347,7 @@ If WINDOW is t, redisplay pages in all windows."
       ;; `window' property is only effective if its value is a window).
       (cl-assert (eq t (car winprops)))
       (delete-overlay ol))
-    (image-mode-window-put 'overlay ol)
+    (image-mode-window-put 'overlay ol winprops)
     ;; Clean up some overlays.
     (dolist (ov (overlays-in (point-min) (point-max)))
       (when (and (windowp (overlay-get ov 'window))
