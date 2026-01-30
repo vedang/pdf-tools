@@ -501,12 +501,14 @@ It erases the buffer and adds one line containing a space for each page."
 
          (let ((inhibit-read-only t))
            (remove-overlays)
-           (dolist (win (get-buffer-window-list))
-             (pdf-roll-set-vscroll 0 win)
-             (image-mode-window-put 'displayed-pages nil win)
-             (pdf-view-new-window-function (image-mode-winprops win))
-             (pdf-view-redisplay win)
-             (set-buffer-modified-p nil))))))
+           (dolist (winprops image-mode-winprops-alist)
+             (when-let ((win (car winprops))
+                        ((window-live-p win)))
+               (pdf-roll-set-vscroll 0 win)
+               (image-mode-window-put 'displayed-pages nil win)
+               (pdf-view-new-window-function winprops)
+               (pdf-view-redisplay win)))
+           (set-buffer-modified-p nil)))))
 
 (defun pdf-roll--get-display-property ()
   "`:before-until' advice for `image-get-display-property'.
