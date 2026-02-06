@@ -35,6 +35,8 @@
 (require 'pdf-info)
 (require 'pdf-util)
 (require 'let-alist)
+(require 'texmathp nil t)
+(require 'tex nil t)
 
 ;;; Code:
 
@@ -69,6 +71,13 @@ The hook is run in the PDF's buffer."
 (defcustom pdf-sync-forward-display-action nil
   "Display action used when displaying PDF buffers."
   :type 'display-buffer--action-custom-type)
+
+(defcustom pdf-sync-forward-indication-method 'both
+  "Method to indicate the synced location in PDF.
+Can be the symbol `tooltip' in which location is indicated using a tooltip
+arrow. It can also be `highlight' which means highlight the word corresponding
+to the cursor location in the pdf. With any other value both methods are used."
+  :type '(choice tooltip highlight both))
 
 (defcustom pdf-sync-backward-display-action nil
   "Display action used when displaying TeX buffers."
@@ -130,6 +139,15 @@ with AUCTeX."
 
 
 ;; * ================================================================== *
+(defun pdf-sync--similarity-function (text source)
+  "Compute similarity score for TEXT and SOURCE."
+  (cond ((or (and (consp text) (member source text))
+             (equal source text))
+         (expt (length source) 2))
+        ((and (consp source) (member text source))
+         (expt (length text) 2))
+        (t (- (length text)))))
+
 ;; * Backward search (PDF -> TeX)
 ;; * ================================================================== *
 
@@ -278,9 +296,7 @@ Has no effect if `pdf-sync-backward-use-heuristic' is nil."
     (unless image
       (error "Outside of image area"))
     (pdf-sync-backward-search
-     (car xy) (cdr xy)
-     (and (bound-and-true-p pdf-view-roll-minor-mode)
-          (/ (+ (posn-point posn) 3) 4)))))
+     (car xy) (cdr xy) (pdf-view-posn-page posn))))
 
 (defun pdf-sync-backward-search (x y &optional page)
   "Go to the source corresponding to image coordinates X, Y on PAGE.
@@ -305,8 +321,8 @@ called in the buffer of the aforementioned file, will try to move
 point to the correct position."
 
   (pdf-util-assert-pdf-window)
-  (let ((size (pdf-view-image-size))
-        (page (or page (pdf-view-current-page))))
+  (let* ((page (or page (pdf-view-current-page)))
+         (size (pdf-view-image-size nil nil page)))
     (setq x (/ x (float (car size)))
           y (/ y (float (cdr size))))
     (let-alist (pdf-info-synctex-backward-search page x y)
@@ -315,7 +331,7 @@ point to the correct position."
         (cl-destructuring-bind (source line column)
             (or (save-selected-window
                   (apply #'run-hook-with-args-until-success
-                    'pdf-sync-backward-redirect-functions data))
+                         'pdf-sync-backward-redirect-functions data))
                 data)
           (list source
                 (if (not pdf-sync-backward-use-heuristic)
@@ -329,16 +345,9 @@ point to the correct position."
   (pdf-util-goto-position line column)
   (cl-destructuring-bind (windex chindex words)
       context
-    (let* ((swords (pdf-sync-backward--get-source-context
-                    nil (* 6 pdf-sync-backward-context-limit)))
-           (similarity-fn (lambda (text source)
-                            (if (if (consp text)
-                                    (member source text)
-                                  (equal text source))
-                                1024 -1024)))
-           (alignment
-            (pdf-util-seq-alignment
-             words swords similarity-fn 'infix)))
+    (let* ((swords (pdf-sync-backward--get-source-context))
+           (alignment (pdf-util-seq-alignment
+                       words swords #'pdf-sync--similarity-function 'infix)))
       (setq alignment (cl-remove-if-not 'car (cdr alignment)))
       (cl-assert (< windex (length alignment)))
 
@@ -354,57 +363,52 @@ point to the correct position."
           (goto-char (get-text-property 0 'position word))
           (forward-char chindex))))))
 
-(defun pdf-sync-backward--get-source-context (&optional position limit)
+(defun pdf-sync--get-region (position)
+  "Return a region around POSITION or point."
   (save-excursion
     (when position (goto-char position))
     (goto-char (line-beginning-position))
-    (let* ((region
-            (cond
-             ((eq limit 'line)
-              (cons (line-beginning-position)
-                    (line-end-position)))
-
-             ;; Synctex usually jumps to the end macro, in case it
-             ;; does not understand the environment.
-             ((and (fboundp 'LaTeX-find-matching-begin)
-                   (looking-at " *\\\\\\(end\\){"))
-              (cons (or (ignore-errors
-                          (save-excursion
-                            (LaTeX-find-matching-begin)
-                            (forward-line 1)
-                            (point)))
-                        (point))
+    (re-search-forward (rx (* (* (or "\s" "\t" "\n"))
+                              "\\label{" (* nonl) "}" "\n"))
+                       nil t)
+    (cond
+     ;; Synctex usually jumps to the end macro, in case it
+     ;; does not understand the environment.
+     ((and (fboundp 'LaTeX-find-matching-begin)
+           (looking-at " *\\\\\\(end\\){"))
+      (cons (or (ignore-errors
+                  (save-excursion
+                    (LaTeX-find-matching-begin)
+                    (forward-line 1)
                     (point)))
-             ((and (fboundp 'LaTeX-find-matching-end)
-                   (looking-at " *\\\\\\(begin\\){"))
-              (goto-char (line-end-position))
-              (cons (point)
-                    (or (ignore-errors
-                          (save-excursion
-                            (LaTeX-find-matching-end)
-                            (forward-line 0)
-                            (point)))
-                        (point))))
-             (t (cons (point) (point)))))
-           (begin (car region))
-           (end (cdr region)))
-      (when (numberp limit)
-        (let ((delta (- limit (- end begin))))
-          (when (> delta 0)
-            (setq begin (max (point-min)
-                             (- begin (/ delta 2)))
-                  end (min (point-max)
-                           (+ end (/ delta 2)))))))
-      (let ((string (buffer-substring-no-properties begin end)))
-        (dotimes (i (length string))
-          (put-text-property i (1+ i) 'position (+ begin i) string))
-        (nth 2 (pdf-sync-backward--tokenize
-                (pdf-sync-backward--source-strip-comments string)
-                nil
-                pdf-sync-backward-source-flush-regexp))))))
+                (point))
+            (point)))
+     ((and (fboundp 'LaTeX-find-matching-end)
+           (looking-at " *\\\\\\(begin\\){"))
+      (goto-char (line-end-position))
+      (cons (point)
+            (or (ignore-errors
+                  (save-excursion
+                    (LaTeX-find-matching-end)
+                    (forward-line 0)
+                    (point)))
+                (point))))
+     (t (cons (point) (line-end-position))))))
+
+(defun pdf-sync-backward--get-source-context (&optional position)
+  (let* ((region (pdf-sync--get-region position))
+         (begin (car region))
+         (end (cdr region)))
+    (let ((string (buffer-substring-no-properties begin end)))
+      (dotimes (i (length string))
+        (put-text-property i (1+ i) 'position (+ begin i) string))
+      (nth 2 (pdf-sync-backward--tokenize
+              (pdf-sync-backward--source-strip-comments string)
+              nil
+              pdf-sync-backward-source-flush-regexp)))))
 
 (defun pdf-sync-backward--source-strip-comments (string)
-  "Strip all standard LaTeX comments from string."
+  "Strip all standard LaTeX comments from STRING."
   (with-temp-buffer
     (save-excursion (insert string))
     (while (re-search-forward
@@ -455,6 +459,16 @@ point to the correct position."
        pdf-sync-backward-text-flush-regexp
        pdf-sync-backward-text-translations))))
 
+(defun pdf-sync--propertize-translation (string translation)
+  "Put properties of STRING on TRANSLATION."
+  (when translation
+    (let ((props (text-properties-at 0 string)))
+      (if (consp translation)
+          (mapcar (lambda (rep)
+                    (apply #'propertize rep props))
+                  translation)
+        (apply #'propertize translation (text-properties-at 0 string))))))
+
 (defun pdf-sync-backward--tokenize (prefix &optional suffix flush-re translation)
   (with-temp-buffer
     (when prefix (insert prefix))
@@ -479,8 +493,10 @@ point to the correct position."
       (let ((translate
              (lambda (string)
                (or (and (= (length string) 1)
-                        (cdr (assq (aref string 0)
-                                   translation)))
+                        (pdf-sync--propertize-translation
+                         string
+                         (cdr (assq (aref string 0)
+                                    translation))))
                    string)))
             words
             (windex -1)
@@ -554,7 +570,7 @@ Needs to have `pdf-sync-backward-debug-minor-mode' enabled."
 
   (interactive)
   (unless pdf-sync-backward-debug-trace
-    (error "No last search or `pdf-sync-backward-debug-minor-mode' not enabled."))
+    (error "No last search or `pdf-sync-backward-debug-minor-mode' not enabled"))
 
   (with-current-buffer (get-buffer-create "*pdf-sync-backward trace*")
     (cl-destructuring-bind (text source alignment &rest ignored)
@@ -648,49 +664,309 @@ Needs to have `pdf-sync-backward-debug-minor-mode' enabled."
 ;; * Forward search (TeX -> PDF)
 ;; * ================================================================== *
 
-(defun pdf-sync-forward-search (&optional line column)
-  "Display the PDF location corresponding to LINE, COLUMN."
-  (interactive)
-  (cl-destructuring-bind (pdf page _x1 y1 _x2 _y2)
-      (pdf-sync-forward-correlate line column)
-    (let ((buffer (or (find-buffer-visiting pdf)
-                      (find-file-noselect pdf))))
-      (with-selected-window (display-buffer
-                             buffer pdf-sync-forward-display-action)
-        (pdf-util-assert-pdf-window)
-        (when page
-	  (pdf-view-goto-page page (selected-window))
-	  (when y1
-	    (let ((top (* y1 (cdr (pdf-view-image-size)))))
-	      (pdf-util-tooltip-arrow (round top))))))
-      (with-current-buffer buffer
-        (run-hooks 'pdf-sync-forward-hook)))))
+(defcustom pdf-sync-forward-use-heuristic t
+  "Whether to apply a heuristic when forward searching.
 
-(defun pdf-sync-forward-correlate (&optional line column)
-  "Find the PDF location corresponding to LINE, COLUMN.
+If nil, just go where Synctex tells us.  Otherwise try to find
+the exact location of the point in the PDF."
+  :type 'boolean)
+
+(defcustom pdf-sync-forward-region-enclosing-macros (list "\\footnote")
+  "List of macros of one argument to determine region for forward search.
+If point is inside a macro from this list, the last argument is
+considered to be the region. These macros are all removed from the context
+if the point is outside them."
+  :type '(repeat string))
+
+(defvar pdf-sync--forward-macro-syntax-table
+  (let ((syntax-table (make-char-table 'syntax-table)))
+    (modify-syntax-entry ?{ "(}" syntax-table)
+    (modify-syntax-entry ?} "){" syntax-table)
+    (modify-syntax-entry ?\[ "(]" syntax-table)
+    (modify-syntax-entry ?\[ ")[" syntax-table)
+    (modify-syntax-entry ?\\ "/" syntax-table)
+    syntax-table))
+
+(defvar pdf-sync--forward-timer nil)
+(defun pdf-sync--forward-scroll-to-edges (edges size)
+  "Scroll to EDGES after scaling them to SIZE."
+  (let ((edges (copy-sequence edges)))
+    (if pdf-sync-forward-use-heuristic
+        (setf (nth 2 edges) (+ (nth 0 edges) 0.1)))
+    (let ((pixel-edges (pdf-util-scale-to edges '(1.0 . 1.0) size #'round)))
+      (pdf-util-scroll-to-edges pixel-edges))))
+
+(defun pdf-sync-forward-search (&optional pos)
+  "Display the PDF location corresponding to buffer position POS."
+  (interactive)
+  (save-excursion
+    (when pos (goto-char pos))
+    (cl-destructuring-bind (pdf page . edges)
+        (or (and pdf-sync-forward-use-heuristic
+                 (pdf-sync--forward-correlate-heuristically))
+            (pdf-sync-forward-correlate))
+      (let ((buffer (or (and (bufferp pdf) pdf)
+                        (find-buffer-visiting pdf)
+                        (find-file-noselect pdf))))
+        (with-selected-window (display-buffer
+                               buffer pdf-sync-forward-display-action)
+          (pdf-util-assert-pdf-window)
+          (when page
+            (pdf-view-goto-page page (selected-window))
+            (when-let ((y1 (nth 1 edges))
+                       (size (pdf-view-image-size nil nil page))
+                       (top-right (pdf-sync--forward-scroll-to-edges edges size)))
+              (unless (eq pdf-sync-forward-indication-method 'highlight)
+                (pdf-util-tooltip-arrow (cdr top-right) nil t))
+              (unless (eq pdf-sync-forward-indication-method 'tooltip)
+                (pdf-sync--forward-highlight edges page)))))
+        (with-current-buffer buffer
+          (run-hooks 'pdf-sync-forward-hook))))))
+
+(defun pdf-sync-forward-correlate (&optional pos)
+  "Find the PDF location corresponding to POS.
 
 Returns a list \(PDF PAGE X1 Y1 X2 Y2\), where PAGE, X1, Y1, X2
 and Y2 may be nil, if the destination could not be found."
   (unless (fboundp 'TeX-master-file)
     (error "This function works only with AUCTeX"))
-  (unless line (setq line (line-number-at-pos nil t)))
-  (unless column (setq column (current-column)))
-
-  (let* ((pdf (expand-file-name
-               (with-no-warnings (TeX-master-file "pdf"))))
-         (sfilename (pdf-sync-synctex-file-name
-                     (buffer-file-name) pdf)))
-    (cons pdf
-	  (condition-case error
-	      (let-alist (pdf-info-synctex-forward-search
-			  (or sfilename
-			      (buffer-file-name))
-			  line column pdf)
+  (save-excursion
+    (goto-char (or pos (point)))
+    (let* ((line (line-number-at-pos nil t))
+           (column (- (point) (line-beginning-position)))
+           (pdf (expand-file-name
+                 (with-no-warnings (TeX-master-file "pdf"))))
+           (sfilename (pdf-sync-synctex-file-name
+                       (buffer-file-name) pdf)))
+      (cons pdf
+	   (condition-case error
+	       (let-alist (pdf-info-synctex-forward-search
+			 (or sfilename
+			     (buffer-file-name))
+			 line column pdf)
 		(cons .page .edges))
-	    (error
-	     (message "%s" (error-message-string error))
-	     (list nil nil nil nil nil))))))
+	     (error
+	      (message "%s" (error-message-string error))
+	      (list nil nil nil nil nil)))))))
 
+(defun pdf-sync--forward-highlight (edges page)
+  "Temporarily highlight EDGES on PAGE."
+  (when pdf-sync--forward-timer (cancel-timer pdf-sync--forward-timer))
+  (setq-local pdf-sync--forward-timer
+              (run-with-timer 3 nil #'pdf-sync--forward-redisplay
+                              (current-buffer) (selected-window)))
+  (pdf-view-display-region `(,page ,edges) nil 'word))
+
+(defun pdf-sync--forward-redisplay (buffer window)
+  "Remove highlight from PDF BUFFER in WINDOW."
+  (if (and (window-live-p window)
+           (eq (window-buffer window) buffer))
+      (with-selected-window window
+        (when (derived-mode-p 'pdf-view-mode)
+          (pdf-view-redisplay window)))
+    (with-current-buffer buffer
+      (pdf-view-redisplay))))
+
+(defun pdf-sync--compare-lists (l1 l2)
+  "Compare lists L1 and L2 of numbers."
+  (let ((e1 (pop l1))
+        (e2 (pop l2)))
+    (while (and e1 (equal e1 e2))
+      (setq e1 (pop l1))
+      (setq e2 (pop l2)))
+    (and e1 e2 (< e1 e2))))
+
+
+(declare-function TeX-master-directory nil)
+(declare-function TeX-master-output-file nil)
+(defun pdf-sync--forward-get-records (&optional pos)
+  "Obtain the synctex records for POS."
+  (save-excursion
+    (goto-char (or pos (point)))
+    (let* ((line (line-number-at-pos (point)))
+           (col (- (point) (pos-bol)))
+           (dir (TeX-master-directory))
+           (file (file-relative-name buffer-file-name dir))
+           (buf (get-buffer-create " *synctex-test*" t))
+           (pdf (TeX-master-output-file "pdf"))
+           res)
+      (with-current-buffer buf
+        (erase-buffer)
+        (setq-local default-directory dir)
+        (call-process "synctex" nil buf nil "view"
+                      "-i" (format "%s:%s:%s" line col file)
+                      "-o" pdf)
+        (goto-char (point-min))
+        (while (re-search-forward (rx bol "Page:" (group (* nonl)) "\n"
+                                      (* nonl) "\n" (* nonl) "\n"
+                                      "h:" (* nonl) "\n"
+                                      "v:" (group (* nonl)) "\n"
+                                      "W:" (group (* nonl)) "\n"
+                                      "H:" (group (* nonl)))
+                                  nil t)
+          (let ((bottom (string-to-number (match-string 2)))
+                (height (string-to-number (match-string 4))))
+            (when (and (> height 0) (> (string-to-number (match-string 3)) 0))
+              (push `(,(string-to-number (match-string 1))
+                      ,(- bottom height)
+                      ,bottom)
+                    res))))
+        `(,(expand-file-name pdf dir)
+          . ,(sort (delete-dups res) #'pdf-sync--compare-lists))))))
+
+(defun pdf-sync--forward-merge-rectangles (records)
+  "Merge overlapping and close by rectangle in RECORDS."
+  (let ((current (pop records))
+        res)
+    (dolist (rec records)
+      (if (and (eq (nth 0 current) (nth 0 rec))
+               ;; Keep some leeway. Rectangles which are close by but
+               ;; don't overlap can cause duplicate text to appear so
+               ;; it is not worth it to keep them separate.
+               (>= (+ 0.01 (nth 2 current)) (nth 1 rec)))
+          (setq current
+                `(,(nth 0 current) ,(nth 1 current)
+                  ,(max (nth 2 current) (nth 2 rec))))
+        (push current res)
+        (setq current rec)))
+    (when current (push current res))
+    (reverse res)))
+
+(defun pdf-sync--forward-get-edges-text (page-edges)
+  "Return text corresponding to PAGE-EDGES (a cons cell (PAGE . EDGES))."
+  (let* ((page (car page-edges))
+         (edges (cdr page-edges))
+         (text (pdf-info-charlayout
+                page `( 0 ,(max 0 (- (nth 0 edges) 0.005))
+                        1 ,(min 1 (+ (nth 1 edges) 0.005))))))
+    (propertize
+     (mapconcat (lambda (c)
+                  (propertize (char-to-string (car c)) 'edges (cadr c)))
+                text)
+     'page page)))
+
+(defun pdf-sync--forward-get-text (&optional pos)
+  "Get the text for edges around POS obtained from synctex."
+  (when-let* ((records (pdf-sync--forward-get-records pos))
+              (pdf (car records))
+              (buffer (or (find-buffer-visiting pdf)
+                          (find-file-noselect pdf)))
+              (rectangles (cdr records)))
+    (with-current-buffer buffer
+      (dolist (rec rectangles)
+        (let ((height (cdr (pdf-cache-pagesize (car rec)))))
+          (setf (nth 1 rec) (/ (nth 1 rec) height))
+          (setf (nth 2 rec) (/ (nth 2 rec) height))))
+      (cl-callf pdf-sync--forward-merge-rectangles rectangles)
+      `(,buffer
+        . ,(nth 2 (pdf-sync-backward--tokenize
+                   (mapconcat #'pdf-sync--forward-get-edges-text rectangles "")
+                   nil
+                   pdf-sync-backward-text-flush-regexp
+                   pdf-sync-backward-text-translations))))))
+
+(autoload 'reftex-what-macro "reftex-parse")
+(defun pdf-sync--forward-source-string (pos)
+  "Get the source string around POS to use for context."
+  (save-excursion
+    (save-restriction
+      (let ((reg (pdf-sync--get-region pos))
+            (pos (point))
+            beg end)
+        (narrow-to-region (car reg) (cdr reg))
+        (with-syntax-table pdf-sync--forward-macro-syntax-table
+          (when-let ((macro (progn (skip-chars-forward "\\\\a-zA-Z[]")
+                                   (when (memq (char-after) '(?{ ?\[))
+                                     (forward-char))
+                                   (reftex-what-macro
+                                    pdf-sync-forward-region-enclosing-macros))))
+            (goto-char (cdr macro))
+            (search-forward "{")
+            (backward-char)
+            (while (progn
+                     (setq beg (point))
+                     (forward-sexp)
+                     (memq (char-after) '(?{ ?\[))))
+            (setq beg (1+ beg)
+                  end (1- (point)))))
+        `(,(1+ (- pos (or beg (point-min))))
+          . ,(buffer-substring-no-properties
+              (or beg (point-min)) (or end (point-max))))))))
+
+(defun pdf-sync--forward-clean-string (pos)
+  "Return a string from around POS which is suitable as context."
+  (let ((p-str (pdf-sync--forward-source-string pos))
+        (marker (make-marker))
+        (rx (rx-to-string `(: (or "\\begin" "\\end" "\\label"
+                                  ,@pdf-sync-forward-region-enclosing-macros)
+                              "{"))))
+    (with-temp-buffer
+      (set-syntax-table pdf-sync--forward-macro-syntax-table)
+      (insert (cdr p-str))
+      (set-marker marker (max 1 (car p-str)))
+      (goto-char (point-min))
+      (while (re-search-forward
+              "^\\(?:[^\\\n]\\|\\(?:\\\\\\\\\\)\\)*\\(%.*\\)" nil t)
+        (delete-region (match-beginning 1) (match-end 1)))
+      (goto-char (point-min))
+      (while (re-search-forward rx nil t)
+        (let ((beg (match-beginning 0)))
+          (backward-char)
+          (while (progn (forward-sexp)
+                        (memq (preceding-char) '(?{ ?\[))))
+          (delete-region beg (point))))
+      (goto-char marker)
+      (skip-chars-backward "a-zA-Z0-9")
+      `(,(buffer-substring
+          (max (point-min) (- (point) pdf-sync-backward-context-limit)) (point))
+        . ,(buffer-substring
+            (point) (min (point-max) (+ (point) pdf-sync-backward-context-limit)))))))
+
+(defun pdf-sync--forward-get-source-context (pos)
+  "Get the context around POS in the TeX buffer."
+  (let ((strs (pdf-sync--forward-clean-string pos)))
+    (pdf-sync-backward--tokenize
+     (car strs)
+     (cdr strs)
+     pdf-sync-backward-source-flush-regexp)))
+
+(defun pdf-sync--forward-correlate-heuristically (&optional pos)
+  "A version of `pdf-sync-forward-correlate' to try to find a better match at POS.
+Currently this uses the `synctex' executable which must be in the path. It is
+needed to access all the results returned by synctex. Ideally this will be done
+by adding a command to epdfinfo and exposing it to Lisp but till someone steps
+to do that we rely on the executable."
+  (let* ((rx (rx (+ (* (or "\s" "\n" "\t"))
+                    (or "\\begin" "\\label") "{" (* nonl) "}")
+                 (* (or "\s" "\n" "\t"))))
+         (pos (or (save-excursion
+                    (when pos (goto-char pos))
+                    (forward-line 0)
+                    (when (looking-at rx)
+                      (goto-char (match-end 0))))
+                  pos)))
+    (cl-destructuring-bind (windex _ swords)
+        (pdf-sync--forward-get-source-context pos)
+      (let* ((buf-words (pdf-sync--forward-get-text pos))
+             (words (cdr buf-words))
+             (alignment (pdf-util-seq-alignment
+                         swords words #'pdf-sync--similarity-function 'infix)))
+        (setq alignment (cl-remove-if-not 'car (cdr alignment)))
+        (cl-assert (< windex (length alignment)))
+
+        (let ((word (cdr (nth windex alignment)))
+              (max (max windex (- (length swords) windex)))
+              (count 1))
+          (while (and (not word)
+                      (< count max))
+            (setq word
+                  (or (cdr (nth (+ windex count) alignment))
+                      (cdr (nth (- windex count) alignment)))
+                  count (1+ count)))
+          (when word
+            (if (consp word) (setq word (car word)))
+            `(,(car buf-words) ,(get-text-property 0 'page word)
+              ,@(get-text-property 0 'edges word))))))))
 
 
 ;; * ================================================================== *
@@ -714,7 +990,7 @@ See also `pdf-sync-locate-synctex-file-functions'."
 
 See also `pdf-sync-locate-synctex-file'."
   (let ((default-directory
-          (file-name-directory pdffile))
+         (file-name-directory pdffile))
         (basename (file-name-sans-extension
                    (file-name-nondirectory pdffile))))
     (cl-labels ((file-if-exists-p (file)

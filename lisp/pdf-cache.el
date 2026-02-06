@@ -453,7 +453,6 @@ WINDOW and IMAGE-WIDTH decide the page and scale of the final image."
                       (when (derived-mode-p 'pdf-view-mode)
                         (pdf-cache-put-image
                          page image-width data)
-                        (image-size (pdf-view-create-page page))
                         (pdf-util-debug
                           (message "Prefetched page %s." page))
                         (pdf-cache--prefetch-pages window image-width)))))))
@@ -471,6 +470,7 @@ Used solely in `pdf-cache--prefetch-start'.")
 (defun pdf-cache--prefetch-start (buffer)
   "Start prefetching images in BUFFER."
   (when (and pdf-cache-prefetch-minor-mode
+             (pdf-view-current-page)
              (not pdf-cache--prefetch-started-p)
              (pdf-util-pdf-buffer-p)
              (not isearch-mode)
