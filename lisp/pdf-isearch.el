@@ -316,7 +316,7 @@ This is a Isearch interface function."
           (pdf-isearch-hl-matches
            pdf-isearch-current-match
            pdf-isearch-current-matches
-           nil (image-mode-window-get 'displayed-pages (selected-window))))
+           nil (pdf-view-displayed-pages)))
       (image-set-window-hscroll hscroll)
       (image-set-window-vscroll vscroll))))
 
