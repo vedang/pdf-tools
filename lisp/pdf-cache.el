@@ -453,6 +453,7 @@ WINDOW and IMAGE-WIDTH decide the page and scale of the final image."
                       (when (derived-mode-p 'pdf-view-mode)
                         (pdf-cache-put-image
                          page image-width data)
+                        (image-size (pdf-view-create-page page))
                         (pdf-util-debug
                           (message "Prefetched page %s." page))
                         (pdf-cache--prefetch-pages window image-width)))))))
