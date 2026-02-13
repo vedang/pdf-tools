@@ -153,7 +153,6 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
          (margin-overlay (pdf-roll--pos-overlay margin-pos window 'pdf-roll-margin))
          (offset (when (> (window-width window t) (car size))
                    `(space :width (,(/ (- (window-width window t) (car size)) 2))))))
-    (pdf-roll--flush-spec (overlay-get overlay 'display))
     (overlay-put overlay 'display image)
     (overlay-put overlay 'line-prefix offset)
     (overlay-put overlay 'image-height (cdr size))
@@ -183,23 +182,23 @@ If FORCE is non-nill redisplay a page even if it is already displayed."
           (im-height (pdf-roll-display-page page window force)))
       (pdf-roll-set-vscroll (min vscroll (1- im-height)) window)
       (cl-callf - available-height (- im-height (window-vscroll window t))))
-    (push (pdf-roll-page-overlay page window) displayed)
+    (push page displayed)
     (set-window-point window (+ (pdf-roll-page-to-pos page)
                                 (if (>= available-height pdf-roll-vertical-margin) 2 0)))
     (while (and (> available-height 0) (< page (pdf-cache-number-of-pages)))
       (cl-callf - available-height (pdf-roll-display-page (cl-incf page) window force))
-      (push (pdf-roll-page-overlay page window) displayed))
+      (push page displayed))
     ;; store displayed images for determining which images to update when update
     ;; is triggered
-    (cl-callf cl-union (window-parameter window 'pdf-roll--displayed-overlays) displayed)
+    (cl-callf cl-union (image-mode-window-get 'displayed-pages window) displayed)
     displayed))
 
-(defun pdf-roll-undisplay-pages (overlays)
-  "Undisplay pages displayed in OVERLAYS and flush the corresponding images.
+(defun pdf-roll-undisplay-pages (pages &optional window)
+  "Undisplay PAGES from WINDOW.
 Replaces the display property of the overlay holding a page with a space."
-  (dolist (ov overlays)
-    (pdf-roll--flush-spec (overlay-get ov 'display))
-    (overlay-put ov 'display (get 'pdf-roll 'display))))
+  (dolist (page pages)
+    (let* ((ov (pdf-roll-page-overlay page window)))
+      (overlay-put ov 'display (get 'pdf-roll 'display)))))
 
 ;;; State Management
 (defun pdf-roll-new-window-function (&optional win)
@@ -249,9 +248,7 @@ It should be added to `pre-redisplay-functions' buffer locally."
            (size-changed (not (and (eq height (nth 1 state))
                                    (eq (window-pixel-width win) (nth 2 state)))))
            (page-changed (not (eq page (nth 0 state))))
-           (vscroll-changed (not (eq vscroll (nth 3 state))))
-           (buffer-changed (not (eq (current-buffer)
-                                    (window-parameter win 'pdf-roll--buffer)))))
+           (vscroll-changed (not (eq vscroll (nth 3 state)))))
       ;; When using pixel scroll precision mode we accept its values for vscroll and hscroll.
       (if (and pscrolling
                (let ((pos (pdf-roll--window-end-posn win)))
@@ -271,24 +268,22 @@ It should be added to `pre-redisplay-functions' buffer locally."
         (set-window-start win (pdf-roll-page-to-pos page) t))
       (set-window-point win (or (nth 4 state) (window-point win)))
       (setq disable-point-adjustment t)
-      (when (or size-changed page-changed vscroll-changed buffer-changed)
+      (when (or size-changed page-changed vscroll-changed)
         ;; If images/pages are small enough (or after jumps), there
         ;; might be multiple image that need to get updated
-        (let ((old (window-parameter win 'pdf-roll--displayed-overlays))
+        (let ((old (image-mode-window-get 'displayed-pages win))
               new)
           ;; If we don't keep this page displayed, pixel-scroll-precision-mode
           ;; causes a memory leak when scrolling up.
           (when (> page 1)
             (pdf-roll-display-page (1- page) win size-changed)
-            (let ((ov (pdf-roll-page-overlay (1- page) win)))
-              (push ov (window-parameter win 'pdf-roll--displayed-overlays))
-              (setq new `(,ov))))
+            (push (1- page) (image-mode-window-get 'displayed-pages win))
+            (setq new `(,(1- page))))
           (cl-callf2 append (pdf-roll-display-pages page win size-changed) new)
-          (pdf-roll-undisplay-pages (cl-set-difference old new))
-          (set-window-parameter win 'pdf-roll--displayed-overlays new))
+          (pdf-roll-undisplay-pages (cl-set-difference old new) win)
+          (image-mode-window-put 'displayed-pages new win))
         (setf (alist-get win pdf-roll--state)
               `(,page ,height ,(window-pixel-width win) ,vscroll ,(window-point win)))
-        (set-window-parameter win 'pdf-roll--buffer (current-buffer))
         (when page-changed (run-hooks 'pdf-view-after-change-page-hook))))))
 
 ;;; Page navigation commands
@@ -411,12 +406,7 @@ If PIXELS is non-nil N is number of pixels instead of lines."
 It is also added to `revert-buffer-function'.
 
 It erases the buffer and adds one line containing a space for each page."
-  (dolist (winal pdf-roll--state)
-    (let ((win (car winal)))
-      (when (eq (window-buffer win) (current-buffer))
-        (pdf-roll-undisplay-pages
-         (window-parameter win 'pdf-roll--displayed-overlays))
-        (set-window-parameter win 'pdf-roll--displayed-overlays nil))))
+  (image-mode-window-put 'displayed-pages nil)
   (setq pdf-roll--state nil)
   (remove-overlays)
   (let ((pages (pdf-cache-number-of-pages))
