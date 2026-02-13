@@ -31,8 +31,6 @@
 
 
 
-(declare-function pdf-roll-page-overlay "pdf-roll")
-(declare-function pdf-roll-displayed-pages "pdf-roll")
 ;;; Code:
 
 
@@ -94,8 +92,56 @@ do something with it."
   :group 'pdf-links
   :type 'function)
 
+(defvar pdf-links--child-frame nil)
+(defcustom pdf-links-child-frame-parameters
+  '((name . "PDF links preview")
+    (height . 0.25)
+    (child-frame-border-width . 2)
+    (minibuffer . nil)
+    (unsplittable . t)
+    (no-other-frame . t)
+    (auto-hide-function . pdf-links-hide-childframe)
+    ;; Setting fringes to zero causes Emacs to reserve space for truncation
+    ;; and continuation glyphs which end up taking more space.
+    (left-fringe . 1)
+    (right-fringe . 1)
+    (undecorated . t))
+  "Frame parameters for the childframe used by `pdf-links-preview-in-childframe'."
+  :group 'pdf-links
+  :type '(alist :key-type symbol :value-type sexp)
+  :set (lambda (sym val)
+         (set-default-toplevel-value sym val)
+         (when pdf-links--child-frame
+           (modify-frame-parameters pdf-links--child-frame val))))
+
+(defcustom pdf-links-child-frame-size '(0.6 . 0.3)
+  "The size of the child frame relative to the pdf window.
+The car is the width of the child frame and should be a number between 0 and 1.
+The cdr is the height should be between 0 and 0.5"
+  :group 'pdf-links
+  :type '(cons float float))
+
 
 ;; * ================================================================== *
+(defcustom pdf-links-child-frame-auto-preview-wait nil
+  "Duration in seconds to wait before the preview when the cursor is on a link.
+Value of nil disables the preview."
+  :group 'pdf-links
+  :type 'float)
+
+(defvar pdf-links-child-frame-vscroll nil
+  "Determines how far to scroll initially during child frame preview.
+It can be a floating point number between 0 and 1. In this case the preview
+will be started with this fraction of page scrolled out of view. This is useful
+for documents missing precise location information. The default value of nil
+is adequate for documents with accurate location for links.
+
+It can also be function accepting two arguments. The first argument is
+the fractional location of the top of the link target given in the
+link. The second argument is the fractional size of the top margin on
+the page. It should return a floating point number between 0 and 1
+which gives the amount to scroll.")
+
 ;; * Minor Mode
 ;; * ================================================================== *
 
@@ -104,6 +150,8 @@ do something with it."
     (define-key kmap (kbd "f") 'pdf-links-isearch-link)
     (define-key kmap (kbd "F") 'pdf-links-action-perform)
     kmap))
+
+(defvar pdf-links--auto-preview-state nil)
 
 ;;;###autoload
 (define-minor-mode pdf-links-minor-mode
@@ -124,15 +172,36 @@ links via \\[pdf-links-isearch-link].
     (pdf-view-remove-hotspot-function 'pdf-links-hotspots-function)))
   (pdf-view-redisplay t))
 
+(defun pdf-links--make-help-echo (id link)
+  "Return a lambda returning help-echo for LINK and ID."
+  (lambda (win buf _pos)
+    (when (and pdf-links-child-frame-auto-preview-wait
+               (not (eq id (car pdf-links--auto-preview-state)))
+               (eq (alist-get 'type link) 'goto-dest))
+      (unless (not pdf-links--auto-preview-state)
+        (cancel-timer (nth 1 pdf-links--auto-preview-state)))
+      (with-current-buffer buf
+        (setq pdf-links--auto-preview-state
+              (list
+               id
+               (run-with-timer
+                pdf-links-child-frame-auto-preview-wait
+                pdf-links-child-frame-auto-preview-wait
+                #'pdf-links--timer link (pdf-view-current-page win)
+                buf win)
+               nil))))
+    (unless (and tooltip-mode pdf-links--auto-preview-state)
+     (pdf-links-action-to-string link))))
+
 (defun pdf-links-hotspots-function (page size)
   "Create hotspots for links on PAGE using SIZE."
-
   (let ((links (pdf-cache-pagelinks page))
         (id-fmt "link-%d-%d")
         (i 0)
         (pointer 'hand)
         hotspots)
     (dolist (l links)
+      (push `(link-page . ,page) l)
       (let ((e (pdf-util-scale
                 (cdr (assq 'edges l)) size 'round))
             (id (intern (format id-fmt page
@@ -140,9 +209,8 @@ links via \\[pdf-links-isearch-link].
         (push `((rect . ((,(nth 0 e) . ,(nth 1 e))
                          . (,(nth 2 e) . ,(nth 3 e))))
                 ,id
-                (pointer
-                 ,pointer
-                 help-echo ,(pdf-links-action-to-string l)))
+                (pointer ,pointer
+                 help-echo ,(pdf-links--make-help-echo id l)))
               hotspots)
         (local-set-key
          (vector id 'mouse-1)
@@ -222,6 +290,271 @@ scroll the current page."
        (error "Unrecognized link type: %s" .type)))
     nil))
 
+(defvar pdf-links-preview-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "f") #'pdf-links-preview-follow-link)
+    (define-key map (kbd "q") #'pdf-links-hide-child-frame)
+    (define-key map (kbd "<down>") #'pdf-links-scroll-up-child-frame)
+    (define-key map (kbd "<up>") #'pdf-links-scroll-down-child-frame)
+    map)
+  "Keymap for `pdf-links-preview-mode'.")
+
+(define-minor-mode pdf-links-preview-mode
+  "Minor mode that is active when previewing pdf links in a child frame.
+It is turned on and off automatically and shouldn't be used manually except
+for binding keys on `pdf-links-preview-mode-map'. These bindings will be
+active only when the preview is active. By default `q' can be used to dismiss
+the preview and up and down arrow keys can be used to scroll it.
+
+The mode is non-interactive and can only be enabled/disabled by calling it
+from Lisp with a suitable ARG."
+  :global t
+  :interactive nil
+  (if pdf-links-preview-mode
+      (push  `((pdf-links-preview-mode . ,pdf-links-preview-mode-map))
+             emulation-mode-map-alists)
+    (cl-callf2 cl-delete 'pdf-links-preview-mode emulation-mode-map-alists
+      :key (lambda (x) (if (consp x) (caar x) x)))))
+
+(defun pdf-links--position-child-frame (link width height use-mouse-pos)
+  "Return top and left of child frame of HEIGHT and WIDTH for LINK.
+If USE-MOUSE-POS is non-nil consider mouse position to be link position."
+  (let* ((edges (if use-mouse-pos
+                    (let ((mouse (cdr (mouse-pixel-position)))
+                          (offset (frame-char-height)))
+                      (list (- (car mouse) offset)
+                            (- (cdr mouse) offset)
+                            (+ (car mouse) offset)
+                            (+ (cdr mouse) offset)))
+                    (pdf-links--frame-edges link)))
+         (win-edges (window-edges nil t nil t))
+         (top-pos (- (nth 1 edges) height))
+         (offset (frame-char-width))
+         (top-pos-adjusted (- top-pos offset))
+         (mid (/ (+ (nth 0 edges) (nth 2 edges)) 2))
+         (left-pos (- mid (/ width 2)))
+         (right-lim (- (nth 2 win-edges) mid)))
+    (cons (if (> top-pos (nth 1 win-edges))
+              (if (> top-pos-adjusted (nth 1 win-edges))
+                  top-pos-adjusted
+                (nth 1 win-edges))
+            (if (> (- (+ (nth 3 win-edges) offset) (nth 3 edges)) height)
+                (+ (nth 3 edges) offset)
+              (nth 3 edges)))
+          (if (> left-pos (nth 0 win-edges))
+              (- left-pos (if (> right-lim (/ width 2))
+                              0
+                            (- (/ width 2) right-lim)))
+            (nth 0 win-edges)))))
+
+(defun pdf-links--timer (link page buf window)
+  "Function to manage preview for LINK on PAGE of BUF displayed in WINDOW."
+  (let ((stop nil))
+    (with-current-buffer buf
+      (if (and (eq buf (window-buffer window))
+               (eq page (pdf-view-current-page window)))
+          (with-selected-window window
+            (cl-destructuring-bind (x1 y1 x2 y2) (pdf-links--frame-edges link)
+              (cl-destructuring-bind (_frame x . y) (mouse-pixel-position)
+                (let ((insidep (and (< x1 x) (< y1 y) (< x x2) (< y y2)))
+                      (status (nth 2 pdf-links--auto-preview-state)))
+                  (cond
+                   ((and insidep (not status))
+                    (pdf-links-preview-in-child-frame link)
+                    (setf (nth 2 pdf-links--auto-preview-state) t))
+                   ((and (not insidep) status)
+                    (let ((child-pos (frame-position pdf-links--child-frame))
+                          (parent-pos (frame-position)))
+                      (setq x1 (- (car child-pos) (car parent-pos)))
+                      (setq y1 (- (cdr child-pos) (car parent-pos)))
+                      (setq x2 (+ x1 (frame-native-width pdf-links--child-frame)))
+                      (setq y2 (+ y1 (frame-native-height pdf-links--child-frame)))
+                      (unless (and (< x1 x) (< y1 y) (< x x2) (< y y2))
+                        (setq stop t))))
+                   ((not status) (setq stop t)))))))
+        (setq stop t)))
+    (when stop
+      (select-window (frame-selected-window (window-frame window)))
+      (pdf-links-hide-child-frame))))
+
+(defun pdf-links-preview-vscroll (top bb)
+  "Return vscroll fraction according to TOP and BB."
+  (cond ((floatp pdf-links-child-frame-vscroll) pdf-links-child-frame-vscroll)
+        ((functionp pdf-links-child-frame-vscroll)
+         (funcall pdf-links-child-frame-vscroll top bb))
+        (t (- top bb))))
+
+(defun pdf-links-preview-in-child-frame (link &optional use-mouse-pos)
+  "Preview the LINK if it points to a destination in the same pdf.
+Otherwise follow it using `pdf-links-action-perform'. If USE-MOUSE-POS
+is non-nil assume link to be at mouse position."
+  (interactive
+   (list (or (pdf-links-read-link-action "Activate link: ")
+             (error "No link selected"))))
+  (let-alist link
+    (if (and (eq .type 'goto-dest) (> .page 0))
+        (let* ((width (floor (* (car pdf-links-child-frame-size)
+                                (window-pixel-width))))
+               (bb (pdf-cache-boundingbox .page))
+               (slice (pdf-view-bounding-box-to-slice bb))
+               (page-width (floor (/ width (nth 2 slice))))
+               (height (floor (* (cdr pdf-links-child-frame-size)
+                                 (window-pixel-height))))
+               (page (create-image (pdf-cache-renderpage
+                                    .page page-width page-width)
+                                   (pdf-view-image-type) t
+                                   :width page-width))
+               (buffer (get-buffer-create " *pdf-link-preview*" t))
+               (top-left (pdf-links--position-child-frame
+                          link width height use-mouse-pos))
+               (window nil))
+          (unless (frame-live-p pdf-links--child-frame)
+            (setq pdf-links--child-frame
+                  (make-frame `((parent-frame . ,(selected-frame))
+                                . ,pdf-links-child-frame-parameters))))
+          (setq window (frame-selected-window pdf-links--child-frame))
+          (set-window-buffer window buffer)
+          (with-current-buffer buffer
+            (erase-buffer)
+            (setq-local image-scaling-factor 1)
+            (insert-image page nil nil
+                          (pdf-util-scale slice (image-size page t) 'round))
+            (setq mode-line-format nil
+                  cursor-type nil)
+            (goto-char (point-max))
+            (insert "\n"
+                    ;; This makes scrolling to the end of page much better with
+                    ;; pixel scroll precision mode.
+                    (propertize " " 'display '(space :width 25 :height 1000)))
+            (image-mode-setup-winprops))
+          (set-window-point window (point-min))
+          (set-window-vscroll
+           window (max 0 (* (pdf-links-preview-vscroll .top (nth 1 bb))
+                            (cdr (image-size page t))))
+           t)
+          (modify-frame-parameters pdf-links--child-frame
+                                   `((visibility . t)
+                                     (parent-frame . ,(selected-frame))
+                                     (top . ,(car top-left))
+                                     (left . ,(cdr top-left))
+                                     (width text-pixels . ,width)
+                                     (height text-pixels . ,height)
+                                     (link . ,link)))
+          (pdf-links-preview-mode))
+      (pdf-links-action-perform link))))
+
+(defun pdf-links-preview-toggle-mouse (link)
+  "Toggle the preview for LINK."
+  (if (and (frame-live-p pdf-links--child-frame)
+           (frame-visible-p pdf-links--child-frame)
+           (eq (aref (this-command-keys-vector) 0)
+               (frame-parameter pdf-links--child-frame 'link-id)))
+      (pdf-links-hide-child-frame)
+    (pdf-links-preview-in-child-frame link t)
+    (set-frame-parameter pdf-links--child-frame
+                         'link-id (aref (this-command-keys-vector) 0))))
+
+(defun pdf-links-preview-follow-link ()
+  "Follow the link being previewed."
+  (interactive)
+  (pdf-links-hide-child-frame)
+  (pdf-links-action-perform (frame-parameter pdf-links--child-frame 'link)))
+
+(defun pdf-links-hide-child-frame (&optional frame)
+  "Function to hide the childframe FRAME."
+  (interactive (list pdf-links--child-frame))
+  (when-let ((frame (or frame pdf-links--child-frame))
+             ((frame-live-p frame)))
+    (make-frame-invisible frame)
+    (pdf-links-preview-mode -1))
+  (when pdf-links--auto-preview-state
+    (cancel-timer (nth 1 pdf-links--auto-preview-state))
+    (setq pdf-links--auto-preview-state nil)))
+
+(defun pdf-links-scroll-up-child-frame (&optional n)
+  "Scroll up the preview in child frame by N lines."
+  (interactive "p")
+  (when-let ((frame (and (frame-live-p pdf-links--child-frame)
+                         pdf-links--child-frame)))
+    (with-selected-window (frame-selected-window frame)
+      (image-next-line n))))
+
+(defun pdf-links-scroll-down-child-frame (&optional n)
+  "Scroll down the preview in child frame by N lines."
+  (interactive "p")
+  (when-let ((frame (and (frame-live-p pdf-links--child-frame)
+                         pdf-links--child-frame)))
+    (with-selected-window (frame-selected-window frame)
+      (image-previous-line n))))
+
+(defun pdf-links-redirect-event-to-child-frame (event)
+  "Redirect EVENT to child frame by changing the window in it."
+  (interactive "e")
+  (unless (eq (window-frame (nth 0 (nth 1 event))) pdf-links--child-frame)
+    (setf (nth 0 (nth 1 event)) (frame-selected-window pdf-links--child-frame))
+    (push event unread-command-events)))
+
+(defun pdf-links-preview-command-was-redirected-p (cmd)
+  "Return CMD unless `last-command' was `pdf-links-redirect-event-to-child-frame'."
+  (unless (eq last-command #'pdf-links-redirect-event-to-child-frame)
+    cmd))
+
+(defun pdf-links-preview-bind-redirection (key)
+  "Bind KEY to be redirected using `pdf-links-redirect-event-to-child-frame'."
+  (define-key pdf-links-preview-mode-map (kbd key)
+              '(menu-item "" pdf-links-redirect-event-to-child-frame
+                          :filter pdf-links-preview-command-was-redirected-p)))
+
+(pdf-links-preview-bind-redirection "<wheel-up>")
+(pdf-links-preview-bind-redirection "<wheel-down>")
+(pdf-links-preview-bind-redirection "<touch-end>")
+
+(defun pdf-links--frame-edges (link)
+  "Return the position of the LINK edges on the frame coordinate system."
+  (let-alist link
+    (let* ((win-edges (window-edges nil t nil t))
+           (win-width (- (nth 2 win-edges) (nth 0 win-edges)))
+           (image (pdf-view-page-image .link-page))
+           (image-width (car (image-display-size image t)))
+           (image (or (assoc 'image image) image))
+           (prefix (if (> win-width image-width)
+                       (/ (- win-width image-width) 2)
+                     0))
+           (edges (pdf-util-scale .edges
+                                  (image-size image t) 'round))
+           (image-offset (pdf-view-image-offset nil .link-page))
+           (y-offset (+ (nth 1 win-edges)
+                        (if (eq (pdf-view-current-page) .link-page)
+                            (- (window-vscroll nil t))
+                          ;; `pos-visible-in-window-p' seems to be unreliable
+                          ;; for large images. So we check the visibility of
+                          ;; margin line and add its height to get the start
+                          ;; of page in window.
+                          ;; TO DO: Reproduce in `emacs -Q' and file a bug report.
+                          (+ (nth 1 (pos-visible-in-window-p
+                                     (- (* 4 .link-page) 5) nil t))
+                             (line-pixel-height)))
+                        (- (cdr image-offset))))
+           (x-offset (+ (nth 0 win-edges)
+                        (- (* (frame-char-height) (window-hscroll)))
+                        prefix
+                        (- (car image-offset)))))
+      (list (+ (nth 0 edges) x-offset)
+            (+ (nth 1 edges) y-offset)
+            (+ (nth 2 edges) x-offset)
+            (+ (nth 3 edges) y-offset)))))
+
+(defun pdf-links--links-for-pages (pages)
+  "Return a list of list for links on PAGES."
+  (let (links)
+    (dolist (page pages)
+      (let (pagelinks)
+        (dolist (link (pdf-cache-pagelinks page))
+          (push `(link-page . ,page) link)
+          (push link pagelinks))
+        (push (nreverse pagelinks) links)))
+    (nreverse links)))
+
 (defun pdf-links-read-link-action (prompt)
   "Using PROMPT, interactively read a link-action.
 
@@ -229,10 +562,8 @@ See `pdf-links-action-perform' for the interface."
 
   (pdf-util-assert-pdf-window)
   (let* ((win (selected-window))
-         (pages (if pdf-view-roll-minor-mode
-                    (reverse (image-mode-window-get 'displayed-pages win))
-                  (list (pdf-view-current-page))))
-         (links (mapcar #'pdf-cache-pagelinks pages))
+         (pages (pdf-view-displayed-pages win))
+         (links (pdf-links--links-for-pages pages))
          (keys (pdf-links-read-link-action--create-keys
                 (apply #'+ (mapcar #'length links))))
          (alist (cl-mapcar 'cons keys (apply #'append links)))
@@ -243,8 +574,7 @@ See `pdf-links-action-perform' for the interface."
       (unwind-protect
           (progn
             (dolist (page pages)
-              (let* ((image (or (overlay-get (pdf-roll-page-overlay page win) 'display)
-                                (pdf-view-current-image)))
+              (let* ((image (pdf-view-page-image page))
                      (image (or (assoc 'image image) image))
                      (height (cdr (image-size image t)))
                      (orig-image (create-image (plist-get (cdr image) :data)
@@ -307,7 +637,9 @@ See `pdf-links-action-perform' for the interface."
           (push key keys)))
       (nreverse keys))))
 
-(defun pdf-links-isearch-link ()
+(defun pdf-links-isearch-link (&optional action)
+  "Use isearch to find a link.
+If non-nil ACTION should be function of one argument: the selected link."
   (interactive)
   (let* (quit-p
          (isearch-mode-end-hook
@@ -321,7 +653,9 @@ See `pdf-links-action-perform' for the interface."
          pdf-isearch-batch-mode)
     (isearch-forward)
     (unless (or quit-p (null pdf-isearch-current-match))
-      (let* ((page (pdf-view-current-page))
+      (let* ((page (when (memq pdf-isearch-current-page
+                               (pdf-view-displayed-pages))
+                     pdf-isearch-current-page))
              (match (car pdf-isearch-current-match))
              (size (pdf-view-image-size))
              (links (sort (cl-remove-if
@@ -338,7 +672,13 @@ See `pdf-links-action-perform' for the interface."
                                 (alist-get 'edges e2) match))))))
         (unless links
           (error "No link found at this position"))
-        (pdf-links-action-perform (car links))))))
+        (funcall (or action 'pdf-links-action-perform)
+                 (push `(link-page . ,page) (car links)))))))
+
+(defun pdf-links-isearch-preview-in-child-frame ()
+  "Use isearch to select a link and preview it in a child frame."
+  (interactive)
+  (pdf-links-isearch-link 'pdf-links-preview-in-child-frame))
 
 (defun pdf-links-isearch-link-filter-matches (matches)
   (let ((links (pdf-util-scale
