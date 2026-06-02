@@ -1741,7 +1741,7 @@ the `convert' program is used."
   (interactive
    (list (if (pdf-view-active-region-p)
              (pdf-view-active-region t)
-           '(,(pdf-view-current-page) (0 0 1 1)))))
+           `(,(pdf-view-current-page) (0 0 1 1)))))
   (unless page
     (setq page (car regions)))
   (unless size
