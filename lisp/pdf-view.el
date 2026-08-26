@@ -303,7 +303,7 @@ regarding display of the region in the later function.")
 (defmacro pdf-view-assert-active-region ()
   "Signal an error if there are no active regions."
   `(unless (pdf-view-active-region-p)
-     (error "The region is not active")))
+     (user-error "The region is not active")))
 
 (defconst pdf-view-have-image-mode-pixel-vscroll
   (>= emacs-major-version 27)
@@ -730,7 +730,7 @@ windows."
            (read-number "Page: "))))
   (unless (and (>= page 1)
                (<= page (pdf-cache-number-of-pages)))
-    (error "No such page: %d" page))
+    (user-error "No such page: %d" page))
   (unless window
     (setq window
           (if (pdf-util-pdf-window-p)
@@ -934,7 +934,7 @@ displayed page number."
            (completing-read "Goto label: " labels nil t))))
   (let ((index (cl-position label (pdf-info-pagelabels) :test 'equal)))
     (unless index
-      (error "No such label: %s" label))
+      (user-error "No such label: %s" label))
     (pdf-view-goto-page (1+ index))))
 
 (defun pdf-view-center-in-window ()

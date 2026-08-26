@@ -475,7 +475,7 @@ Optionally, take BUFFER as an argument and check if it is a PDF document."
 (defun pdf-tools-assert-pdf-buffer (&optional buffer)
   "Throw an error if the current BUFFER does not contain a PDF document."
   (unless (pdf-tools-pdf-buffer-p buffer)
-    (error "Buffer does not contain a PDF document")))
+    (user-error "Buffer does not contain a PDF document")))
 
 (defun pdf-tools-set-modes-enabled (enable &optional modes)
   "Enable/Disable all the pdf-tools modes on the current buffer based on ENABLE.

@@ -117,10 +117,10 @@ represents the current page."
   (cond
    ((and (> n 0)
          (pdf-history-end-of-history-p))
-    (error "End of history"))
+    (user-error "End of history"))
    ((and (< n 0)
          (pdf-history-beginning-of-history-p))
-    (error "Beginning of history"))
+    (user-error "Beginning of history"))
    ((/= n 0)
     (let ((i (min (max 0 (+ pdf-history-index n))
                   (1- (length pdf-history-stack)))))
@@ -138,12 +138,12 @@ represents the current page."
   "Go to item N in the history."
   (interactive "p")
   (when (null pdf-history-stack)
-    (error "The history is empty"))
+    (user-error "The history is empty"))
   (cond
    ((>= n (length pdf-history-stack))
-    (error "End of history"))
+    (user-error "End of history"))
    ((< n 0)
-    (error "Beginning of history"))
+    (user-error "Beginning of history"))
    (t
     (setq pdf-history-index n)
     (pdf-view-goto-page

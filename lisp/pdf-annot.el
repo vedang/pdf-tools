@@ -654,7 +654,7 @@ Activation functions are defined in `pdf-annot-activate-handler-functions'."
 The DO-SAVE argument is given to
 `pdf-info-getattachment-from-annot', which see."
   (unless (pdf-annot-has-attachment-p a)
-    (error "Annotation has no data attached: %s" a))
+    (user-error "Annotation has no data attached: %s" a))
   (setq a (pdf-annot--ensure-fresh a))
   (pdf-info-getattachment-from-annot
    (pdf-annot-get-id a)
@@ -750,7 +750,7 @@ Return the Dired buffer."
           (dolist (att attachments)
             (pdf-annot-attachment-save att regenerate-p))
           (unless attachments
-            (error "Document has no data attached"))
+            (user-error "Document has no data attached"))
           (dired (pdf-annot-attachment-base-directory)))
       (dolist (att attachments)
         (let ((tmpfile (cdr (assq 'file att))))
@@ -884,7 +884,7 @@ Return nil, if no annotation was found."
                              (pdf-annot-get-display-edges a))
                             a))
                      annots)
-            (error "No annotation at this position"))))))
+            (user-error "No annotation at this position"))))))
 
 (defun pdf-annot-mouse-move (event &optional annot)
   "Start moving an annotation at EVENT's position.
@@ -906,7 +906,7 @@ i.e. a non mouse-movement event is read."
                 (pdf-annot-at-position mpos))))
     (setq a (pdf-annot--ensure-fresh a))
     (unless a
-      (error "No annotation at this position: %s" mpos))
+      (user-error "No annotation at this position: %s" mpos))
     (let* ((apos (pdf-annot-image-position a))
            (offset (cons (- (car mpos) (car apos))
                          (- (cdr mpos) (cdr apos))))
@@ -1557,7 +1557,7 @@ At any given point of time, only one annotation can be in edit mode."
   (let* ((pos (posn-object-x-y (event-start ev)))
          (a (and pos (pdf-annot-at-position pos))))
     (unless a
-      (error "No annotation at this position"))
+      (user-error "No annotation at this position"))
     (pdf-annot-edit-contents a)))
 
 (defun pdf-annot-edit (annot)
@@ -1571,7 +1571,7 @@ annot's annot is invoked.  Additionally, SPC may be used to
 scroll the current page."
   (interactive
    (list (or (pdf-annot-read-annot "Activate annot (SPC scrolls): ")
-             (error "No annot selected"))))
+             (user-error "No annot selected"))))
   (pdf-annot-activate-annotation annot))
 
 ;; TODO 'merge' this function with `pdf-links-read-link-action' into a single
@@ -1604,7 +1604,7 @@ See `pdf-annot-edit' for the interface."
                                 annots)))))
     ;; (print (plist-get args :apply))
     (unless annots
-      (error "No annots on this page"))
+      (user-error "No annots on this page"))
     (unwind-protect
         (let ((image-data
                (pdf-cache-get-image
@@ -1698,7 +1698,7 @@ belong to the same page and A1 is displayed above/left of A2."
 (defun pdf-annot-list-entries ()
   "Return all the annotations of this PDF buffer as a `tabulated-list'."
   (unless (buffer-live-p pdf-annot-list-document-buffer)
-    (error "No PDF document associated with this buffer"))
+    (user-error "No PDF document associated with this buffer"))
   (mapcar #'pdf-annot-list-create-entry
           (sort (pdf-annot-getannots nil pdf-annot-list-listed-types
                                      pdf-annot-list-document-buffer)
@@ -1846,7 +1846,7 @@ Goto the annotation A in the list."
                     (not (eq id (tabulated-list-get-id))))
           (forward-line))
         (unless (eq id (tabulated-list-get-id))
-          (error "Unable to find annotation"))
+          (user-error "Unable to find annotation"))
         (when (invisible-p (point))
           (tablist-suspend-filter t))
         (tablist-move-to-major-column)))))
@@ -1899,7 +1899,7 @@ ARGS contain the annotation-ids to operate on."
      (cl-destructuring-bind (id)
          args
        (unless (buffer-live-p pdf-annot-list-document-buffer)
-         (error "No PDF document associated with this buffer"))
+         (user-error "No PDF document associated with this buffer"))
        (let* ((buffer pdf-annot-list-document-buffer)
               (a (pdf-annot-getannot id buffer))
               (pdf-window (save-selected-window
@@ -1927,7 +1927,7 @@ have the PDF buffer automatically move along with us."
   (interactive (list (tabulated-list-get-id)))
   (when id
     (unless (buffer-live-p pdf-annot-list-document-buffer)
-      (error "PDF buffer was killed"))
+      (user-error "PDF buffer was killed"))
     (when (timerp pdf-annot-list-display-annotation--timer)
       (cancel-timer pdf-annot-list-display-annotation--timer))
     (setq pdf-annot-list-display-annotation--timer
@@ -1947,7 +1947,7 @@ have the PDF buffer automatically move along with us."
   "Make the PDF follow the annotations in the list buffer."
   :group 'pdf-annot
   (unless (derived-mode-p 'pdf-annot-list-mode)
-    (error "Not in pdf-annot-list-mode"))
+    (user-error "Not in pdf-annot-list-mode"))
   (cond
    (pdf-annot-list-follow-minor-mode
     (add-hook 'tablist-selection-changed-functions

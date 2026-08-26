@@ -534,7 +534,7 @@ See `make-temp-file' for the arguments."
 
 (defun pdf-util-assert-pdf-buffer (&optional buffer)
   (unless (pdf-util-pdf-buffer-p buffer)
-    (error "Buffer is not in PDFView mode")))
+    (user-error "Buffer is not in PDFView mode")))
 
 (defun pdf-util-pdf-window-p (&optional window)
   (unless (or (null window)
@@ -547,7 +547,7 @@ See `make-temp-file' for the arguments."
 
 (defun pdf-util-assert-pdf-window (&optional window)
   (unless (pdf-util-pdf-window-p window)
-    (error "Window's buffer is not in PdfView mode")))
+    (user-error "Window's buffer is not in PdfView mode")))
 
 (defun pdf-util-munch-file (filename &optional multibyte-p)
   "Read contents from FILENAME and delete it.
@@ -1201,13 +1201,13 @@ Return the event position object."
                (propertize prompt 'face 'minibuffer-prompt)))
           (buffer (current-buffer)))
       (unless (mouse-event-p ev)
-        (error "Not a mouse event"))
+        (user-error "Not a mouse event"))
       (let ((posn (event-start ev)))
         (unless (and (eq (window-buffer
                           (posn-window posn))
                          buffer)
                      (eq 'image (car-safe (posn-object posn))))
-          (error "Invalid image position"))
+          (user-error "Invalid image position"))
         posn))))
 
 (defun pdf-util-read-click-event (&optional prompt seconds)
@@ -1215,12 +1215,12 @@ Return the event position object."
     (unless (and (mouse-event-p down)
                  (equal (event-modifiers down)
                         '(down)))
-      (error "No a mouse click event"))
+      (user-error "No a mouse click event"))
     (let ((up (read-event prompt seconds)))
       (unless (and (mouse-event-p up)
                    (equal (event-modifiers up)
                           '(click)))
-        (error "No a mouse click event"))
+        (user-error "No a mouse click event"))
       up)))
 
 (defun pdf-util-image-map-mouse-event-proxy (event)

@@ -182,9 +182,9 @@ For a programmatic search of multiple documents see
   "Restart the search."
   (pdf-occur-assert-occur-buffer-p)
   (unless pdf-occur-search-documents
-    (error "No documents to search"))
+    (user-error "No documents to search"))
   (unless pdf-occur-search-string
-    (error "Nothing to search for"))
+    (user-error "Nothing to search for"))
   (let* ((2-columns-p (= 1 (length pdf-occur-search-documents)))
          (filename-width
           (min 24
@@ -327,7 +327,7 @@ Compatibility function for \\[next-error] invocations."
                         (1- (point-max))
                       (point-min)))))
         (when (= line limit)
-          (error "No more matches"))
+          (user-error "No more matches"))
         (forward-line
          (if (>= arg 0)
              (min arg (- limit line))
@@ -455,9 +455,9 @@ Display the occur buffer and start the search asynchronously.
 Returns the window where the buffer is displayed."
 
   (unless documents
-    (error "No documents to search"))
+    (user-error "No documents to search"))
   (when (or (null string) (= (length string) 0))
-    (error "Not searching for the empty string"))
+    (user-error "Not searching for the empty string"))
   (with-current-buffer (get-buffer-create "*PDF-Occur*")
     (pdf-occur-buffer-mode)
     (setq-local pdf-occur-search-documents
@@ -651,7 +651,7 @@ matches linked with PAGE."
                              items)
                      :test 'equal)))
     (unless documents
-      (error "No documents selected"))
+      (user-error "No documents selected"))
     (when (tablist-yes-or-no-p
            'Stop\ searching
            nil (mapcar (lambda (d) (cons nil (vector d)))
@@ -755,7 +755,7 @@ in the search list."
 
 (defun pdf-occur-assert-occur-buffer-p ()
   (unless (derived-mode-p 'pdf-occur-buffer-mode)
-    (error "Not in PDF occur buffer")))
+    (user-error "Not in PDF occur buffer")))
 
 (defun pdf-occur-want-regexp-search-p ()
   (or (and current-prefix-arg
