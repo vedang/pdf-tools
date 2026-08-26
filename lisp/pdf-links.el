@@ -194,7 +194,7 @@ link's link is invoked.  Additionally, SPC may be used to
 scroll the current page."
   (interactive
    (list (or (pdf-links-read-link-action "Activate link (SPC scrolls): ")
-             (error "No link selected"))))
+             (user-error "No link selected"))))
   (let-alist link
     (cl-case .type
       ((goto-dest goto-remote)
@@ -202,10 +202,10 @@ scroll the current page."
          (cl-case .type
            (goto-dest
             (unless (> .page 0)
-              (error "Link points to nowhere")))
+              (user-error "Link points to nowhere")))
            (goto-remote
             (unless (and .filename (file-exists-p .filename))
-              (error "Link points to nonexistent file %s" .filename))
+              (user-error "Link points to nonexistent file %s" .filename))
             (setq window (display-buffer
                           (or (find-buffer-visiting .filename)
                               (find-file-noselect .filename))))))
@@ -219,7 +219,7 @@ scroll the current page."
       (uri
        (funcall pdf-links-browse-uri-function .uri))
       (t
-       (error "Unrecognized link type: %s" .type)))
+       (user-error "Unrecognized link type: %s" .type)))
     nil))
 
 (defun pdf-links-read-link-action (prompt)
@@ -239,7 +239,7 @@ See `pdf-links-action-perform' for the interface."
          (colors (pdf-util-face-colors
                   'pdf-links-read-link pdf-view-dark-minor-mode)))
     (if (not links)
-        (error "No links on displayed pages")
+        (user-error "No links on displayed pages")
       (unwind-protect
           (progn
             (dolist (page pages)
@@ -337,7 +337,7 @@ See `pdf-links-action-perform' for the interface."
                                (pdf-util-edges-intersection-area
                                 (alist-get 'edges e2) match))))))
         (unless links
-          (error "No link found at this position"))
+          (user-error "No link found at this position"))
         (pdf-links-action-perform (car links))))))
 
 (defun pdf-links-isearch-link-filter-matches (matches)

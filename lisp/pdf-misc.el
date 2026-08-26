@@ -307,7 +307,7 @@ definition of INTERACTIVE-P."
   (let ((program (pdf-misc-print-program interactive-p))
         (args (append pdf-misc-print-program-args (list filename))))
     (unless program
-      (error "No print program available"))
+      (user-error "No print program available"))
     (apply #'start-process "printing" nil program args)
     (message "Print job started: %s %s"
              program (mapconcat #'identity args " "))))

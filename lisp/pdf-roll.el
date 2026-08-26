@@ -250,7 +250,7 @@ It should be added to `pre-redisplay-functions' buffer locally."
            (read-number "Page: "))))
   (unless (and (>= page 1)
                (<= page (pdf-cache-number-of-pages)))
-    (error "No such page: %d" page))
+    (user-error "No such page: %d" page))
   (setf (pdf-view-current-page window) page)
   (pdf-roll-set-vscroll 0 window))
 

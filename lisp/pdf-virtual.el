@@ -513,7 +513,7 @@ PAGE should be a page-number."
                             (concat " " f))
                           unreadable "\n"))))
     (if (= (pdf-virtual-document-number-of-pages) 0)
-        (error "Document is empty.")
+        (user-error "Document is empty.")
       (unless pdf-virtual-global-minor-mode
         (pdf-virtual-global-minor-mode 1))
       (funcall fn))))
@@ -574,11 +574,11 @@ PAGE should be a page-number."
 
 (defun pdf-virtual-buffer-assert-p (&optional buffer)
   (unless (pdf-virtual-buffer-p buffer)
-    (error "Buffer is not a virtual PDF buffer")))
+    (user-error "Buffer is not a virtual PDF buffer")))
 
 (defun pdf-virtual-view-window-assert-p (&optional window)
   (unless (pdf-virtual-view-window-p window)
-    (error "Window's buffer is not in `pdf-virtual-view-mode'.")))
+    (user-error "Window's buffer is not in `pdf-virtual-view-mode'.")))
 
 (defun pdf-virtual-buffer-current-file (&optional window)
   (pdf-virtual-view-window-assert-p window)

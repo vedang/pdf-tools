@@ -276,7 +276,7 @@ Has no effect if `pdf-sync-backward-use-heuristic' is nil."
          (image (posn-image posn))
          (xy (posn-object-x-y posn)))
     (unless image
-      (error "Outside of image area"))
+      (user-error "Outside of image area"))
     (pdf-sync-backward-search
      (car xy) (cdr xy)
      (and (bound-and-true-p pdf-view-roll-minor-mode)
@@ -554,7 +554,7 @@ Needs to have `pdf-sync-backward-debug-minor-mode' enabled."
 
   (interactive)
   (unless pdf-sync-backward-debug-trace
-    (error "No last search or `pdf-sync-backward-debug-minor-mode' not enabled."))
+    (user-error "No last search or `pdf-sync-backward-debug-minor-mode' not enabled."))
 
   (with-current-buffer (get-buffer-create "*pdf-sync-backward trace*")
     (cl-destructuring-bind (text source alignment &rest ignored)
@@ -672,7 +672,7 @@ Needs to have `pdf-sync-backward-debug-minor-mode' enabled."
 Returns a list \(PDF PAGE X1 Y1 X2 Y2\), where PAGE, X1, Y1, X2
 and Y2 may be nil, if the destination could not be found."
   (unless (fboundp 'TeX-master-file)
-    (error "This function works only with AUCTeX"))
+    (user-error "This function works only with AUCTeX"))
   (unless line (setq line (line-number-at-pos nil t)))
   (unless column (setq column (current-column)))
 

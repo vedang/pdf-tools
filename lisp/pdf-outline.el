@@ -234,7 +234,7 @@ buffer, unless NO-SELECT-WINDOW-P is non-nil."
           (when (= 0 (save-excursion
                        (pdf-outline-insert-outline pdf-buffer)))
             (kill-buffer buffer)
-            (error "PDF has no outline"))
+            (user-error "PDF has no outline"))
           (pdf-outline-buffer-mode))
         (set (make-local-variable 'other-window-scroll-buffer)
              pdf-buffer)
@@ -279,7 +279,7 @@ buffer, unless NO-SELECT-WINDOW-P is non-nil."
                     ((buffer-live-p pdf-outline-pdf-document)
                      pdf-outline-pdf-document)
                     ((bufferp pdf-outline-pdf-document)
-                     (error "PDF buffer was killed"))
+                     (user-error "PDF buffer was killed"))
                     (t
                      (or
                       (find-buffer-visiting
@@ -359,7 +359,7 @@ Open nodes as necessary."
   (unless pos (setq pos (point)))
   (let ((link (pdf-outline-link-at-pos pos)))
     (unless link
-      (error "Nothing to follow here"))
+      (user-error "Nothing to follow here"))
     (select-window (pdf-outline-get-pdf-window))
     (pdf-links-action-perform link)))
 
@@ -371,7 +371,7 @@ Then quit the outline window."
   (let ((link (pdf-outline-link-at-pos (or pos (point)))))
     (pdf-outline-quit)
     (unless link
-      (error "Nothing to follow here"))
+      (user-error "Nothing to follow here"))
     (pdf-links-action-perform link)))
 
 (defun pdf-outline-display-link (&optional pos)
@@ -381,7 +381,7 @@ Then quit the outline window."
   (let ((inhibit-redisplay t)
         (link (pdf-outline-link-at-pos pos)))
     (unless link
-      (error "Nothing to follow here"))
+      (user-error "Nothing to follow here"))
     (with-selected-window (pdf-outline-get-pdf-window)
       (pdf-links-action-perform link))
     (force-mode-line-update t)))

@@ -230,13 +230,13 @@ Returns nil."
   (interactive "p")
   (let ((executable pdf-info-epdfinfo-program))
     (unless (stringp executable)
-      (error "pdf-info-epdfinfo-program is unset or not a string"))
+      (user-error "pdf-info-epdfinfo-program is unset or not a string"))
     (unless (file-executable-p executable)
-      (error "pdf-info-epdfinfo-program is not executable"))
+      (user-error "pdf-info-epdfinfo-program is not executable"))
     (when pdf-info-epdfinfo-error-filename
       (unless (and (stringp pdf-info-epdfinfo-error-filename)
                    (file-writable-p pdf-info-epdfinfo-error-filename))
-        (error "pdf-info-epdfinfo-error-filename should contain writable filename")))
+        (user-error "pdf-info-epdfinfo-error-filename should contain writable filename")))
     (let* ((default-directory (expand-file-name "~/"))
            (cmdfile (make-temp-file "commands"))
            (pdffile (make-temp-file "empty.pdf"))
@@ -1015,11 +1015,11 @@ A No-op, if BUFFER has not running server instance."
 
 (defmacro pdf-info-assert-writable-annotations ()
   `(unless (memq 'writable-annotations (pdf-info-features))
-     (error "Writing annotations is not supported by this version of epdfinfo")))
+     (user-error "Writing annotations is not supported by this version of epdfinfo")))
 
 (defmacro pdf-info-assert-markup-annotations ()
   `(unless (memq 'markup-annotations (pdf-info-features))
-     (error "Creating markup annotations is not supported by this version of epdfinfo")))
+     (user-error "Creating markup annotations is not supported by this version of epdfinfo")))
 
 (defun pdf-info-creatable-annotation-types ()
   (let ((features (pdf-info-features)))
