@@ -335,13 +335,24 @@ If PIXELS is non-nil N is number of pixels instead of lines."
    nil t))
 
 ;;; Minor mode
+(defun pdf-roll--forget-displayed-pages ()
+  "Forget which pages each window on this buffer has displayed.
+`image-mode-window-put' with no window argument reaches the selected window
+only.  That is not necessarily a window showing this buffer -- after a revert
+run from a process sentinel or a timer it is whatever happened to be selected
+-- and it is never the other windows showing it, which are left naming pages
+the buffer may no longer hold an overlay for."
+  ;; `image-mode-window-put' can add the `t\' entry, so walk a copy.
+  (dolist (winprops (copy-sequence image-mode-winprops-alist))
+    (image-mode-window-put 'displayed-pages nil winprops)))
+
 (defun pdf-roll-initialize (&rest _args)
   "Fun to initialize `pdf-view-roll-minor-mode'.
 It is also added to `revert-buffer-function'."
   (let ((inhibit-read-only t))
     (erase-buffer)
     (remove-overlays))
-  (image-mode-window-put 'displayed-pages nil)
+  (pdf-roll--forget-displayed-pages)
   (pdf-roll-new-window-function))
 
 ;;;###autoload
@@ -401,7 +412,7 @@ It is also added to `revert-buffer-function'."
 
          (let ((inhibit-read-only t))
            (remove-overlays)
-           (image-mode-window-put 'displayed-pages nil)
+           (pdf-roll--forget-displayed-pages)
            (pdf-view-new-window-function (list (selected-window)))
            (set-buffer-modified-p nil)))))
 

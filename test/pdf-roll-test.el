@@ -83,6 +83,20 @@
   (should (lookup-key pdf-view-roll-minor-mode-map
                       [remap pdf-view-next-line-or-next-page])))
 
+(ert-deftest pdf-roll-forget-displayed-pages-covers-every-window ()
+  "Test that every window on the buffer forgets its displayed pages.
+`image-mode-window-put' with no window argument reaches the selected window
+only, so a second window on the same buffer kept a `displayed-pages' list
+naming pages the buffer no longer holds an overlay for."
+  (with-temp-buffer
+    (setq-local image-mode-winprops-alist
+                (list (cons t (list (cons 'displayed-pages '(1 2))))
+                      (cons 'window-a (list (cons 'displayed-pages '(3 4))))
+                      (cons 'window-b (list (cons 'displayed-pages '(5 6))))))
+    (pdf-roll--forget-displayed-pages)
+    (dolist (winprops image-mode-winprops-alist)
+      (should-not (cdr (assq 'displayed-pages (cdr winprops)))))))
+
 ;;; Provide
 
 (provide 'pdf-roll-test)
