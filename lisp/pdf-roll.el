@@ -72,6 +72,18 @@
       (/ (+ (point) 3) 4)
     (error "No page is displayed at current position (%s)" (point))))
 
+(defun pdf-roll-window-start (window)
+  "Return the position `pdf-roll' puts at the top of WINDOW.
+`window-start' answers the same question, but only until the first scroll of
+a command.  `pdf-roll-scroll-forward' and `pdf-roll-scroll-backward' record
+where they arrived in `pdf-view-current-page' and leave `window-start' to
+`pdf-roll-pre-redisplay', which runs once per redisplay.  So a command that
+scrolls more than once, such as `pdf-view-next-line-or-next-page' with an
+argument or a key bound to several scrolls, would read a `window-start' that
+still names the page it started on, and undo the page change the scroll
+before it made."
+  (pdf-roll-page-to-pos (pdf-view-current-page window)))
+
 (defun pdf-roll-set-vscroll (vscroll win)
   "Set vscroll to VSCROLL in window WIN."
   (image-mode-winprops win t)
@@ -275,7 +287,7 @@ If PIXELS is non-nil N is number of pixels instead of lines."
   (setq n (* (or n 1) (if pixels 1 (frame-char-height))))
   (setq window (or window (selected-window)))
   (when (> 0 n) (pdf-roll-scroll-backward (- n) window))
-  (let ((pos (goto-char (window-start window))))
+  (let ((pos (goto-char (pdf-roll-window-start window))))
     (while (let* ((data (pos-visible-in-window-p (point) window t))
                   (occupied-pixels (cond ((nth 2 data) (nth 4 data))
                                          (data (line-pixel-height))
@@ -302,9 +314,12 @@ If PIXELS is non-nil N is number of pixels instead of lines."
   (setq n (* (or n 1) (if pixels 1 (frame-char-height))))
   (setq window (or window (selected-window)))
   (when (> 0 n) (pdf-roll-scroll-backward (- n) window))
-  (goto-char (window-start window))
-  (let* ((data (pos-visible-in-window-p (point) window t))
-         (pixels-top (if (nth 2 data) (nth 2 data) 0)))
+  (goto-char (pdf-roll-window-start window))
+  ;; How much of the page at the top the window already shows past.  That is
+  ;; the vscroll; reading it back from `pos-visible-in-window-p' would measure
+  ;; it against `window-start', which is not updated yet (see
+  ;; `pdf-roll-window-start').
+  (let ((pixels-top (window-vscroll window t)))
     (if (< n pixels-top)
         (pdf-roll-set-vscroll (- (window-vscroll window t) n)
                                 window)
@@ -317,7 +332,10 @@ If PIXELS is non-nil N is number of pixels instead of lines."
                           (pdf-roll-page-at-current-pos) window)
                          (cl-decf n (line-pixel-height)))
                   (> n 0)))
-      (pdf-roll-set-vscroll (- n) window)))
+      ;; N is still positive when the loop stopped at the first page, which
+      ;; means the scroll asked for more pixels than the document has left.
+      ;; The top of page one is the limit.
+      (pdf-roll-set-vscroll (max 0 (- n)) window)))
   (setf (pdf-view-current-page window) (pdf-roll-page-at-current-pos)))
 
 (defun pdf-roll-scroll-screen-forward (&optional arg)

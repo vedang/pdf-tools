@@ -83,6 +83,27 @@
   (should (lookup-key pdf-view-roll-minor-mode-map
                       [remap pdf-view-next-line-or-next-page])))
 
+(ert-deftest pdf-roll-window-start-follows-current-page ()
+  "Test that `pdf-roll-window-start' reports the page, not `window-start'.
+`pdf-roll-scroll-forward' and `pdf-roll-scroll-backward' record where they
+arrive in `pdf-view-current-page' and leave `window-start' to
+`pdf-roll-pre-redisplay', which runs once per redisplay.  A command that
+scrolls more than once therefore has to ask for the page, or its second
+scroll starts from the page the first one left."
+  (with-temp-buffer
+    (insert " \n \n \n \n \n \n \n ")        ; four pages
+    ;; What `image-mode-setup-winprops' does; `image-mode-window-put' needs
+    ;; the alist to be a list rather than the not-an-image-buffer sentinel.
+    (setq-local image-mode-winprops-alist nil)
+    (let ((window (selected-window)))
+      (setf (pdf-view-current-page window) 1)
+      (should (= (pdf-roll-window-start window) 1))
+      (setf (pdf-view-current-page window) 3)
+      (should (= (pdf-roll-window-start window) 9))
+      ;; `window-start' still names page one here, which is exactly the
+      ;; disagreement the scroll commands used to read.
+      (should (= (window-start window) 1)))))
+
 ;;; Provide
 
 (provide 'pdf-roll-test)
