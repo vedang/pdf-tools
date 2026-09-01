@@ -18,6 +18,7 @@ The ~pdf-tools~ Wiki is maintained at https://pdftools.wiki. Head to the site if
     - [[#installing-the-epdfinfo-server-from-package-managers][Installing the epdfinfo server from package managers]]
     - [[#installing-the-epdfinfo-server-from-source-on-windows--gotchas][Installing the epdfinfo server from source on Windows (+ Gotchas)]]
     - [[#installing-the-epdfinfo-server-from-source-on-macos--gotchas][Installing the epdfinfo server from source on macOS (+ Gotchas)]]
+    - [[#installing-the-epdfinfo-server-from-source-on-fedora-atomic][Installing the epdfinfo server from source on Fedora Atomic]]
     - [[#common-installation-gotchas][Common installation gotchas]]
     - [[#installing-optional-features][Installing optional features]]
   - [[#installing-pdf-tools-elisp-code][Installing pdf-tools elisp code]]
@@ -115,7 +116,8 @@ This should give you no error and should compile the ~epdfinfo~ server. If you f
 The following Operating Systems / package managers are supported. *Note*: The package manager used to install pre-requisites should be installed on your OS for the script to work:
 
 - Debian-based systems (~debian~, ~ubuntu~): ~apt-get~
-- Fedora: ~dnf~
+- Fedora: ~dnf~ 
+  - Fedora Atomic spins: see [[#installing-the-epdfinfo-server-from-source-on-fedora-atomic][Installing the epdfinfo server from source on Fedora Atomic]]
 - macOS: ~brew~
 - Windows (MSYS2/ MingW): ~pacman~
 - NixOS: ~nix-shell~
@@ -162,6 +164,28 @@ If using the GNU binaries for Windows, support for PNG and ~zlib~ must first be 
 :ID:       60CBCD65-5654-400A-913F-8B31901D071C
 :END:
 On macOS, ~autobuild~ adjusts ~PKG_CONFIG_PATH~ so that ~pdf-tools~ can find some of the keg-only packages installed by ~brew~. It is recommended that you review the output logs printed by ~brew~ during the installation process to also export the relevant paths to the appropriate ENV variables.
+
+*** Installing the epdfinfo server from source on Fedora Atomic
+:PROPERTIES:
+:CREATED:  [2026-09-01 Tue 12:20]
+:ID:       49399A87-AC7C-4D0D-BA81-E07233A98F66
+:END:
+If using a Fedora Atomic spin (or in general if you have an immutable root but have access to Distrobox), you may consider installing epdfinfo inside a container:
+
+#+BEGIN_SRC sh
+distrobox create -n epdfinfo
+distrobox enter epdfinfo
+# git clone this repository or enter the downloaded package folder, and cd into it.
+# we'll call this path "PATH_TO_PDF_TOOLS_ROOT".
+./server/autobuild
+#+END_SRC
+
+This will build the server in the same way as a standard, non-Atomic Fedora platform.  Afterwards, please create the following shell script, save it somewhere and mark it executable, and use it as your ~pdf-info-epdfinfo-program~:
+
+#+BEGIN_SRC sh
+#!/bin/sh
+distrobox enter epdfinfo -- $PATH_TO_PDF_TOOLS_ROOT/server/epdfinfo
+#+END_SRC
 
 *** Common installation gotchas
 :PROPERTIES:
