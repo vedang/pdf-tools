@@ -471,6 +471,7 @@ Used solely in `pdf-cache--prefetch-start'.")
 (defun pdf-cache--prefetch-start (buffer)
   "Start prefetching images in BUFFER."
   (when (and pdf-cache-prefetch-minor-mode
+             (pdf-view-current-page)
              (not pdf-cache--prefetch-started-p)
              (pdf-util-pdf-buffer-p)
              (not isearch-mode)

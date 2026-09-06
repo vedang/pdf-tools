@@ -61,7 +61,7 @@
 (ert-deftest pdf-roll-symbol-properties ()
   "Test that pdf-roll symbol has correct properties set."
   ;; Display property for placeholder
-  (should (equal (get 'pdf-roll 'display) '(space :width 25 :height 1000)))
+  (should (equal (get 'pdf-roll 'display) '(space :width 25 :height 5000)))
   ;; Evaporate property
   (should (get 'pdf-roll 'evaporate))
   (should (get 'pdf-roll-margin 'evaporate)))
