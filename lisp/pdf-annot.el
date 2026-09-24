@@ -34,6 +34,11 @@
 (require 'cl-lib)
 (require 'seq)
 
+(defvar pdf-history-inhibit-jump)
+
+(declare-function pdf-history-before-jump "pdf-history")
+(declare-function pdf-history-after-jump "pdf-history")
+
 
 ;; * ================================================================== *
 ;; * Customizations
@@ -1000,7 +1005,9 @@ other annotations."
     (when window (select-window window 'norecord))
     (pdf-util-assert-pdf-window)
     (let ((page (pdf-annot-get a 'page))
-          (size (pdf-view-image-size)))
+          (size (pdf-view-image-size))
+          (record (bound-and-true-p pdf-history-minor-mode)))
+      (when record (pdf-history-before-jump))
       (unless (= page (pdf-view-current-page))
         (pdf-view-goto-page page))
       (let ((edges (pdf-annot-get-display-edges a)))
@@ -1015,7 +1022,8 @@ other annotations."
              :width (car size))
            (when pdf-view-roll-minor-mode page)))
         (pdf-util-scroll-to-edges
-         (pdf-util-scale-relative-to-pixel (car edges)))))))
+         (pdf-util-scale-relative-to-pixel (car edges))))
+      (when record (pdf-history-after-jump)))))
 
 (defun pdf-annot-read-annotation (&optional prompt)
   "Let the user choose a annotation a mouse click using PROMPT."
@@ -1939,7 +1947,10 @@ have the PDF buffer automatically move along with us."
                         (display-buffer
                          buffer
                          '(nil (inhibit-same-window . t))))
-                  (pdf-annot-show-annotation a t))))
+                  ;; The list is showing what the cursor is on, which is
+                  ;; not a place the reader asked to go to.
+                  (let ((pdf-history-inhibit-jump t))
+                    (pdf-annot-show-annotation a t)))))
             pdf-annot-list-document-buffer
             (pdf-annot-getannot id pdf-annot-list-document-buffer)))))
 

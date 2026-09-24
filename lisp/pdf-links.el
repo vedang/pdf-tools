@@ -29,6 +29,9 @@
 (require 'let-alist)
 (require 'org)
 
+(declare-function pdf-history-before-jump "pdf-history")
+(declare-function pdf-history-after-jump "pdf-history")
+
 
 
 (declare-function pdf-roll-page-overlay "pdf-roll")
@@ -211,11 +214,15 @@ scroll the current page."
                               (find-file-noselect .filename))))))
          (with-selected-window window
            (when (derived-mode-p 'pdf-view-mode)
+             (when (bound-and-true-p pdf-history-minor-mode)
+               (pdf-history-before-jump))
              (when (> .page 0)
                (pdf-view-goto-page .page window))
              (when .top
                (when (derived-mode-p 'pdf-view-mode)
-                 (pdf-util-tooltip-arrow .top)))))))
+                 (pdf-util-tooltip-arrow .top)))
+             (when (bound-and-true-p pdf-history-minor-mode)
+               (pdf-history-after-jump))))))
       (uri
        (funcall pdf-links-browse-uri-function .uri))
       (t

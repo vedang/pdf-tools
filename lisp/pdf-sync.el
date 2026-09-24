@@ -36,6 +36,9 @@
 (require 'pdf-util)
 (require 'let-alist)
 
+(declare-function pdf-history-before-jump "pdf-history")
+(declare-function pdf-history-after-jump "pdf-history")
+
 ;;; Code:
 
 (defgroup pdf-sync nil
@@ -659,10 +662,14 @@ Needs to have `pdf-sync-backward-debug-minor-mode' enabled."
                              buffer pdf-sync-forward-display-action)
         (pdf-util-assert-pdf-window)
         (when page
+          (when (bound-and-true-p pdf-history-minor-mode)
+            (pdf-history-before-jump))
 	  (pdf-view-goto-page page (selected-window))
 	  (when y1
 	    (let ((top (* y1 (cdr (pdf-view-image-size)))))
-	      (pdf-util-tooltip-arrow (round top))))))
+	      (pdf-util-tooltip-arrow (round top))))
+          (when (bound-and-true-p pdf-history-minor-mode)
+            (pdf-history-after-jump))))
       (with-current-buffer buffer
         (run-hooks 'pdf-sync-forward-hook)))))
 

@@ -29,6 +29,8 @@
 (require 'imenu)
 (require 'let-alist)
 
+(defvar pdf-history-inhibit-jump)
+
 ;;; Code:
 
 ;;
@@ -382,8 +384,12 @@ Then quit the outline window."
         (link (pdf-outline-link-at-pos pos)))
     (unless link
       (error "Nothing to follow here"))
-    (with-selected-window (pdf-outline-get-pdf-window)
-      (pdf-links-action-perform link))
+    ;; This shows the page the cursor is on without leaving the outline,
+    ;; and `pdf-outline-follow-mode' calls it from `post-command-hook'.
+    ;; Neither is the reader going somewhere.
+    (let ((pdf-history-inhibit-jump t))
+      (with-selected-window (pdf-outline-get-pdf-window)
+        (pdf-links-action-perform link)))
     (force-mode-line-update t)))
 
 (defun pdf-outline-mouse-display-link (event)

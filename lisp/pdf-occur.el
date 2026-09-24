@@ -31,6 +31,10 @@
 (require 'dired)
 (require 'let-alist)
 
+(defvar pdf-history-inhibit-jump)
+(declare-function pdf-history-before-jump "pdf-history")
+(declare-function pdf-history-after-jump "pdf-history")
+
 ;;; Code:
 
 
@@ -275,12 +279,19 @@ FIXME: EVENT not used at the moment."
                          doc
                        (or (find-buffer-visiting doc)
                            (find-file-noselect doc))))
+             ;; With `next-error-follow-minor-mode' on, this runs on every
+             ;; cursor movement in the occur buffer.  Read it here, while
+             ;; that buffer is still current.
+             (pdf-history-inhibit-jump
+              (bound-and-true-p next-error-follow-minor-mode))
              window)
         (if no-select-window-p
             (setq window (display-buffer buffer))
           (pop-to-buffer buffer)
           (setq window (selected-window)))
         (with-selected-window window
+          (when (bound-and-true-p pdf-history-minor-mode)
+            (pdf-history-before-jump))
           (when page
             (pdf-view-goto-page page))
           ;; Abuse isearch.
@@ -289,7 +300,9 @@ FIXME: EVENT not used at the moment."
                    (pdf-util-scale-relative-to-pixel match))
                   (pdf-isearch-batch-mode t))
               (pdf-isearch-hl-matches pixel-match nil t)
-              (pdf-isearch-focus-match-batch pixel-match))))))))
+              (pdf-isearch-focus-match-batch pixel-match)))
+          (when (bound-and-true-p pdf-history-minor-mode)
+            (pdf-history-after-jump)))))))
 
 (defun pdf-occur-view-occurrence (&optional _event)
   "View the occurrence at EVENT.
