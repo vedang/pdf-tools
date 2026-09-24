@@ -56,15 +56,26 @@
   "Get the buffer position displaing PAGE."
   (- (* 4 page) 3))
 
-(defun pdf-roll--pos-overlay (pos window)
-  "Return an overlay for WINDOW at POS."
-  (cl-find window (overlays-at pos) :key (lambda (ov) (overlay-get ov 'window))))
+(defun pdf-roll--own-overlay-p (overlay)
+  "Return non-nil if OVERLAY is a page or margin overlay of `pdf-roll'."
+  (memq (overlay-get overlay 'category) '(pdf-roll pdf-roll-margin)))
+
+(defun pdf-roll--pos-overlay (pos window category)
+  "Return the overlay with CATEGORY for WINDOW at POS.
+CATEGORY is one of the categories `pdf-roll-new-window-function' gives the
+overlays it creates, and is what tells them apart from other overlays at the
+same position.  The `window' property alone does not: Emacs puts it on the
+region highlight too (see `redisplay--highlight-overlay-function')."
+  (cl-find-if (lambda (ov)
+                (and (eq (overlay-get ov 'category) category)
+                     (eq (overlay-get ov 'window) window)))
+              (overlays-at pos)))
 
 (defun pdf-roll-page-overlay (&optional page window)
   "Return overlay displaying PAGE in WINDOW."
   (pdf-roll--pos-overlay
    (pdf-roll-page-to-pos (or page (pdf-roll-page-at-current-pos)))
-   (or window (selected-window))))
+   (or window (selected-window)) 'pdf-roll))
 
 (defun pdf-roll-page-at-current-pos ()
   "Page at point."
@@ -96,7 +107,7 @@ If INHIBIT-SLICE-P is non-nil, disregard `pdf-view-current-slice'."
          (size (image-display-size image t))
          (overlay (pdf-roll-page-overlay page window))
          (margin-pos (+ (pdf-roll-page-to-pos page) 2))
-         (margin-overlay (pdf-roll--pos-overlay margin-pos window))
+         (margin-overlay (pdf-roll--pos-overlay margin-pos window 'pdf-roll-margin))
          (offset (when (> (window-width window t) (car size))
                    `(space :width (,(/ (- (window-width window t) (car size)) 2))))))
     (overlay-put overlay 'display image)
@@ -158,7 +169,7 @@ This function should be added to pdf-roll (continuous scroll)
 minor mode commands, after erasing the buffer to create the
 overlays."
   (setq win (or (and (windowp win) win) (selected-window)))
-  (if (not (overlays-at 1))
+  (if (not (cl-find-if #'pdf-roll--own-overlay-p (overlays-at 1)))
       (let ((pages (pdf-cache-number-of-pages))
             (inhibit-read-only t))
         (erase-buffer)
@@ -173,8 +184,10 @@ overlays."
         (set-buffer-modified-p nil))
     (unless (pdf-roll-page-overlay 1 win)
       (dotimes (i (/ (point-max) 2))
-        (overlay-put (copy-overlay (car (overlays-at (1+ (* 2 i)))))
-                     'window win))
+        (let ((prototype (cl-find-if #'pdf-roll--own-overlay-p
+                                     (overlays-at (1+ (* 2 i))))))
+          (when prototype
+            (overlay-put (copy-overlay prototype) 'window win))))
       (dolist (win-st pdf-roll--state)
         (when-let ((win-old (car-safe win-st))
                    ((not (window-live-p win-old))))

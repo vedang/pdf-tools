@@ -83,6 +83,69 @@
   (should (lookup-key pdf-view-roll-minor-mode-map
                       [remap pdf-view-next-line-or-next-page])))
 
+;;; Overlay lookup tests
+
+(defun pdf-roll-test--fake-region-overlay (start end window)
+  "Return an overlay imitating Emacs's region highlight over START..END.
+`redisplay--highlight-overlay-function' tags it with WINDOW and the
+`region' face, and gives it no `category'."
+  (let ((ov (make-overlay start end)))
+    (overlay-put ov 'window window)
+    (overlay-put ov 'face 'region)
+    (overlay-put ov 'priority '(nil . 100))
+    ov))
+
+(ert-deftest pdf-roll-pos-overlay-skips-region-overlay ()
+  "Test that a region overlay at a page position is not taken for a page.
+Emacs's region highlight carries the same `window' property as a page
+overlay.  Both creation orders are checked, since `overlays-at' makes no
+promise about the order it returns overlays in."
+  (dolist (region-first '(t nil))
+    (with-temp-buffer
+      (insert " \n \n")
+      (let* ((window (selected-window))
+             (region (and region-first
+                          (pdf-roll-test--fake-region-overlay 1 2 window)))
+             (page (make-overlay 1 2)))
+        (overlay-put page 'window window)
+        (overlay-put page 'category 'pdf-roll)
+        (unless region-first
+          (setq region (pdf-roll-test--fake-region-overlay 1 2 window)))
+        (should (overlayp region))
+        (should (eq (pdf-roll--pos-overlay 1 window 'pdf-roll) page))
+        (should (eq (pdf-roll-page-overlay 1 window) page))))))
+
+(ert-deftest pdf-roll-pos-overlay-nil-without-own-overlay ()
+  "Test that an overlay without a `pdf-roll' category is never returned."
+  (with-temp-buffer
+    (insert " \n \n")
+    (let ((window (selected-window)))
+      (pdf-roll-test--fake-region-overlay 1 2 window)
+      (should-not (pdf-roll--pos-overlay 1 window 'pdf-roll)))))
+
+(ert-deftest pdf-roll-pos-overlay-finds-margin-overlay ()
+  "Test that a margin overlay is found under its own category."
+  (with-temp-buffer
+    (insert " \n \n")
+    (let ((window (selected-window))
+          (margin (make-overlay 3 4)))
+      (overlay-put margin 'window window)
+      (overlay-put margin 'category 'pdf-roll-margin)
+      (should (eq (pdf-roll--pos-overlay 3 window 'pdf-roll-margin) margin)))))
+
+(ert-deftest pdf-roll-own-overlay-p-basic ()
+  "Test `pdf-roll--own-overlay-p' against both categories and a foreign overlay."
+  (with-temp-buffer
+    (insert "  ")
+    (let ((page (make-overlay 1 2))
+          (margin (make-overlay 1 2))
+          (foreign (make-overlay 1 2)))
+      (overlay-put page 'category 'pdf-roll)
+      (overlay-put margin 'category 'pdf-roll-margin)
+      (should (pdf-roll--own-overlay-p page))
+      (should (pdf-roll--own-overlay-p margin))
+      (should-not (pdf-roll--own-overlay-p foreign)))))
+
 ;;; Provide
 
 (provide 'pdf-roll-test)
