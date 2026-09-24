@@ -83,6 +83,51 @@
   (should (lookup-key pdf-view-roll-minor-mode-map
                       [remap pdf-view-next-line-or-next-page])))
 
+(defun pdf-roll-test--page-overlay (page window)
+  "Return a new page overlay for PAGE in WINDOW in the current buffer."
+  (let* ((pos (pdf-roll-page-to-pos page))
+         (ov (make-overlay pos (1+ pos))))
+    (overlay-put ov 'category 'pdf-roll)
+    (overlay-put ov 'window window)
+    ov))
+
+(ert-deftest pdf-roll-undisplay-pages-skips-missing-overlay ()
+  "Test that undisplaying a page without an overlay is a no-op.
+The `displayed-pages' a window remembers outlive its overlays, which
+`pdf-roll-initialize' recreates whenever the buffer is reverted, so the
+list can name a page the buffer no longer holds an overlay for -- one
+inside the buffer as well as one past its end."
+  (with-temp-buffer
+    (insert " \n \n \n ")                 ; two pages
+    (let* ((window (selected-window))
+           (first (pdf-roll-test--page-overlay 1 window)))
+      (should-not (pdf-roll-page-overlay 2 window))
+      (should-not (pdf-roll-page-overlay 3 window))
+      (pdf-roll-undisplay-pages '(1 2 3) window)
+      (should (equal (overlay-get first 'display) (get 'pdf-roll 'display))))))
+
+(ert-deftest pdf-roll-initialize-postpones-during-a-render ()
+  "Test that a revert arriving during a render leaves the buffer alone.
+`pdf-roll-initialize' is what a revert runs.  While `pdf-roll--delay-revert'
+is set a page render is waiting on the server, and erasing the buffer would
+take away the overlay that render is about to write to, so the work has to
+be queued instead."
+  (with-temp-buffer
+    (insert " \n \n")
+    (let ((overlay (make-overlay 1 2))
+          (timers (length timer-list))
+          (queued nil))
+      (unwind-protect
+          (let ((pdf-roll--delay-revert t))
+            (pdf-roll-initialize)
+            (setq queued (- (length timer-list) timers))
+            ;; The buffer is untouched.
+            (should (= (point-max) 5))
+            (should (overlay-buffer overlay))
+            ;; And the work was put on a timer.
+            (should (= queued 1)))
+        (dotimes (_ queued) (cancel-timer (car (last timer-list))))))))
+
 ;;; Provide
 
 (provide 'pdf-roll-test)
