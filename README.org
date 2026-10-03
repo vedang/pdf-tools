@@ -524,6 +524,11 @@ Note that this overwrites the PDF file visited in the buffer from which it is ru
 #+end_src
 Toggling debug mode prints information about various operations in the ~*Messages*~ buffer, and this is useful to see what is happening behind the scenes
 
+Errors while parsing, transforming or logging a server response are reported to
+the query's caller. Synchronous queries signal an error; asynchronous queries
+receive an error status. These failures do not leave a consumed request waiting
+for another response.
+
 ** Run Emacs lisp tests locally
 :PROPERTIES:
 :CREATED:  [2022-05-09 Mon 21:27]

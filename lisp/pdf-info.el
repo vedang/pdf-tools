@@ -369,8 +369,13 @@ the transmission-queue and arguments to the callback."
          (callback
           (lambda (closure response)
             (cl-destructuring-bind (status &rest result)
-                (pdf-info-query--parse-response cmd response)
-              (pdf-info-query--log response)
+                ;; `tq' removes this request before calling us and catches
+                ;; callback errors.  Deliver preprocessing failures through
+                ;; the closure, or a synchronous query would wait forever.
+                (condition-case err
+                    (prog1 (pdf-info-query--parse-response cmd response)
+                      (pdf-info-query--log response))
+                  (error (cons 'error (error-message-string err))))
               (let* (pdf-info-asynchronous)
                 (if (functionp closure)
                     (funcall closure status result)
