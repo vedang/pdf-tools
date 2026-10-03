@@ -253,3 +253,19 @@
 ;; (ert-deftest pdf-info-boundingbox ()
 ;;   (pdf-test-with-test-pdf
 ;;     ))
+
+(ert-deftest pdf-info-query-runs-no-timers-while-waiting ()
+  "A synchronous query may not hand control to a timer.
+
+The wait is reachable from a mode-line construct, which Emacs evaluates
+while it is displaying, so a timer running here runs arbitrary Lisp in the
+middle of a redisplay."
+  (pdf-test-with-test-pdf
+    (let (fired)
+      (run-at-time 0 nil (lambda () (setq fired t)))
+      ;; Long enough for a timer due now to have had its chance.
+      (should (pdf-info-renderpage 1 1400))
+      (should-not fired)
+      ;; And it is only held off, not lost.
+      (sit-for 0.1)
+      (should fired))))
