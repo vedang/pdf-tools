@@ -383,13 +383,15 @@ See also `pdf-info-renderpage-highlight' and
    (pdf-cache-prefetch-minor-mode
     (pdf-util-assert-pdf-buffer)
     (add-hook 'pre-command-hook #'pdf-cache--prefetch-stop nil t)
-    ;; FIXME: Disable the time when the buffer is killed or its
-    ;; major-mode changes.
+    (add-hook 'kill-buffer-hook #'pdf-cache--prefetch-cancel nil t)
+    (add-hook 'change-major-mode-hook #'pdf-cache--prefetch-cancel nil t)
     (setq pdf-cache--prefetch-timer
           (run-with-idle-timer (or pdf-cache-prefetch-delay 1) t
                                #'pdf-cache--prefetch-start (current-buffer))))
    (t
-    (remove-hook 'pre-command-hook #'pdf-cache--prefetch-stop t))))
+    (remove-hook 'pre-command-hook #'pdf-cache--prefetch-stop t)
+    (remove-hook 'kill-buffer-hook #'pdf-cache--prefetch-cancel t)
+    (remove-hook 'change-major-mode-hook #'pdf-cache--prefetch-cancel t))))
 
 (defun pdf-cache-prefetch-pages-function-default ()
   "The default function to prefetch pages.
