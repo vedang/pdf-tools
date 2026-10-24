@@ -263,6 +263,8 @@ parse_edges (const char *str, PopplerRectangle *r)
 static void
 print_response_string (const char *str, enum suffix_char suffix)
 {
+  const char *start = str;
+
   if (str)
     {
       while (*str)
@@ -277,6 +279,12 @@ print_response_string (const char *str, enum suffix_char suffix)
               break;
             case ':':
               printf ("\\:");
+              break;
+            case '.':
+              if (str == start)
+                printf ("\\.");
+              else
+                putchar ('.');
               break;
             default:
               putchar (*str);
