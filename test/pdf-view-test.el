@@ -79,3 +79,21 @@ shows it."
     (pdf-view-goto-page 2)
     (should (= (pdf-view-current-page) 2))
     (should (pdf-view-window-needs-redisplay (selected-window)))))
+
+(ert-deftest pdf-view-bookmark-jump-without-window-system ()
+  "Jump to a bookmark with an origin in a frame that cannot display images.
+This happens when an Emacs daemon restores a desktop with a PDF
+whose place saveplace-pdf-view saved.  It must not signal, and the
+bookmark is kept to be restored once the buffer shows in a window
+that can display images."
+  (skip-unless (not (display-images-p)))
+  (pdf-test-with-test-pdf
+    (pdf-view-mode)
+    (pdf-view-bookmark-jump
+     `("test.pdf"
+       (filename . ,(expand-file-name "test.pdf"))
+       (page . 2)
+       (origin . (0.0 . 0.3))
+       (handler . pdf-view-bookmark-jump-handler)))
+    (should pdf-view--bookmark-to-restore)
+    (should (remq t window-buffer-change-functions))))

@@ -1858,13 +1858,25 @@ See also `pdf-view-bookmark-make-record'."
          (buf (or (find-buffer-visiting file)
                   (find-file-noselect file)))
          (buf-chg-fns-p (boundp 'window-buffer-change-functions))
-         (hook (if (and buf-chg-fns-p (not (get-buffer-window buf)))
+         (buf-win (get-buffer-window buf))
+         ;; In a frame that cannot display images, such as the initial
+         ;; frame of a daemon restoring a desktop, the page cannot be
+         ;; drawn and its size, needed to restore the origin, is not
+         ;; known.  Restore once the buffer shows in a window that can
+         ;; display images.
+         (hook (if (and buf-chg-fns-p
+                        (or (not buf-win)
+                            (not (display-images-p (window-frame buf-win)))))
                    'window-buffer-change-functions
                  'bookmark-after-jump-hook))
          (show-fn-sym (make-symbol "pdf-show-buffer-function")))
     (fset show-fn-sym
           (lambda (&optional win)
-            (when (eq buf (current-buffer))
+            (when (and (eq buf (current-buffer))
+                       (display-images-p
+                        (window-frame (or win
+                                          (get-buffer-window buf 0)
+                                          (selected-window)))))
               (with-selected-window
                   (or win
                       (get-buffer-window buf 0)
