@@ -1180,10 +1180,22 @@ It is equal to \(LEFT . TOP\) of the current slice in pixel."
       (cons 0 0)))))
 
 (defun pdf-view-display-page (page &optional window)
-  "Display page PAGE in WINDOW."
-  (setf (pdf-view-window-needs-redisplay window) nil)
-  (pdf-view-display-image
-   (pdf-view-create-page page window) page window))
+  "Display page PAGE in WINDOW.
+
+In a frame that cannot display images, such as the initial frame
+of an Emacs daemon restoring a desktop, nothing is drawn: WINDOW
+is marked for redisplay instead, and the page is drawn once WINDOW
+shows in a graphical frame.  Creating the image there would fail,
+as computing the original map of its hotspots needs the image's
+size."
+  (if (display-images-p (window-frame (if (windowp window)
+                                          window
+                                        (selected-window))))
+      (progn
+        (setf (pdf-view-window-needs-redisplay window) nil)
+        (pdf-view-display-image
+         (pdf-view-create-page page window) page window))
+    (setf (pdf-view-window-needs-redisplay window) t)))
 
 (defun pdf-view-display-image (image page &optional window inhibit-slice-p)
   ;; TODO: write documentation!
